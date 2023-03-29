@@ -2,7 +2,6 @@
 # change 'device' logic to bridge instances in openstack and devices in concertim
 # check gnocchi logic
 
-import signal
 import time
 import json
 import requests
@@ -11,19 +10,13 @@ import gnocchiclient.v1.client as gnocchi_client
 from keystoneauth1 import session
 from keystoneauth1.identity import v3
 
-# The URL for the CONCERTIM REST API
-CONCERTIM_URL = "https://command.concertim.alces-flight.com/"
-
-# The configuration file for the service
-CONFIG_FILE = "/etc/Concertim-Openstack-service/config.json"
-
-# The log file for the service
-LOG_FILE = "/var/logs/concertim-openstack-service.log"
 
 # The main service class
 class ConcertimService(object):
     # Initializes the service object
     def __init__(self):
+        self._CONFIG_FILE = "/etc/concertim-openstack-service/config.json"
+        self._LOG_FILE = "/var/log/concertim-openstack-service.log"
         self._config = self._load_config(CONFIG_FILE)
         self._logger = self._create_logger(LOG_FILE)
         self._auth = None
@@ -169,19 +162,3 @@ class ConcertimService(object):
         # clean up resources if needed
         raise SystemExit
 
-# The main entry point of the program
-if __name__ == "__main__":
-    service = ConcertimService()
-
-    # Set up a signal handler to stop the service gracefully
-    def signal_handler(sig, frame):
-        service.stop()
-
-    signal.signal(signal.SIGINT, signal_handler)
-    signal.signal(signal.SIGTERM, signal_handler)
-
-    try:
-        service.start()
-    except Exception as e:
-        service._logger.exception("Unhandled exception occurred: %s", e)
-        service.stop()
