@@ -1,0 +1,3 @@
+gnocchiclient==
+keystoneauth1==
+requests==

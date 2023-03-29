@@ -1,0 +1,11 @@
+{
+    "auth_url": "https://example.com:5000/v3",
+    "username": "admin",
+    "password": "password123",
+    "project_name": "admin",
+    "project_domain_name": "Default",
+    "user_domain_name": "Default",
+    "concertim_url": "https://command.concertim.alces-flight.com/",
+    "log_file": "/var/logs/concertim-openstack-service.log",
+    "log_level": "DEBUG"
+}
