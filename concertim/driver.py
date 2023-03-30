@@ -1,4 +1,4 @@
-from concertim-openstack-service.concertim.concertim_service import ConcertimService
+from concertim_service import ConcertimService
 import signal
 
 # The main entry point of the program

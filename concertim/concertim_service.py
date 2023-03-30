@@ -6,6 +6,7 @@ import time
 import json
 import requests
 import logging
+import os
 import gnocchiclient.v1.client as gnocchi_client
 from keystoneauth1 import session
 from keystoneauth1.identity import v3
@@ -17,8 +18,8 @@ class ConcertimService(object):
     def __init__(self):
         self._CONFIG_FILE = "/etc/concertim-openstack-service/config.json"
         self._LOG_FILE = "/var/log/concertim-openstack-service.log"
-        self._config = self._load_config(CONFIG_FILE)
-        self._logger = self._create_logger(LOG_FILE)
+        self._config = self._load_config(self._CONFIG_FILE)
+        self._logger = self._create_logger(self._LOG_FILE)
         self._auth = None
         self._gnocchi = None
         self._devices = {}
@@ -26,13 +27,14 @@ class ConcertimService(object):
 
     # Runs the main service loop
     def run(self):
-        self._authenticate()
         self._authenticate_openstack()
-        self._authenticate_concertim(self._config["concertim_admin_user"], self._config["concertim_admin_password"])
-        while True:
-            self._update_devices()
-            self._send_metrics()
-            time.sleep(self._config["interval"])
+        self._connect_gnocchi()
+        self._authenticate_concertim(self._config["concertim_username"], self._config["concertim_password"])
+        #while True:
+        #    self._update_devices()
+        #    self._send_metrics()
+        #    time.sleep(self._config["interval"])
+        self._update_devices()
 
     # Loads the configuration from the specified JSON file
     def _load_config(self, config_file):
@@ -42,8 +44,10 @@ class ConcertimService(object):
     # Creates a logger instance to log events and errors to a file
     def _create_logger(self, log_file):
         logger = logging.getLogger(__name__)
-        logger.setLevel(logging.DEBUG)
+        logger.setLevel(self._config["log_level"])
         formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+        if not os.path.exists(self._LOG_FILE):
+            open(self._LOG_FILE, 'w').close()
         fh = logging.FileHandler(log_file)
         fh.setFormatter(formatter)
         logger.addHandler(fh)
@@ -53,16 +57,16 @@ class ConcertimService(object):
     def _authenticate_openstack(self):
         auth_url = self._config["auth_url"]
         auth = v3.Password(auth_url=auth_url,
-                           username=self._config["user"],
+                           username=self._config["username"],
                            password=self._config["password"],
-                           project_name=self._config["project"],
-                           user_domain_id="default",
-                           project_domain_id="default")
+                           project_name=self._config["project_name"],
+                           user_domain_id=self._config["user_domain_name"],
+                           project_domain_id=self._config["project_domain_name"])
         self._auth = auth        
         
     # Authenticates with the CONCERTIM API and obtains an authentication token
     def _authenticate_concertim(self, login, password):
-        base_url = "https://command.concertim.alces-flight.com"
+        base_url = self._config["concertim_url"]
         url = f"{base_url}/users/sign_in.json"
         headers = {"Content-Type": "application/json", "Accept": "application/json"}
         data = {"user": {"login": login, "password": password}}
@@ -81,7 +85,7 @@ class ConcertimService(object):
 
     # Connects to the Gnocchi API
     def _connect_gnocchi(self):
-        sess = session.Session(auth=auth)
+        sess = session.Session(auth=self._auth)
         try:
             gnocchi = gnocchi_client.Client(session=sess)
             self._gnocchi = gnocchi
@@ -96,7 +100,7 @@ class ConcertimService(object):
         for device in devices:
             try:
                 device_id = device["device_id"]
-                response = requests.get(CONCERTIM_URL + "/" + device_id, headers={"X-Auth-Token": self._auth_token})
+                response = requests.get(self._config["concertim_url"] + "/" + device_id, headers={"X-Auth-Token": self._auth_token})
                 if response.status_code == 200:
                     device_data = response.json()
                     self._devices[device_id] = device_data
@@ -135,7 +139,7 @@ class ConcertimService(object):
                     metric_values.append({"timestamp": timestamp, "value": value})
                 metrics_data = {"device_id": device_id, "metrics": [{ "name": metrics[0]["name"], "values": metric_values }]}
                 headers = {"X-Auth-Token": self._auth_token, "Content-Type": "application/json"}
-                response = requests.post(CONCERTIM_URL, headers=headers, json=metrics_data)
+                response = requests.post(self._config["concertim_url"], headers=headers, json=metrics_data)
 
                 if response.status_code == 200:
                     self._logger.info("Sent metrics for device %s", device_id)
@@ -161,4 +165,5 @@ class ConcertimService(object):
         self._logger.info("Stopping the Concertim service")
         # clean up resources if needed
         raise SystemExit
+
 
