@@ -34,7 +34,7 @@ class ConcertimService(object):
         #    self._update_devices()
         #    self._send_metrics()
         #    time.sleep(self._config["interval"])
-        self._update_devices()
+        #self._update_devices()
 
     # Loads the configuration from the specified JSON file
     def _load_config(self, config_file):
@@ -67,10 +67,19 @@ class ConcertimService(object):
     # Authenticates with the CONCERTIM API and obtains an authentication token
     def _authenticate_concertim(self, login, password):
         base_url = self._config["concertim_url"]
-        url = f"{base_url}/users/sign_in.json"
+        url = f"{base_url}users/sign_in.json"
         headers = {"Content-Type": "application/json", "Accept": "application/json"}
-        data = {"user": {"login": login, "password": password}}
+        data = json.dumps({
+            "user": {
+                "login": login,
+                "password": password,
+            }
+        })
+        print(f"URL: {url}")
+        print(f"Headers: {headers}")
+        print(f"Data: {data}")
         response = requests.post(url, headers=headers, json=data)
+        print(response.json())
         if response.status_code in (200, 201):
             token = response.headers.get("Authorization")
             if token:
