@@ -6,6 +6,7 @@
     "project_domain_name": "Default",
     "user_domain_name": "Default",
     "concertim_url": "https://command.concertim.alces-flight.com/",
-    "log_file": "/var/logs/concertim-openstack-service.log",
+    "concertim_username": "admin"
+    "concertim_password": "admin"
     "log_level": "DEBUG"
 }
