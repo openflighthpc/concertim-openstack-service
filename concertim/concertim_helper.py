@@ -1,8 +1,6 @@
-import time
 import json
 import requests
-import logging
-import os
+
 
 # Returns the list of templates currently in CONCERTIM
 def get_concertim_templates(concertimService):
@@ -18,7 +16,7 @@ def get_concertim_templates(concertimService):
         concertimService._logger.info("Retrieved Templates Successfully")
         return response.json()
     except Exception as e:
-        concertimService._logger.exception("Failed to retrieve templates from CONCERTIM API: %s", e)
+        concertimService._logger.exception("Failed to retrieve templates from CONCERTIM API: ", e)
         raise e
         return
 
@@ -36,7 +34,7 @@ def get_concertim_devices(concertimService):
         concertimService._logger.info("Retrieved Devices Successfully")
         return response.json()
     except Exception as e:
-        concertimService._logger.exception("Failed to retrieve devices from CONCERTIM API: %s", e)
+        concertimService._logger.exception("Failed to retrieve devices from CONCERTIM API: ", e)
         raise e
         return
 
@@ -55,7 +53,7 @@ def get_concertim_racks(concertimService):
         return response.json()
 
     except Exception as e:
-        concertimService._logger.exception("Failed to retrieve racks from CONCERTIM API: %s", e)
+        concertimService._logger.exception("Failed to retrieve racks from CONCERTIM API: ", e)
         raise e
         return
 
@@ -70,10 +68,10 @@ def show_concertim_device(concertimService, device_id):
         raise Exception("No Authentication Token found in concertimService object - concertimService._auth_token is: " + concertimService._auth_token)
     try:
         response = requests.get(url, headers=headers, verify=False)
-        concertimService._logger.info("Retrieved Device Information Successfully for device: %s", device_id)
+        concertimService._logger.info("Retrieved Device Information Successfully for device: ", device_id)
         return response.json()
     except Exception as e:
-        concertimService._logger.exception("Failed to retrieve device information from CONCERTIM API: %s", e)
+        concertimService._logger.exception("Failed to retrieve device information from CONCERTIM API: ", e)
         raise e
         return
 
@@ -88,11 +86,11 @@ def show_concertim_rack(concertimService, rack_id):
         raise Exception("No Authentication Token found in concertimService object - concertimService._auth_token is: " + concertimService._auth_token)
     try:
         response = requests.get(url, headers=headers, verify=False)
-        concertimService._logger.info("Retrieved Rack Information Successfully for rack: %s", rack_id)
+        concertimService._logger.info("Retrieved Rack Information Successfully for rack: ", rack_id)
         return response.json()
 
     except Exception as e:
-        concertimService._logger.exception("Failed to retrieve rack information from CONCERTIM API: %s", e)
+        concertimService._logger.exception("Failed to retrieve rack information from CONCERTIM API: ", e)
         raise e
         return
 
@@ -123,9 +121,9 @@ def create_concertim_device(concertimService, device_name, rack_id, start_locati
             concertimService._logger.info("New Device Created Successfully")
             return response.json()
         else:
-            raise Exception("Response returned non 200 or 201 status code: %s", response.text)
+            raise Exception("Response returned non 200 or 201 status code: ", response.text)
     except Exception as e:
-        concertimService._logger.exception("Failed to create new device in CONCERTIM API: %s", e)
+        concertimService._logger.exception("Failed to create new device in CONCERTIM API: ", e)
 
 # Post a metric to concertim for a specific object (rack, device, etc)
 #   obj_to_update_name  =   the name of the rack/device/etc in concertim
@@ -150,13 +148,13 @@ def post_metric_to_concertim(concertimService, obj_to_update_name, metric_name, 
     if concertimService._auth_token is not None:
         headers["Authorization"] = concertimService._auth_token
     else:
-        raise Exception("No Authentication Token found in concertimService object - concertimService._auth_token is: %s", concertimService._auth_token)
+        raise Exception("No Authentication Token found in concertimService object - concertimService._auth_token is: ", concertimService._auth_token)
     try:
         response = requests.put(url, headers=headers, data=data, verify=False)
-        concertimService._logger.info("Metric Successfully Added: added %s to %s", metric_name, obj_to_update_name)
+        concertimService._logger.info(f"Metric Successfully Added: added {metric_name} to {obj_to_update_name}")
         return response.json()
     except Exception as e:
-        concertimService._logger.exception("Failed to put metric in CONCERTIM: %s", e)
+        concertimService._logger.exception("Failed to put metric in CONCERTIM: ", e)
         raise e
         return
         
