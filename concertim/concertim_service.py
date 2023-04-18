@@ -1,17 +1,20 @@
-# TODO:
-# change 'device' logic to bridge instances in openstack and devices in concertim
-
+# Python packages
 import json
-import requests
 import time
+from datetime import datetime, timedelta
+import requests
 requests.packages.urllib3.disable_warnings() 
 import logging
 import os
-from datetime import datetime, timedelta
-import gnocchiclient.v1.client as gnocchi_client
+
+# Local packages
+import concertim_helper
+
+# Openstack packages
 from keystoneauth1 import session
 from keystoneauth1.identity import v3
-import concertim_helper
+import keystoneclient.v3.client as keystone_client
+import gnocchiclient.v1.client as gnocchi_client
 
 
 # The main service class
@@ -24,21 +27,33 @@ class ConcertimService(object):
         self._logger = self._create_logger(self._LOG_FILE)
         self._auth = None
         self._gnocchi = None
+        self._keystone = None
         self._auth_token = None
 
     # Runs the main service loop
     def run(self):
         self._authenticate_openstack()
         self._connect_gnocchi()
-        self._authenticate_concertim(self._config["concertim_username"], self._config["concertim_password"])
+        self._conncet_keystone()
+        #self._authenticate_concertim(self._config["concertim_username"], self._config["concertim_password"])
         #while True:
-        #    self._update_concertim()
-        #    self._send_metrics()
-        #    time.sleep(300)
+        #    project_list = self._get_project_list()
+        #    for project in project_list:
+        #        self._update_concertim()
+        #        self._send_metrics()
+        #        time.sleep(300)
+        
         #print(concertim_helper.create_concertim_device(concertimService=self, device_name="concertim-instance-4", rack_id=1, start_location_id=38, template_id=5, device_description="Made UP instance", facing="f"))
-        self._update_concertim()
-        self._send_metrics()
-
+        
+        project_list = ['ef821aa9e576420c8768671d911a9766']
+        #project_list = self._get_project_list()
+        for project in project_list:
+            self._update_concertim(project_id=project)
+            self._send_metrics(project_id=project)
+        
+        
+        # Stop the service
+        self.stop()
 
     # Loads the configuration from the specified JSON file
     def _load_config(self, config_file):
@@ -102,19 +117,34 @@ class ConcertimService(object):
             raise e
         self._logger.info("Authenticated and connected Gnocchi successfully")
 
-    # Sends the metrics for each device to the CONCERTIM API
-    def _send_metrics(self):
-        # LIMIT TO ONE PROJECT FOR TESTING
-        project_id_list = ["ef821aa9e576420c8768671d911a9766"]
-        
-        for project_id in project_id_list:
-            self._logger.info(f"Begin Sending Metrics for Project: {project_id}")
-            project_query = {"and": [{"=":{"project_id":project_id}}, {"=":{"ended_at":None}}]}
-            openstack_resources_list = self._gnocchi.resource.search(query=project_query, details=True)
-            sorted_resource_list = self._sort_resource_list(resource_list=openstack_resources_list)
+    # Conncets to the Keystone API
+    def _conncet_keystone(self):
+        sess = session.Session(auth=self._auth)
+        try:
+            keystone = keystone_client.Client(session=sess)
+            self._keystone = keystone
+        except Exception as e:
+            self._logger.error("Failed to authenticate with Keystone: {}".format(str(e)))
+            raise e
+        self._logger.info("Authenticated and connected to Keystone successfully")
 
-            for openstack_instance in sorted_resource_list:
-                self._process_instance(instance_dict=sorted_resource_list[openstack_instance])
+    # Return the list of all project_ids in Openstack
+    def _get_project_list(self):
+        os_project_list = self._keystone.projects.list()
+        project_list = []
+        for project in os_project_list:
+            project_list.append(project.id)
+        return project_list
+
+    # Sends the metrics for each device to the CONCERTIM API
+    def _send_metrics(self, project_id):
+        self._logger.info(f"Begin Sending Metrics for Project: {project_id}")
+        project_query = {"and": [{"=":{"project_id":project_id}}, {"=":{"ended_at":None}}]}
+        openstack_resources_list = self._gnocchi.resource.search(query=project_query, details=True)
+        sorted_resource_list = self._sort_resource_list(resource_list=openstack_resources_list)
+
+        for openstack_instance in sorted_resource_list:
+            self._process_instance(instance_dict=sorted_resource_list[openstack_instance])
 
     # Sort Openstack project resources and group by instance_id
     def _sort_resource_list(self, resource_list):
@@ -137,8 +167,10 @@ class ConcertimService(object):
 
     # Process an openstack instance's resources and send them to Concertim
     def _process_instance(self, instance_dict):
+        # 10 minute window starting from 1 and 10 min ago to 1 hour ago
         stop = datetime.now() - timedelta(minutes=60)
         start = stop - timedelta(minutes=10)
+
         for resource in instance_dict["resources"]:
             # Metric Fetching based on resource
             if resource["type"] == "instance":
@@ -146,22 +178,18 @@ class ConcertimService(object):
                 self._post_cpu_load(resource=resource, display_name=instance_dict["display_name"], start=start, stop=stop)
                 # RAM Usage as a percent
                 self._post_ram_usage(resource=resource, display_name=instance_dict["display_name"], start=start, stop=stop)
-                #print("INSTANCE")
             elif resource["type"] == "instance_network_interface":
                 # Network usgae in bytes/s
                 self._post_network_usage(resource=resource, display_name=instance_dict["display_name"], start=start, stop=stop)
-                #print("NETWORK")
             elif resource["type"] == "instance_disk":
                 # Throughput in bytes/s
                 self._post_throughput(resource=resource, display_name=instance_dict["display_name"], start=start, stop=stop)
                 # IOPs in Ops/s
                 self._post_iops(resource=resource, display_name=instance_dict["display_name"], start=start, stop=stop)
-                #print("DISK")
 
     # Check openstack to see if there are any new instances and update concertim if there are
-    def _update_concertim(self):
-        # LIMIT TO ONE PROJECT FOR TESTING
-        project_query = {"and": [{"=":{"project_id":"ef821aa9e576420c8768671d911a9766"}}, {"=":{"ended_at":None}}]}
+    def _update_concertim(self, project_id):
+        project_query = {"and": [{"=":{"project_id":project_id}}, {"=":{"ended_at":None}}]}
         new_rack_height = 42
 
         openstack_instance_list = self._gnocchi.resource.search(resource_type="instance", query=project_query, details=True)
@@ -169,16 +197,21 @@ class ConcertimService(object):
         concertim_rack_list = concertim_helper.get_concertim_racks(concertimService=self)
         new_device_list = []
 
+        # THIS BLOCK NEEDS REWORK: 
+        # not very robust
         for instance in openstack_instance_list:
-            corresponding_device = [d for d in concertim_device_list if d['name'] == instance["display_name"]]
-            if not corresponding_device:
+            concertim_device_found = [d for d in concertim_device_list if d['name'] == instance["display_name"]]
+            if not concertim_device_found:
                 self._logger.info(f"New Instance Found in Openstack - {instance['display_name']}")
                 instance_vcpus = self._gnocchi.metric.get_measures(metric=instance["metrics"]["vcpus"])[0][2]
                 new_device_list.append((instance["display_name"], instance["id"], instance_vcpus))
+        ###
 
         if len(new_device_list) == 0:
             self._logger.info(f"All Openstack Instances are present in Concertim")
             return
+
+        # Build all new devices found for project
         concertim_helper.build_device_list(self,new_device_list)
 
     # Post CPU Load as a Percent to Concertim for a given resource and date range
