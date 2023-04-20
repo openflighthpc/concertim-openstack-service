@@ -35,13 +35,13 @@ class ConcertimService(object):
         self._authenticate_openstack()
         self._connect_gnocchi()
         self._conncet_keystone()
-        #self._authenticate_concertim(self._config["concertim_username"], self._config["concertim_password"])
+        self._authenticate_concertim(self._config["concertim_username"], self._config["concertim_password"])
         #while True:
         #    project_list = self._get_project_list()
         #    for project in project_list:
-        #        self._update_concertim()
-        #        self._send_metrics()
-        #        time.sleep(300)
+        #        self._update_concertim(project_id=project)
+        #        self._send_metrics(project_id=project)
+        #    time.sleep(300)
         
         #print(concertim_helper.create_concertim_device(concertimService=self, device_name="concertim-instance-4", rack_id=1, start_location_id=38, template_id=5, device_description="Made UP instance", facing="f"))
         

@@ -94,6 +94,78 @@ def show_concertim_rack(concertimService, rack_id):
         raise e
         return
 
+# Updates a device in concertim with either a new desc, a new name, or both
+def update_device(concertimService, device_id, current_device_name, current_device_desc, new_device_name="", new_device_desc=""):
+    device_name = None
+    device_desc = ""
+    if new_device_name == "":
+        device_name = current_device_name
+    else:
+        device_name = new_device_name
+    if new_device_desc != "":
+        device_desc = new_device_desc
+    else
+        device_desc = current_device_desc
+    
+    base_url = concertimService._config["concertim_url"]
+    url = f"{base_url}/devices/{device_id}"
+    headers = {"Content-Type": "application/json", "Accept": "application/json"}
+    data = json.dumps({
+                        "device": {
+                            "name": device_name,
+                            "description": device_desc
+                        }
+                    })
+    if concertimService._auth_token is not None:
+        headers["Authorization"] = concertimService._auth_token
+    else:
+        raise Exception(f"No Authentication Token found in concertimService object - concertimService._auth_token is: {concertimService._auth_token}")
+    
+    try:
+        response = requests.patch(url, headers=headers, data=data, verify=False)
+        if response.status_code in (200, 201):
+            concertimService._logger.info("Device Updated Successfully")
+            return response.json()
+        else:
+            raise Exception(f"Response returned non 200 or 201 status code: {response.text}")
+    except Exception as e:
+        concertimService._logger.exception(f"Failed to update device in CONCERTIM API: {e}")
+
+# Updates a rack in concertim with either a new height, a new name, or both
+def update_rack(concertimService, rack_id, current_rack_name, new_rack_name="", new_rack_height=0):
+    rack_name = None
+    rack_height = 0
+    if new_rack_name == "":
+        rack_name = current_rack_name
+    else:
+        rack_name = new_rack_name
+    if new_rack_height != 0:
+        rack_height = new_rack_height
+    
+    base_url = concertimService._config["concertim_url"]
+    url = f"{base_url}/racks/{rack_id}"
+    headers = {"Content-Type": "application/json", "Accept": "application/json"}
+    data = json.dumps({
+                        "rack": {
+                            "name": rack_name,
+                            "u_height": rack_height
+                        }
+                    })
+    if concertimService._auth_token is not None:
+        headers["Authorization"] = concertimService._auth_token
+    else:
+        raise Exception(f"No Authentication Token found in concertimService object - concertimService._auth_token is: {concertimService._auth_token}")
+    
+    try:
+        response = requests.patch(url, headers=headers, data=data, verify=False)
+        if response.status_code in (200, 201):
+            concertimService._logger.info("Rack Updated Successfully")
+            return response.json()
+        else:
+            raise Exception(f"Response returned non 200 or 201 status code: {response.text}")
+    except Exception as e:
+        concertimService._logger.exception(f"Failed to update rack in CONCERTIM API: {e}")
+    
 # Gets the template that should be used given the number of instance vcpus
 def get_device_template(concertimService, instance_vcpus):
     available_templates = get_concertim_templates(concertimService)
