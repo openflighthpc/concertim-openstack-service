@@ -1,13 +1,18 @@
+# The Main Openstack -> Concertim service that send openstack data to concertim
+
 # Python packages
 import json
 import time
 from datetime import datetime, timedelta
-import requests
-requests.packages.urllib3.disable_warnings() 
 import logging
 import os
+import traceback
 
-# Local packages
+# Disable insecure warnings  
+import requests
+requests.packages.urllib3.disable_warnings() 
+
+# Local imports
 import concertim_helper
 
 # Openstack packages
@@ -30,30 +35,36 @@ class ConcertimService(object):
         self._keystone = None
         self._auth_token = None
 
+    # If 'run' is for prod scenarios, this is for unit testing 
+    def test(self):
+        self._authenticate_openstack()
+        self._connect_gnocchi()
+        self._conncet_keystone()
+        self._authenticate_concertim(self._config["concertim_username"], self._config["concertim_password"])
+        #print(concertim_helper.create_concertim_device(concertimService=self, device_name="concertim-instance-4", rack_id=1, start_location_id=38, template_id=5, device_description="Made UP instance", facing="f"))
+        #print(concertim_helper.get_concertim_templates(concertimService=self))
+        #print(concertim_helper.delete_rack(concertimService=self, rack_id='8', full_delete=True))
+
+        # IN WHILE LOOP
+        os_project_list = ['ef821aa9e576420c8768671d911a9766']
+        #os_project_list = self._get_project_list()
+        #concertim_accounts = concertim_helper.get_concertim_accounts(concertimService=self)
+        for project in os_project_list:
+            self._update_concertim(project_id=project)
+        #    self._send_metrics(project_id=project)
+
     # Runs the main service loop
     def run(self):
         self._authenticate_openstack()
         self._connect_gnocchi()
         self._conncet_keystone()
         self._authenticate_concertim(self._config["concertim_username"], self._config["concertim_password"])
-        #while True:
-        #    project_list = self._get_project_list()
-        #    for project in project_list:
-        #        self._update_concertim(project_id=project)
-        #        self._send_metrics(project_id=project)
-        #    time.sleep(300)
-        
-        #print(concertim_helper.create_concertim_device(concertimService=self, device_name="concertim-instance-4", rack_id=1, start_location_id=38, template_id=5, device_description="Made UP instance", facing="f"))
-        
-        project_list = ['ef821aa9e576420c8768671d911a9766']
-        #project_list = self._get_project_list()
-        for project in project_list:
-            self._update_concertim(project_id=project)
-            self._send_metrics(project_id=project)
-        
-        
-        # Stop the service
-        self.stop()
+        while True:
+            os_project_list = self._get_project_list()
+            for project in os_project_list:
+                self._update_concertim(project_id=project)
+                self._send_metrics(project_id=project)
+            time.sleep(300)
 
     # Loads the configuration from the specified JSON file
     def _load_config(self, config_file):
@@ -98,12 +109,12 @@ class ConcertimService(object):
             token = response.headers.get("Authorization")
             if token:
                 self._auth_token = token
-                self._logger.info("Authenticated with CONCERTIM successfully")
+                self._log('I', "Authenticated with CONCERTIM successfully")
             else:
-                self._logger.error("Failed to obtain auth token from CONCERTIM API")
+                self._log('EX', "Failed to obtain auth token from CONCERTIM API")
                 raise Exception("Failed to obtain auth token from CONCERTIM API")
         else:
-            self._logger.error("Authentication with CONCERTIM failed: ", response.text)
+            self._log('EX', f"Authentication with CONCERTIM failed: {response}")
             raise Exception("Authentication with CONCERTIM failed")
 
     # Connects to the Gnocchi API
@@ -113,9 +124,9 @@ class ConcertimService(object):
             gnocchi = gnocchi_client.Client(session=sess)
             self._gnocchi = gnocchi
         except Exception as e:
-            self._logger.error("Failed to authenticate Gnocchi with OpenStack: {}".format(str(e)))
+            self._log('EX',e)
             raise e
-        self._logger.info("Authenticated and connected Gnocchi successfully")
+        self._log('I', "Authenticated and connected Gnocchi successfully")
 
     # Conncets to the Keystone API
     def _conncet_keystone(self):
@@ -124,9 +135,9 @@ class ConcertimService(object):
             keystone = keystone_client.Client(session=sess)
             self._keystone = keystone
         except Exception as e:
-            self._logger.error("Failed to authenticate with Keystone: {}".format(str(e)))
+            self._log('ER', f"Failed to authenticate with Keystone: {e}")
             raise e
-        self._logger.info("Authenticated and connected to Keystone successfully")
+        self._log('I', "Authenticated and connected to Keystone successfully")
 
     # Return the list of all project_ids in Openstack
     def _get_project_list(self):
@@ -138,7 +149,7 @@ class ConcertimService(object):
 
     # Sends the metrics for each device to the CONCERTIM API
     def _send_metrics(self, project_id):
-        self._logger.info(f"Begin Sending Metrics for Project: {project_id}")
+        self._log('I', f"Begin Sending Metrics for Project: {project_id}")
         project_query = {"and": [{"=":{"project_id":project_id}}, {"=":{"ended_at":None}}]}
         openstack_resources_list = self._gnocchi.resource.search(query=project_query, details=True)
         sorted_resource_list = self._sort_resource_list(resource_list=openstack_resources_list)
@@ -190,7 +201,6 @@ class ConcertimService(object):
     # Check openstack to see if there are any new instances and update concertim if there are
     def _update_concertim(self, project_id):
         project_query = {"and": [{"=":{"project_id":project_id}}, {"=":{"ended_at":None}}]}
-        new_rack_height = 42
 
         openstack_instance_list = self._gnocchi.resource.search(resource_type="instance", query=project_query, details=True)
         concertim_device_list = concertim_helper.get_concertim_devices(concertimService=self)
@@ -200,15 +210,15 @@ class ConcertimService(object):
         # THIS BLOCK NEEDS REWORK: 
         # not very robust
         for instance in openstack_instance_list:
-            concertim_device_found = [d for d in concertim_device_list if d['name'] == instance["display_name"]]
+            concertim_device_found = [d for d in concertim_device_list if d['name'] == instance["display_name"].split('-',1)[1]]
             if not concertim_device_found:
-                self._logger.info(f"New Instance Found in Openstack - {instance['display_name']}")
+                self._log('I', f"New Instance Found in Openstack - {instance['display_name']}")
                 instance_vcpus = self._gnocchi.metric.get_measures(metric=instance["metrics"]["vcpus"])[0][2]
                 new_device_list.append((instance["display_name"], instance["id"], instance_vcpus))
         ###
 
         if len(new_device_list) == 0:
-            self._logger.info(f"All Openstack Instances are present in Concertim")
+            self._log('I', f"All Openstack Instances are present in Concertim")
             return
 
         # Build all new devices found for project
@@ -216,78 +226,91 @@ class ConcertimService(object):
 
     # Post CPU Load as a Percent to Concertim for a given resource and date range
     def _post_cpu_load(self, resource, display_name, start, stop):
-        self._logger.info(f"Calculating CPU Load for {display_name}")
+        self._log('I', f"Calculating CPU Load for {display_name}")
         cpu_metric_id = resource['metrics']['cpu']
         ns_to_s_granularity = int(self._config["ceilometer_granularity"]) * 1000000000.0
         cpu_load_percent = self._gnocchi.aggregates.fetch(operations=f"(* (/ (aggregate rate:mean (metric {cpu_metric_id} mean)) {ns_to_s_granularity}) 100)", 
                                                           resource_type="instance", start=start, stop=stop)["measures"]["aggregated"][0][2]
-        self._logger.debug(f"Sending CPU Load = {cpu_load_percent} to instance {resource['id']} ({display_name})")
+        self._log('D', f"Sending CPU Load = {cpu_load_percent} to instance {resource['id']} ({display_name})")
         concertim_helper.post_metric_to_concertim(concertimService=self, obj_to_update_name=display_name, metric_name=f"os.instance.cpu_utilization", 
-                                                                    metric_value=cpu_load_percent, metric_datatype="float", metric_slope="both", metric_units="%")
+                                                    metric_value=cpu_load_percent, metric_datatype="float", metric_slope="both", metric_units="%")
     
     # Post RAM Usage as as Percent to Concertim for a given resource and date range
     def _post_ram_usage(self, resource, display_name, start, stop):
-        self._logger.info(f"Calculating RAM Usage for {display_name}")
+        self._log('I', f"Calculating RAM Usage for {display_name}")
         memory_metric_id = resource['metrics']['memory']
         memory = self._gnocchi.metric.get_measures(metric=memory_metric_id, limit=1)[0][2]
         memory_usage_metric_id = resource['metrics']['memory.usage']
         memory_usage = self._gnocchi.metric.get_measures(metric=memory_usage_metric_id, start=start, stop=stop)[0][2]
         ram_usage_percent = memory_usage/memory*100
-        self._logger.debug(f"Sending RAM Usage = {ram_usage_percent} to instance {resource['id']} ({display_name})")
+        self._log('D', f"Sending RAM Usage = {ram_usage_percent} to instance {resource['id']} ({display_name})")
         concertim_helper.post_metric_to_concertim(concertimService=self, obj_to_update_name=display_name, metric_name=f"os.instance.ram_usage", 
                                                     metric_value=ram_usage_percent, metric_datatype="float", metric_slope="both", metric_units="%")
     
     # Post average throughput in byte/s for the given resource and date range
     def _post_throughput(self, resource, display_name, start, stop):
-        self._logger.info(f"Calculating Throughput for {display_name}")
+        self._log('I', f"Calculating Throughput for {display_name}")
         disk_read_metric = resource['metrics']['disk.device.read.bytes']
         disk_write_metric = resource['metrics']['disk.device.write.bytes']
         disk_read_measure = self._gnocchi.metric.get_measures(metric=disk_read_metric, aggregation="rate:mean", start=start, stop=stop)[0][2]
         disk_write_measure = self._gnocchi.metric.get_measures(metric=disk_write_metric, aggregation="rate:mean", start=start, stop=stop)[0][2]
         throughput = (disk_write_measure + disk_read_measure) / int(self._config["ceilometer_granularity"])
-        self._logger.debug(f"Sending Throughput = {throughput} to instance {resource['id']} ({display_name})")
+        self._log('D', f"Sending Throughput = {throughput} to instance {resource['id']} ({display_name})")
         concertim_helper.post_metric_to_concertim(concertimService=self, obj_to_update_name=display_name, metric_name=f"os.disk.avg_throughput", 
-                                                                    metric_value=throughput, metric_datatype="float", metric_slope="both", metric_units="B/s")
+                                                    metric_value=throughput, metric_datatype="float", metric_slope="both", metric_units="B/s")
 
     # Post average IOPs in Ops/s for the given resource and date range
     def _post_iops(self, resource, display_name, start, stop):
-        self._logger.info(f"Calculating IOPs for {display_name}")
+        self._log('I', f"Calculating IOPs for {display_name}")
         disk_read_metric = resource['metrics']['disk.device.read.requests']
         disk_write_metric = resource['metrics']['disk.device.write.requests']
         disk_read_measure = self._gnocchi.metric.get_measures(metric=disk_read_metric, aggregation="rate:mean", start=start, stop=stop)[0][2]
         disk_write_measure = self._gnocchi.metric.get_measures(metric=disk_write_metric, aggregation="rate:mean", start=start, stop=stop)[0][2]
         iops = (disk_write_measure + disk_read_measure) / int(self._config["ceilometer_granularity"])
-        self._logger.debug(f"Sending IOPs = {iops} to instance {resource['id']} ({display_name})")
+        self._log('D', f"Sending IOPs = {iops} to instance {resource['id']} ({display_name})")
         concertim_helper.post_metric_to_concertim(concertimService=self, obj_to_update_name=display_name, metric_name=f"os.disk.avg_iops", 
-                                                                    metric_value=iops, metric_datatype="float", metric_slope="both", metric_units="Ops/s")
+                                                    metric_value=iops, metric_datatype="float", metric_slope="both", metric_units="Ops/s")
 
     # Post average network usage in B/s for the given resource and date range
     def _post_network_usage(self, resource, display_name, start, stop):
-        self._logger.info(f"Calculating Network Usage for {display_name}")
+        self._log('I', f"Calculating Network Usage for {display_name}")
         net_in_metric = resource['metrics']['network.incoming.bytes']
         net_out_metric = resource['metrics']['network.outgoing.bytes']
         net_in_measure = self._gnocchi.metric.get_measures(metric=net_in_metric, aggregation="rate:mean", start=start, stop=stop)[0][2]
         net_out_measure = self._gnocchi.metric.get_measures(metric=net_out_metric, aggregation="rate:mean", start=start, stop=stop)[0][2]
         usage_rate = (net_in_measure + net_out_measure) / int(self._config["ceilometer_granularity"])
-        self._logger.debug(f"Sending Network Usage = {usage_rate} to instance {resource['id']} ({display_name})")
+        self._log('D', f"Sending Network Usage = {usage_rate} to instance {resource['id']} ({display_name})")
         concertim_helper.post_metric_to_concertim(concertimService=self, obj_to_update_name=display_name, metric_name=f"os.net.avg_usage", 
-                                                                    metric_value=usage_rate, metric_datatype="float", metric_slope="both", metric_units="B/s")
+                                                    metric_value=usage_rate, metric_datatype="float", metric_slope="both", metric_units="B/s")
 
-    # Handles exceptions that occur during runtime
-    def _handle_exception(self, e):
-        self._logger.exception(e)
+    # Logging helper method - logs at specified level but indents to show current depth
+    def _log(self, level, message):
+        indentation_level = len(traceback.extract_stack()) - 4
+        if any([info in level for info in ['I', 'i','info', 'INFO', 'Info']]):
+            self._logger.info(('{i} {m}'.format(i = '  ' * indentation_level, m=message)))
+        elif any([debug in level for debug in ['D', 'd', 'debug', 'DEBUG', 'Debug']]):
+            self._logger.debug(('{i} {m}'.format(i = '  ' * indentation_level, m=message)))
+        elif any([error in level for error in ['er', 'ER', 'error', 'ERROR', 'Error']]):
+            self._logger.error(('{i} {m}'.format(i = '  ' * indentation_level, m=message)))
+        elif any([exc in level for exc in ['ex', 'EX', 'exception', 'EXCEPTION', 'Exception', 'EXC', 'Exc', 'exc']]):
+            self._logger.exception(('{i} {m}'.format(i = '  ' * indentation_level, m=message)))
+        else:
+            self._logger.log(level=level, msg=('{i} {m}'.format(i = '  ' * indentation_level, m=message)))
 
     # Starts the service
     def start(self):
+        self._log('I', "Starting the Concertim Service")
         try:
-            self.run()
+            #self.run()
+            self.test()
+            self.stop()
         except Exception as e:
-            self._handle_exception(e)
+            self._log('EX', e)
             self.stop()
 
     # Stops the service
     def stop(self):
-        self._logger.info("Stopping the Concertim service")
+        self._log('I', "Stopping the Concertim service")
         # clean up resources if needed
         raise SystemExit
 
