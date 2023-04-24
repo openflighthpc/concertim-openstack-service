@@ -141,7 +141,7 @@ def update_device(concertimService, device_id, current_device_name, current_devi
     if new_device_desc != "":
         device_desc = new_device_desc
     else:
-        device_desc = current_de1vice_desc
+        device_desc = current_device_desc
     
     base_url = concertimService._config["concertim_url"]
     url = f"{base_url}/api/v1/devices/{device_id}"
