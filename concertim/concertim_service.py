@@ -310,16 +310,17 @@ class ConcertimService(object):
     # Logging helper method - logs at specified level but indents to show current depth
     def _log(self, level, message):
         indentation_level = len(traceback.extract_stack()) - 4
+        spacer = '...'
         if any([info in level for info in ['I', 'i','info', 'INFO', 'Info']]):
-            self._logger.info(('{i} {m}'.format(i = '  ' * indentation_level, m=message)))
+            self._logger.info(('{i} {m}'.format(i = spacer * indentation_level, m=message)))
         elif any([debug in level for debug in ['D', 'd', 'debug', 'DEBUG', 'Debug']]):
-            self._logger.debug(('{i} {m}'.format(i = '  ' * indentation_level, m=message)))
+            self._logger.debug(('{i} {m}'.format(i = spacer * indentation_level, m=message)))
         elif any([error in level for error in ['er', 'ER', 'error', 'ERROR', 'Error']]):
-            self._logger.error(('{i} {m}'.format(i = '  ' * indentation_level, m=message)))
+            self._logger.error(('{i} {m}'.format(i = spacer * indentation_level, m=message)))
         elif any([exc in level for exc in ['ex', 'EX', 'exception', 'EXCEPTION', 'Exception', 'EXC', 'Exc', 'exc']]):
-            self._logger.exception(('{i} {m}'.format(i = '  ' * indentation_level, m=message)))
+            self._logger.exception(('{i} {m}'.format(i = spacer * indentation_level, m=message)))
         else:
-            self._logger.log(level=level, msg=('{i} {m}'.format(i = '  ' * indentation_level, m=message)))
+            self._logger.log(level=level, msg=('{i} {m}'.format(i = spacer * indentation_level, m=message)))
 
     # Starts the service
     def start(self):
