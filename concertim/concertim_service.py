@@ -42,16 +42,26 @@ class ConcertimService(object):
         self._conncet_keystone()
         self._authenticate_concertim(self._config["concertim_username"], self._config["concertim_password"])
         #print(concertim_helper.create_concertim_device(concertimService=self, device_name="concertim-instance-4", rack_id=1, start_location_id=38, template_id=5, device_description="Made UP instance", facing="f"))
-        #print(concertim_helper.get_concertim_templates(concertimService=self))
+        print(concertim_helper.get_concertim_templates(concertimService=self))
         #print(concertim_helper.delete_rack(concertimService=self, rack_id='8', full_delete=True))
+        #print(concertim_helper.get_curr_concertim_user(concertimService=self))
+        #print(concertim_helper.get_concertim_accounts(concertimService=self))
+
 
         # IN WHILE LOOP
-        os_project_list = ['ef821aa9e576420c8768671d911a9766']
         #os_project_list = self._get_project_list()
         #concertim_accounts = concertim_helper.get_concertim_accounts(concertimService=self)
-        for project in os_project_list:
+        #delimiter = '-'
+        #missing_accounts = self._get_missing(os_projects=os_project_list, con_accounts=concertim_accounts, delimiter=delimiter)
+        #all_accounts = None
+        all_accounts = ['ef821aa9e576420c8768671d911a9766']
+        
+        #if len(missing_accounts) != 0:
+            # handle missing accounts
+
+        for project in all_accounts:
             self._update_concertim(project_id=project)
-        #    self._send_metrics(project_id=project)
+            self._send_metrics(project_id=project)
 
     # Runs the main service loop
     def run(self):
@@ -124,7 +134,7 @@ class ConcertimService(object):
             gnocchi = gnocchi_client.Client(session=sess)
             self._gnocchi = gnocchi
         except Exception as e:
-            self._log('EX',e)
+            self._log('EX', f"Failed to authenticate Gnocchi with OpenStack: {e}")
             raise e
         self._log('I', "Authenticated and connected Gnocchi successfully")
 
@@ -176,6 +186,20 @@ class ConcertimService(object):
             grouped_resources[instance_id]["resources"].append(resource)
         return grouped_resources
 
+    # Return a dictionary of missing accounts and where they are missing from
+    # store missing accounts as {'acct_id': 'concertim|openstack'} 
+    # will use the app it is missing FROM
+    def _get_missing(self, os_projects, con_accounts, delimiter):
+        con_acct_projects = [acct['fullname'].split(delimiter)[1] for acct in con_accounts]
+        missing_accounts = {}
+        for proj_id in os_projects:
+            if proj_id not in con_acct_projects:
+                missing_accounts[proj_id] = 'concertim'
+        for proj_id in con_acct_projects:
+            if proj_id not in os_projects:
+                missing_accounts[proj_id] = 'openstack'
+        return missing_accounts
+
     # Process an openstack instance's resources and send them to Concertim
     def _process_instance(self, instance_dict):
         # 10 minute window starting from 1 and 10 min ago to 1 hour ago
@@ -186,17 +210,17 @@ class ConcertimService(object):
             # Metric Fetching based on resource
             if resource["type"] == "instance":
                 # CPU Load as a percent
-                self._post_cpu_load(resource=resource, display_name=instance_dict["display_name"], start=start, stop=stop)
+                self._post_cpu_load(resource=resource, display_name=instance_dict["display_name"].split('-',1)[1], start=start, stop=stop)
                 # RAM Usage as a percent
-                self._post_ram_usage(resource=resource, display_name=instance_dict["display_name"], start=start, stop=stop)
+                self._post_ram_usage(resource=resource, display_name=instance_dict["display_name"].split('-',1)[1], start=start, stop=stop)
             elif resource["type"] == "instance_network_interface":
                 # Network usgae in bytes/s
-                self._post_network_usage(resource=resource, display_name=instance_dict["display_name"], start=start, stop=stop)
+                self._post_network_usage(resource=resource, display_name=instance_dict["display_name"].split('-',1)[1], start=start, stop=stop)
             elif resource["type"] == "instance_disk":
                 # Throughput in bytes/s
-                self._post_throughput(resource=resource, display_name=instance_dict["display_name"], start=start, stop=stop)
+                self._post_throughput(resource=resource, display_name=instance_dict["display_name"].split('-',1)[1], start=start, stop=stop)
                 # IOPs in Ops/s
-                self._post_iops(resource=resource, display_name=instance_dict["display_name"], start=start, stop=stop)
+                self._post_iops(resource=resource, display_name=instance_dict["display_name"].split('-',1)[1], start=start, stop=stop)
 
     # Check openstack to see if there are any new instances and update concertim if there are
     def _update_concertim(self, project_id):

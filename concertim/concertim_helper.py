@@ -22,10 +22,40 @@ def get_concertim_templates(concertimService):
         return
 
 # Returns a list of the concertim accounts
-def get_concertim_accounts(concertrimService):
-    accountlist = []
-    # TODO: Logic for account list
-    return accountlist
+def get_concertim_accounts(concertimService):
+    base_url = concertimService._config["concertim_url"]
+    url = f"{base_url}/api/v1/users"
+    headers = {"Accept": "application/json"}
+    if concertimService._auth_token is not None:
+        headers["Authorization"] = concertimService._auth_token
+    else:
+        raise Exception(f"No Authentication Token found in concertimService object - concertimService._auth_token is: {concertimService._auth_token}")
+    try:
+        response = requests.get(url, headers=headers, verify=False)
+        concertimService._log('I', "Retrieved Current User Successfully")
+        return response.json()
+    except Exception as e:
+        concertimService._log('EX', f"Failed to retrieve templates from CONCERTIM API: {e}")
+        raise e
+        return
+
+# Return the current user for concertim
+def get_curr_concertim_user(concertimService):
+    base_url = concertimService._config["concertim_url"]
+    url = f"{base_url}/api/v1/users/current"
+    headers = {"Accept": "application/json"}
+    if concertimService._auth_token is not None:
+        headers["Authorization"] = concertimService._auth_token
+    else:
+        raise Exception(f"No Authentication Token found in concertimService object - concertimService._auth_token is: {concertimService._auth_token}")
+    try:
+        response = requests.get(url, headers=headers, verify=False)
+        concertimService._log('I', "Retrieved Current User Successfully")
+        return response.json()
+    except Exception as e:
+        concertimService._log('EX', f"Failed to retrieve templates from CONCERTIM API: {e}")
+        raise e
+        return
 
 # Returns the list of devices currently in CONCERTIM
 def get_concertim_devices(concertimService):
