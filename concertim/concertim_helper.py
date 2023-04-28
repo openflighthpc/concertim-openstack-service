@@ -357,9 +357,11 @@ def create_concertim_rack(concertimService, rack_name, rack_height):
     url = f"{base_url}/api/v1/racks"
     headers = {"Content-Type": "application/json", "Accept": "application/json"}
     data = json.dumps({
-                "name": rack_name,
-                "u_height": rack_height
-            })
+        "rack": {
+            "name": rack_name,
+            "u_height": rack_height
+        }
+    })
     if concertimService._auth_token is not None:
         headers["Authorization"] = concertimService._auth_token
     else:
