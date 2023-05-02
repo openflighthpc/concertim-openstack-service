@@ -9,11 +9,14 @@ The configuration for the Concertim Openstack Service is stored in the `/etc/con
 - `auth_url`: URL for the OpenStack authentication endpoint
 - `username`: Username for authenticating with OpenStack
 - `password`: Password for authenticating with OpenStack
-- `project_name`: Name of the OpenStack project
+- `project_id`: ID of the OpenStack project
 - `project_domain_name`: Name of the domain for the OpenStack project
 - `user_domain_name`: Name of the domain for the OpenStack user
-- `gnocchi_url`: URL for the Gnocchi API endpoint
 - `concertim_url`: URL for the Concertim API endpoint
+- `concertim_username`: Username for authenticating with Concertim
+- `concertim_password`: Password for authenticating with Concertim
+- `log_level`: Desired logging level
+- `ceilometer_granularity`: configured ceilometer granularity
 
 ## Installation
 
@@ -35,7 +38,7 @@ After=network.target
 User=<user>
 Group=<group>
 WorkingDirectory=<path_to_concertim_service>
-ExecStart=<path_to_python> <path_to_concertim_service>/concertim_service.py
+ExecStart=<path_to_python3> <path_to_concertim_service>/driver.py
 Restart=always
 RestartSec=5s
 
@@ -43,7 +46,7 @@ RestartSec=5s
 WantedBy=multi-user.target
 ```
 
-2. Replace `<user>`, `<group>`, `<path_to_concertim_service>`, and `<path_to_python>` with the appropriate values for your system. Note that `<path_to_python>` should be the path to your Python executable.
+2. Replace `<user>`, `<group>`, `<path_to_concertim_service>`, and `<path_to_python3>` with the appropriate values for your system. Note that `<path_to_python3>` should be the path to your Python3 executable.
 3. Reload the systemd daemon: `sudo systemctl daemon-reload`
 4. Start the Concertim Openstack Service: `sudo systemctl start concertim.service`
 5. Verify that the service is running: `sudo systemctl status concertim.service`
@@ -51,9 +54,9 @@ WantedBy=multi-user.target
 7. To stop the service, run: `sudo systemctl stop concertim.service`
 8. To disable the service from starting on boot, run: `sudo systemctl disable concertim.service`
 
-Note that the Concertim Openstack Service logs will be written to the `/var/logs/concertim-openstack-service.log` file as configured in the `/etc/concertim-openstack-service/config.json` file.
+Note that the Concertim Openstack Service logs will be written to the `/var/logs/concertim-openstack-service.log` file.
 
-The service will run indefinitely, sending metric data to the Concertim API at the interval specified in the configuration file. Log data is stored in the `/var/logs/concertim-openstack-service.log` file.
+The service will run indefinitely, sending metric data to the Concertim API repeatedly every 30 second (can be changed).
 
 ## Changing Configuration
 

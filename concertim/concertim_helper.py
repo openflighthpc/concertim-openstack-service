@@ -32,10 +32,10 @@ def get_concertim_accounts(concertimService):
         raise Exception(f"No Authentication Token found in concertimService object - concertimService._auth_token is: {concertimService._auth_token}")
     try:
         response = requests.get(url, headers=headers, verify=False)
-        concertimService._log('I', "Retrieved Current User Successfully")
+        concertimService._log('I', "Retrieved All Concertim Users Successfully")
         return response.json()
     except Exception as e:
-        concertimService._log('EX', f"Failed to retrieve templates from CONCERTIM API: {e}")
+        concertimService._log('EX', f"Failed to retrieve users from CONCERTIM API: {e}")
         raise e
         return
 
@@ -53,7 +53,7 @@ def get_curr_concertim_user(concertimService):
         concertimService._log('I', "Retrieved Current User Successfully")
         return response.json()
     except Exception as e:
-        concertimService._log('EX', f"Failed to retrieve templates from CONCERTIM API: {e}")
+        concertimService._log('EX', f"Failed to retrieve current user from CONCERTIM API: {e}")
         raise e
         return
 
@@ -241,10 +241,13 @@ def get_device_template(concertimService, instance_vcpus):
     for template in available_templates:
         if template['name'] == "Small":
             concertim_template = template
+            break
     
     for template in available_templates:
         if str(f"{instance_vcpus} VCPU") in template['description']:
             concertim_template = template
+            break
+
     if concertim_template['name'] == "Small":
         size=1
     if concertim_template['name'] == "Medium":
@@ -298,22 +301,25 @@ def get_rack_state(concertimService, rack_id):
 def build_device_list(concertimService, device_list):
     concertimService._log('I', f"Building New Devices in Concertim")
     rack_list = get_concertim_racks(concertimService)
-    
+    default_size = '20'
+
     for device in device_list:
-        cluster_name = device[0].split('-', 1)[0]
-        device_name = device[0].split('-', 1)[1]
+        # cluster name = first 5 of project id + cluster name provided at stack creation
+        cluster_name = device[4][:5] + '-' + device[0].split('.')[1]
+        # device name = name of the instance inside the cluster + first 5 of instance id
+        device_name = device[0].split('.')[0] + '-' + device[1][:5]
         cluster_rack_exists = False
         rack_state = None
         new_device_template = get_device_template(concertimService, device[2])
         concertimService._log('I', f"Finding Location for {device[0]}")
         for rack in rack_list:
-            if rack['name'] == cluster_name:
+            if rack['name'] == cluster_name and rack['owner']['id'] == device[3]:
                 concertimService._log('I', f"Found Existing Rack '{rack['name']}' for Cluster '{cluster_name}'")
                 cluster_rack_exists = True
                 rack_state = get_rack_state(concertimService, rack['id'])
         if not cluster_rack_exists:
             concertimService._log('I', f"No Existing Rack Found for Cluster '{cluster_name}' - Creating new Rack")
-            new_rack = create_concertim_rack(concertimService, rack_name=cluster_name, rack_height=new_device_template['size'])
+            new_rack = create_concertim_rack(concertimService, rack_name=cluster_name, rack_height=default_size, on_behalf_of=device[3])
             rack_state = {"name": new_rack['name'], "id": new_rack['id'], "occupied":[]}
             rack_list.append(new_rack)
         new_device_location = find_spot_in_rack(concertimService, new_device_template, rack_state)
@@ -352,12 +358,13 @@ def create_concertim_device(concertimService, device_name, rack_id, start_locati
         concertimService._log('EX', f"Failed to create new device in CONCERTIM API: {e}")
 
 # Create a rack in CONCERTIM with the passed args
-def create_concertim_rack(concertimService, rack_name, rack_height):
+def create_concertim_rack(concertimService, rack_name, rack_height, on_behalf_of):
     base_url = concertimService._config["concertim_url"]
     url = f"{base_url}/api/v1/racks"
     headers = {"Content-Type": "application/json", "Accept": "application/json"}
     data = json.dumps({
         "rack": {
+            "user_id": on_behalf_of,
             "name": rack_name,
             "u_height": rack_height
         }
@@ -397,9 +404,9 @@ def delete_rack(concertimService, rack_id, full_delete=False):
     base_url = concertimService._config["concertim_url"]
     url = f"{base_url}/api/v1/racks/{rack_id}"
     headers = {"Accept": "application/json"}
-    rack_devices = show_concertim_rack(concertimService, rack_id)['devices']
+    rack_info = show_concertim_rack(concertimService, rack_id)
     # Check if the rack is empty and if we should delete the devices in non-empty rack
-    if len(rack_devices) is not 0 and not full_delete:
+    if rack_info['devices'] is not 0 and not full_delete:
         concertimService._logger.error(f"Attempting to delete a non-empty rack: {rack_id} - delete devices or add full_delete=true")
     else:
          url = f"{url}?recurse=true"

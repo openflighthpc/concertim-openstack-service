@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 import logging
 import os
 import traceback
-
+import inspect
 # Disable insecure warnings  
 import requests
 requests.packages.urllib3.disable_warnings() 
@@ -42,26 +42,21 @@ class ConcertimService(object):
         self._conncet_keystone()
         self._authenticate_concertim(self._config["concertim_username"], self._config["concertim_password"])
         #print(concertim_helper.create_concertim_device(concertimService=self, device_name="concertim-instance-4", rack_id=1, start_location_id=38, template_id=5, device_description="Made UP instance", facing="f"))
-        print(concertim_helper.get_concertim_templates(concertimService=self))
-        #print(concertim_helper.delete_rack(concertimService=self, rack_id='8', full_delete=True))
+        #print(concertim_helper.get_concertim_templates(concertimService=self))
+        #print(concertim_helper.delete_rack(concertimService=self, rack_id='17', full_delete=True))
         #print(concertim_helper.get_curr_concertim_user(concertimService=self))
         #print(concertim_helper.get_concertim_accounts(concertimService=self))
 
 
         # IN WHILE LOOP
-        #os_project_list = self._get_project_list()
-        #concertim_accounts = concertim_helper.get_concertim_accounts(concertimService=self)
-        #delimiter = '-'
-        #missing_accounts = self._get_missing(os_projects=os_project_list, con_accounts=concertim_accounts, delimiter=delimiter)
-        #all_accounts = None
-        all_accounts = ['ef821aa9e576420c8768671d911a9766']
+        os_project_list = self._get_project_list()
+        concertim_accounts = concertim_helper.get_concertim_accounts(concertimService=self)
         
-        #if len(missing_accounts) != 0:
-            # handle missing accounts
-
-        for project in all_accounts:
-            self._update_concertim(project_id=project)
+        all_accounts = self._get_all_acct_info(os_projects=os_project_list, con_accounts=concertim_accounts)
+        
+        for project in all_accounts['existing']:
             self._send_metrics(project_id=project)
+            self._update_concertim(project_id=project, acct_id=all_accounts['existing'][project])
 
     # Runs the main service loop
     def run(self):
@@ -71,10 +66,12 @@ class ConcertimService(object):
         self._authenticate_concertim(self._config["concertim_username"], self._config["concertim_password"])
         while True:
             os_project_list = self._get_project_list()
-            for project in os_project_list:
-                self._update_concertim(project_id=project)
+            concertim_accounts = concertim_helper.get_concertim_accounts(concertimService=self)
+            all_accounts = self._get_all_acct_info(os_projects=os_project_list, con_accounts=concertim_accounts)
+            for project in all_accounts['existing']:
                 self._send_metrics(project_id=project)
-            time.sleep(300)
+                self._update_concertim(project_id=project, acct_id=all_accounts['existing'][project])
+            time.sleep(20)
 
     # Loads the configuration from the specified JSON file
     def _load_config(self, config_file):
@@ -98,7 +95,7 @@ class ConcertimService(object):
         auth = v3.Password(auth_url=self._config["auth_url"],
                            username=self._config["username"],
                            password=self._config["password"],
-                           project_name=self._config["project_name"],
+                           project_id=self._config["project_id"],
                            user_domain_name=self._config["user_domain_name"],
                            project_domain_name=self._config["project_domain_name"])
         self._auth = auth
@@ -163,9 +160,12 @@ class ConcertimService(object):
         project_query = {"and": [{"=":{"project_id":project_id}}, {"=":{"ended_at":None}}]}
         openstack_resources_list = self._gnocchi.resource.search(query=project_query, details=True)
         sorted_resource_list = self._sort_resource_list(resource_list=openstack_resources_list)
+        concertim_device_list = concertim_helper.get_concertim_devices(concertimService=self)
 
         for openstack_instance in sorted_resource_list:
-            self._process_instance(instance_dict=sorted_resource_list[openstack_instance])
+           for device in concertim_device_list:
+                if device['description'] == openstack_instance:
+                    self._process_instance(instance_dict=sorted_resource_list[openstack_instance])
 
     # Sort Openstack project resources and group by instance_id
     def _sort_resource_list(self, resource_list):
@@ -182,22 +182,39 @@ class ConcertimService(object):
             if instance_id not in grouped_resources:
                 grouped_resources[instance_id] = {"display_name":None,"resources":[]}
             if display_name is not None:
-                grouped_resources[instance_id]["display_name"] = display_name
+                grouped_resources[instance_id]["display_name"] = display_name.split('.')[0] + '-' + instance_id[:5]
             grouped_resources[instance_id]["resources"].append(resource)
         return grouped_resources
 
+    # Returns a dictionary of all projects with their corresponding IDs
+    def _get_all_acct_info(self, os_projects, con_accounts):
+        all_accts_info = {'existing':{}}
+        for project in os_projects:
+            for acct in con_accounts:
+                if acct['name'] == 'System Administrator':
+                    continue
+                if project == acct["project_id"]:
+                    all_accts_info['existing'][project] = acct["id"]
+        all_accts_info["missing_from"] = self._get_missing(os_projects, con_accounts)
+        return all_accts_info
+
     # Return a dictionary of missing accounts and where they are missing from
-    # store missing accounts as {'acct_id': 'concertim|openstack'} 
+    # store missing accounts as {'proj_id': 'concertim|openstack'} 
     # will use the app it is missing FROM
-    def _get_missing(self, os_projects, con_accounts, delimiter):
-        con_acct_projects = [acct['fullname'].split(delimiter)[1] for acct in con_accounts]
-        missing_accounts = {}
+    def _get_missing(self, os_projects, con_accounts):
+        con_acct_projects = []
+        for acct in con_accounts:
+            if acct['name'] == 'System Administrator':
+                continue
+            con_acct_projects.append(acct["project_id"])
+        missing_accounts = {'concertim':[],'openstack':[]}
         for proj_id in os_projects:
             if proj_id not in con_acct_projects:
-                missing_accounts[proj_id] = 'concertim'
+                missing_accounts['concertim'].append(proj_id)
         for proj_id in con_acct_projects:
             if proj_id not in os_projects:
-                missing_accounts[proj_id] = 'openstack'
+                missing_accounts['openstack'].append(proj_id)
+        self._log('W', f"Accounts are missing! - Accounts are missing from {missing_accounts}")
         return missing_accounts
 
     # Process an openstack instance's resources and send them to Concertim
@@ -210,22 +227,22 @@ class ConcertimService(object):
             # Metric Fetching based on resource
             if resource["type"] == "instance":
                 # CPU Load as a percent
-                self._post_cpu_load(resource=resource, display_name=instance_dict["display_name"].split('-',1)[1], start=start, stop=stop)
+                self._post_cpu_load(resource=resource, display_name=instance_dict["display_name"], start=start, stop=stop)
                 # RAM Usage as a percent
-                self._post_ram_usage(resource=resource, display_name=instance_dict["display_name"].split('-',1)[1], start=start, stop=stop)
+                self._post_ram_usage(resource=resource, display_name=instance_dict["display_name"], start=start, stop=stop)
             elif resource["type"] == "instance_network_interface":
                 # Network usgae in bytes/s
-                self._post_network_usage(resource=resource, display_name=instance_dict["display_name"].split('-',1)[1], start=start, stop=stop)
+                self._post_network_usage(resource=resource, display_name=instance_dict["display_name"], start=start, stop=stop)
             elif resource["type"] == "instance_disk":
                 # Throughput in bytes/s
-                self._post_throughput(resource=resource, display_name=instance_dict["display_name"].split('-',1)[1], start=start, stop=stop)
+                self._post_throughput(resource=resource, display_name=instance_dict["display_name"], start=start, stop=stop)
                 # IOPs in Ops/s
-                self._post_iops(resource=resource, display_name=instance_dict["display_name"].split('-',1)[1], start=start, stop=stop)
+                self._post_iops(resource=resource, display_name=instance_dict["display_name"], start=start, stop=stop)
 
     # Check openstack to see if there are any new instances and update concertim if there are
-    def _update_concertim(self, project_id):
+    def _update_concertim(self, project_id, acct_id):
         project_query = {"and": [{"=":{"project_id":project_id}}, {"=":{"ended_at":None}}]}
-
+        self._log('I', f"Checking for new instances in project {project_id}")
         openstack_instance_list = self._gnocchi.resource.search(resource_type="instance", query=project_query, details=True)
         concertim_device_list = concertim_helper.get_concertim_devices(concertimService=self)
         concertim_rack_list = concertim_helper.get_concertim_racks(concertimService=self)
@@ -234,15 +251,16 @@ class ConcertimService(object):
         # THIS BLOCK NEEDS REWORK: 
         # not very robust
         for instance in openstack_instance_list:
-            concertim_device_found = [d for d in concertim_device_list if d['name'] == instance["display_name"].split('-',1)[1]]
+            concertim_device_found = [d for d in concertim_device_list if d['description'] == instance['id']]
             if not concertim_device_found:
-                self._log('I', f"New Instance Found in Openstack - {instance['display_name']}")
-                instance_vcpus = self._gnocchi.metric.get_measures(metric=instance["metrics"]["vcpus"])[0][2]
-                new_device_list.append((instance["display_name"], instance["id"], instance_vcpus))
+                instance_vcpus = self._gnocchi.metric.get_measures(metric=instance["metrics"]["vcpus"])
+                if len(instance_vcpus) != 0:
+                    self._log('I', f"New Instance Found in Openstack - {instance['display_name']}")
+                    new_device_list.append([instance["display_name"], instance["id"], instance_vcpus, acct_id, project_id])
         ###
 
         if len(new_device_list) == 0:
-            self._log('I', f"All Openstack Instances are present in Concertim")
+            self._log('I', f"All Openstack Instances are present in Concertim for project {project_id}")
             return
 
         # Build all new devices found for project
@@ -311,23 +329,26 @@ class ConcertimService(object):
     def _log(self, level, message):
         indentation_level = len(traceback.extract_stack()) - 4
         spacer = '...'
+        caller_method = inspect.stack()[1][3]
         if any([info in level for info in ['I', 'i','info', 'INFO', 'Info']]):
-            self._logger.info(('{i} {m}'.format(i = spacer * indentation_level, m=message)))
+            self._logger.info(('{i} ({f}) - {m}'.format(f = caller_method, i = spacer * indentation_level, m=message)))
         elif any([debug in level for debug in ['D', 'd', 'debug', 'DEBUG', 'Debug']]):
-            self._logger.debug(('{i} {m}'.format(i = spacer * indentation_level, m=message)))
+            self._logger.debug(('{i} ({f}) - {m}'.format(f = caller_method, i = spacer * indentation_level, m=message)))
         elif any([error in level for error in ['er', 'ER', 'error', 'ERROR', 'Error']]):
-            self._logger.error(('{i} {m}'.format(i = spacer * indentation_level, m=message)))
+            self._logger.error(('{i} ({f}) - {m}'.format(f = caller_method, i = spacer * indentation_level, m=message)))
+        elif any([warn in level for warn in ['W', 'w', 'warning', 'WARNING', 'Warning']]):
+            self._logger.warning(('{i} ({f}) - {m}'.format(f = caller_method, i = spacer * indentation_level, m=message)))
         elif any([exc in level for exc in ['ex', 'EX', 'exception', 'EXCEPTION', 'Exception', 'EXC', 'Exc', 'exc']]):
-            self._logger.exception(('{i} {m}'.format(i = spacer * indentation_level, m=message)))
+            self._logger.exception(('{i} ({f}) - {m}'.format(f = caller_method, i = spacer * indentation_level, m=message)))
         else:
-            self._logger.log(level=level, msg=('{i} {m}'.format(i = spacer * indentation_level, m=message)))
+            self._logger.log(level=level, msg=('{i} ({f}) - {m}'.format(f = caller_method, i = spacer * indentation_level, m=message)))
 
     # Starts the service
     def start(self):
         self._log('I', "Starting the Concertim Service")
         try:
-            #self.run()
-            self.test()
+            self.run()
+            #self.test()
             self.stop()
         except Exception as e:
             self._log('EX', e)
