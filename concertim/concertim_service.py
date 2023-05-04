@@ -347,8 +347,8 @@ class ConcertimService(object):
     def start(self):
         self._log('I', "Starting the Concertim Service")
         try:
-            self.run()
-            #self.test()
+            #self.run()
+            self.test()
             self.stop()
         except Exception as e:
             self._log('EX', e)
