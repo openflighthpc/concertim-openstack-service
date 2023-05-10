@@ -1,4 +1,5 @@
 class ConcertimDevice:
+    __slots__ = ('_template','_instance_id','_location','_device_description','_device_name','_device_id')
     def __init__(self, device_id, device_name, device_description, instance_id, template, location={}):
         self._device_id = device_id
         self._device_name = device_name

@@ -1,4 +1,5 @@
 class ConcertimRack:
+    __slots__ = ('_rack_name','_owner','_devices','_rack_id','_rack_height','_cluster')
     def __init__(self, rack_name, owner, rack_id, rack_height, cluster, devices=[]):
         self._rack_name = rack_name
         self._owner = owner
