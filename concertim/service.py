@@ -1,2 +1,3 @@
 class ConcertimService(object):
-    def __init__(self):
+    def __init__(self, config_obj):
+        self._CONFIG = config_obj
