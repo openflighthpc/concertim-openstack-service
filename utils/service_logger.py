@@ -1,8 +1,8 @@
 import logging
 import os
 
-def create_logger(log_file, level):
-        logger = logging.getLogger(__name__)
+def create_logger(name, log_file, level):
+        logger = logging.getLogger(name)
         levels = {'DEBUG': logging.DEBUG, 'INFO': logging.INFO, 'WARNING': logging.WARNING, 'ERROR': logging.ERROR, 'CRITICAL': logging.CRITICAL}
         logger.setLevel(levels[level.upper()])
         formatter = logging.Formatter('%(asctime)s - [%(levelname)s] (%(module)s) - %(message)s')
