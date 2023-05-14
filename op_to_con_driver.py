@@ -1,8 +1,10 @@
+# Local Imports
 from openstack.openstack import OpenstackService
 from concertim.concertim import ConcertimService
 from data_handler.handler import DataHandler
 from utils.service_logger import create_logger
 
+# Py Packages
 import signal
 import sys
 import yaml
@@ -31,7 +33,7 @@ def main(args):
         logger.exception("Unhandled exception occurred: %s", e)
         raise e
 
-    # Set up a stop process for when the service is stopping
+    # Set up a stop process for when the service is over
     def stop():
         logger.info("STOPPING PROCESS")
         openstack.disconnect()
