@@ -1,49 +1,85 @@
 class ConcertimDevice:
-    __slots__ = ('__template','__instance_id','__location','__device_description','__device_name','__device_id')
-    def __init__(self, device_id, device_name, device_description, instance_id, template, location={}):
-        self.__device_id = device_id
-        self.__device_name = device_name
-        self.__device_description = device_description
-        self.__location = location
+    __slots__ = ('__instance_id', '__instance_name', '__device_name', '__project_id', '__flavor_id', '__template_id','__device_id', '__cluster_name', '__rack_id', '__rack_start_u')
+    def __init__(self, instance_id, instance_name, device_name, project_id, flavor_id, template_id, cluster_name):
         self.__instance_id = instance_id
-        self.__template = template
-
-    @property
-    def device_id(self):
-        return self.__device_id
-
-    @property
-    def device_name(self):
-        return self.__device_name
-
-    @device_name.setter
-    def device_name(self, new_device_name):
-        self.__device_name = new_device_name
-
-    @property
-    def device_description(self):
-        return self.__device_description
-
-    @device_description.setter
-    def device_description(self, new_device_description):
-        self.__device_description = new_device_description
-
-    @property
-    def location(self):
-        return self.__location
-
-    @location.setter
-    def location(self, new_location):
-        self.__location = new_location
+        self.__instance_name = instance_name
+        self.__device_name = device_name
+        self.__project_id = project_id
+        self.__flavor_id = flavor_id
+        self.__template_id = template_id
+        self.__device_id = None
+        self.__cluster_name = cluster_name
+        self.__rack_id = None
+        self.__rack_start_u = None
 
     @property
     def instance_id(self):
         return self.__instance_id
 
     @property
-    def template(self):
-        return self.__template
+    def instance_name(self):
+        return self.__instance_name
 
-    @template.setter
-    def template(self, new_template):
-        self.__template = new_template
+    @instance_name.setter
+    def instance_name(self, value):
+        self.__instance_name = value
+
+    @property
+    def device_name(self):
+        return self.__instance_name
+
+    @device_name.setter
+    def device_name(self, value):
+        self.__device_name = value
+
+    @property
+    def project_id(self):
+        return self.__project_id
+
+    @property
+    def flavor_id(self):
+        return self.__flavor_id
+
+    @flavor_id.setter
+    def flavor_id(self, value):
+        self.__flavor_id = value
+    
+    @property
+    def template_id(self):
+        return self.__template_id
+
+    @template_id.setter
+    def template_id(self, value):
+        self.__template_id = value
+
+    @property
+    def device_id(self):
+        return self.__device_id
+
+    @device_id.setter
+    def device_id(self, value):
+        self.__device_id = value
+
+    @property
+    def cluster_name(self):
+        return self.__cluster_name
+
+    @cluster_name.setter
+    def cluster_name(self, value):
+        self.__cluster_name = value
+
+    @property
+    def rack_id(self):
+        return self.__rack_id
+
+    @rack_id.setter
+    def rack_id(self, value):
+        self.__rack_id = value
+
+    @property
+    def rack_start_u(self):
+        return self.__rack_start_u
+
+    @rack_start_u.setter
+    def rack_start_u(self, value):
+        self.__rack_start_u = value

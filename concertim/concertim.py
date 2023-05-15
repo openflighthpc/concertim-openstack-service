@@ -142,7 +142,7 @@ class ConcertimService(object):
                 self.__LOGGER.debug(f"API CALL ({method}) - {url}")
             else:
                 self.__LOGGER.debug(f"API CALL ({method}) - {url} : data [{data}]")
-                
+
             response = getattr(requests, method.lower())(url, headers=headers, data=data, verify=False)
         else:
             self.__LOGGER.debug(f"API CALL ({method}) - {url}")
@@ -169,6 +169,10 @@ class ConcertimService(object):
         elif response.status_code == 500:
             e =  ValueError('Server error, please check the server or try again later.')
             self.__LOGGER.exception(str(e))
+            raise e
+        elif response.status_code == 422:
+            e = FileExistsError(f"Cannot process {response}")
+            self.__LOGGER.warning("The item you are trying to add already exists")
             raise e
         else:
             self.__LOGGER.exception('Unhandled REST request error.')

@@ -8,9 +8,10 @@ import time
 import keystoneclient.v3.client as ks_client
 
 class KeystoneHandler:
-    def __init__(self, sess):
-        self.__LOGGER = create_logger(__name__, '/var/log/concertim-openstack-service-opt.log', 'DEBUG')
+    def __init__(self, sess, log_level):
+        self.__LOGGER = create_logger(__name__, '/var/log/concertim-openstack-service-opt.log', log_level)
         self.client = self.__get_client(sess)
+        self._concertim_user = self.get_user('concertim')
 
     def __get_client(self, sess):
         start_time = time.time()
@@ -29,5 +30,25 @@ class KeystoneHandler:
         self.__LOGGER.debug("Closing Keystone Client Connection")
         self.client = None
 
-    def get_projects(self):
-        return self.client.projects.list()
+    def get_projects(self, user=None):
+        if user is not None:
+            self.__LOGGER.debug(f"Getting projects for user : {user.name}")
+            projects = self.client.projects.list(user=user)
+            self.__LOGGER.debug(f"PROJECTS : {projects}")
+            return projects
+        self.__LOGGER.debug(f"Getting all projects")
+        projects = self.client.projects.list()
+        self.__LOGGER.debug(f"PROJECTS : {projects}")
+        return projects
+
+    def get_users(self):
+        self.__LOGGER.debug(f"Getting all users")
+        users = self.client.users.list()
+        self.__LOGGER.debug(f"USERS : {users}")
+        return users
+
+    def get_user(self, name):
+        self.__LOGGER.debug(f"Getting Openstack User : {name}")
+        user = self.client.users.list(name=name)[0]
+        self.__LOGGER.debug(f"USER : {user}")
+        return user

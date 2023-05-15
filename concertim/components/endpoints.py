@@ -12,7 +12,7 @@ ENDPOINTS = {
                     },
                     'CREATE_DEVICE':{
                         'endpoint': '/api/v1/nodes',
-                        'required_vars': ['template_id', 'name', 'facing', 'rack_id', 'start_u'],
+                        'required_vars': ['template_id', 'name', 'description', 'facing', 'rack_id', 'start_u'],
                         'data': {"template_id": '{template_id}',
                                 "device": {
                                     "name": '{name}',
