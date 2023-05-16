@@ -48,13 +48,13 @@ ENDPOINTS = {
             'DELETE': {
                 'endpoints': {
                     'DELETE_DEVICE':{
-                        'endpoint': '/api/v1/devices/{ID}'
+                        'endpoint': '/api/v1/devices/{}'
                     },
                     'DELETE_RACK':{
-                        'endpoint': '/api/v1/racks/{ID}'
+                        'endpoint': '/api/v1/racks/{}'
                     },
                     'DELETE_TEMPLATE':{
-                        'endpoint': '/api/v1/templates/{ID}'
+                        'endpoint': '/api/v1/templates/{}'
                     }
                 },
                 'recurse': '?recurse=true',
@@ -78,10 +78,10 @@ ENDPOINTS = {
                         'endpoint': '/api/v1/users/current'
                     },
                     'SHOW_DEVICE':{
-                        'endpoint': '/api/v1/devices/{ID}'
+                        'endpoint': '/api/v1/devices/{}'
                     },
                     'SHOW_RACK':{
-                        'endpoint': '/api/v1/racks/{ID}'
+                        'endpoint': '/api/v1/racks/{}'
                     }
                 },
                 'headers': {"Accept": "application/json"}
@@ -89,7 +89,7 @@ ENDPOINTS = {
             'PATCH': {
                 'endpoints':{
                     'MOVE_DEVICE':{
-                        'endpoint': '/api/v1/devices/{ID}',
+                        'endpoint': '/api/v1/devices/{}',
                         'required_vars': ['facing','rack_id','start_u'],
                         'data': {"device": {
                                     "location": {
@@ -100,7 +100,7 @@ ENDPOINTS = {
                                 }}
                     },
                     'UPDATE_DEVICE':{
-                        'endpoint': '/api/v1/devices/{ID}',
+                        'endpoint': '/api/v1/devices/{}',
                         'required_vars': ['name','description'],
                         'data': {"device": {
                                     "name": '{name}',
@@ -108,7 +108,7 @@ ENDPOINTS = {
                                 }}
                     },
                     'UPDATE_RACK':{
-                        'endpoint': '/api/v1/racks/{ID}',
+                        'endpoint': '/api/v1/racks/{}',
                         'required_vars': ['name','u_height'],
                         'data': {"rack": {
                                     "name": '{name}',
@@ -116,7 +116,7 @@ ENDPOINTS = {
                                 }}
                     },
                     'UPDATE_TEMPLATE':{
-                        'endpoint': '/api/v1/templates/{ID}',
+                        'endpoint': '/api/v1/templates/{}',
                         'required_vars': ['name','description'],
                         'data': {"template": {
                                     "name": '{name}',
@@ -129,14 +129,14 @@ ENDPOINTS = {
             'PUT': {
                 'endpoints':{
                     'METRIC':{
-                        'endpoint': '/mrd/{NAME}/metrics',
+                        'endpoint': '/mrd/{}/metrics',
                         'required_vars': ['type','name','value','units','slope','ttl'],
                         'data': {"type": '{type}',
                                  "name": '{name}',
                                  "value": '{value}',
                                  "units": '{units}',
                                  "slope": '{slope}',
-                                 "ttl": '{ttl}',}
+                                 "ttl": '{ttl}'}
                     }
                 },
                 'headers': {"Content-Type": "application/json"}

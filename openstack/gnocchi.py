@@ -25,6 +25,19 @@ class GnocchiHandler:
 
         raise Exception("Failed to create Gnocchi client after multiple attempts.")
 
+    def search_resource(self, query, resource_type=None,details=True):
+        if resource_type:
+            return self.client.resource.search(resource_type=resource_type, query=query, details=details)
+        return self.client.resource.search(query=query, details=details)
+
+    def get_aggregate(self, op, start, stop):
+        tup = self.client.aggregates.fetch(operations=op, start=start,stop=stop)['measures']['aggregated'][0]
+        return tup
+
+    def get_metric_measure(self, metric, start, stop):
+        tup = self.client.metric.get_measures(metric=metric, start=start, stop=stop)[0]
+        return tup
+
     def close(self):
         self.__LOGGER.debug("Closing Gnocchi Client Connection")
         self.client = None

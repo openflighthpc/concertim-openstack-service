@@ -26,7 +26,7 @@ class ConcertimDevice:
 
     @property
     def device_name(self):
-        return self.__instance_name
+        return self.__device_name
 
     @device_name.setter
     def device_name(self, value):

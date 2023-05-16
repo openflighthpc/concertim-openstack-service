@@ -40,18 +40,18 @@ class ConcertimService(object):
         return response
 
     def delete_device(self, ID):
-        response = self.__api_call('delete', 'DELETE_DEVICE', endpoint_var=ID)
+        response = self.__api_call('delete', 'DELETE_DEVICE', endpoint_var=str(ID))
         return True
     
     def delete_rack(self, ID, recurse=False):
-        opts = ID
+        opts = str(ID)
         if recurse:
             opts += ENDPOINTS['DELETE']['recurse']
         response = self.__api_call('delete', 'DELETE_RACK', endpoint_var=opts)
         return True
 
     def delete_template(self, ID, recurse=False):
-        opts = ID
+        opts = str(ID)
         if recurse:
             opts += ENDPOINTS['DELETE']['recurse']
         response = self.__api_call('delete', 'DELETE_TEMPLATE', endpoint_var=opts)
@@ -74,27 +74,31 @@ class ConcertimService(object):
         return response
     
     def show_device(self, ID):
-        response = self.__api_call('get', 'SHOW_DEVICE', endpoint_var=ID)
+        response = self.__api_call('get', 'SHOW_DEVICE', endpoint_var=str(ID))
         return response
 
     def show_rack(self, ID):
-        response = self.__api_call('get', 'SHOW_RACK', endpoint_var=ID)
+        response = self.__api_call('get', 'SHOW_RACK', endpoint_var=str(ID))
         return response
 
     def move_device(self, ID, variables_dict):
-        response = self.__api_call('patch', 'MOVE_DEVICE', variables_dict=variables_dict, endpoint_var=ID)
+        response = self.__api_call('patch', 'MOVE_DEVICE', variables_dict=variables_dict, endpoint_var=str(ID))
         return response
 
     def update_device(self, ID, variables_dict):
-        response = self.__api_call('patch', 'UPDATE_DEVICE', variables_dict=variables_dict, endpoint_var=ID)
+        response = self.__api_call('patch', 'UPDATE_DEVICE', variables_dict=variables_dict, endpoint_var=str(ID))
         return response
 
     def update_rack(self, ID, variables_dict):
-        response = self.__api_call('patch', 'UPDATE_RACK', variables_dict=variables_dict, endpoint_var=ID)
+        response = self.__api_call('patch', 'UPDATE_RACK', variables_dict=variables_dict, endpoint_var=str(ID))
         return response
 
     def update_template(self, ID, variables_dict):
-        response = self.__api_call('patch', 'UPDATE_TEMPLATE', variables_dict=variables_dict, endpoint_var=ID)
+        response = self.__api_call('patch', 'UPDATE_TEMPLATE', variables_dict=variables_dict, endpoint_var=str(ID))
+        return response
+
+    def send_metric(self, ID, variables_dict):
+        response = self.__api_call('put', 'METRIC', variables_dict=variables_dict, endpoint_var=str(ID))
         return response
 
     # Generic method for handling Concertim API calls.
@@ -112,14 +116,13 @@ class ConcertimService(object):
         NOTE: if sending LOGIN_AUTH for the endpoint, it will not add the Authorization to the header
               and will return the auth token instead of the response.json()
         """
+        endpoint = ENDPOINTS[method.upper()]['endpoints'][endpoint_name]
+        headers = ENDPOINTS[method.upper()]['headers']
         # Handle endpoint formatting
         if endpoint_var:
-            endpoint = ENDPOINTS[method.upper()]['endpoints'][endpoint_name].format(endpoint_var)
+            url = self.__URL + endpoint['endpoint'].format(endpoint_var)
         else:
-            endpoint = ENDPOINTS[method.upper()]['endpoints'][endpoint_name]
-
-        url = self.__URL + endpoint['endpoint']
-        headers = ENDPOINTS[method.upper()]['headers']
+            url = self.__URL + endpoint['endpoint']
 
         # Handle if it is LOGIN_AUTH
         if endpoint_name != 'LOGIN_AUTH' and self.__AUTH_TOKEN is not None:
@@ -182,11 +185,15 @@ class ConcertimService(object):
     # Uses recursion to traverse through the dict
     def __get_data(self, variables_dict, template):
         data_dict = {}
+        casting = {'value': float, 'ttl': int}
         for key, value in template.items():
             if isinstance(value, dict):
                 data_dict[key] = self.__get_data(variables_dict, value)
             else:
-                data_dict[key] = value.format(**variables_dict)
+                if key in casting:
+                    data_dict[key] = casting[key](value.format(**variables_dict))
+                else:
+                    data_dict[key] = value.format(**variables_dict)
         return data_dict
 
     # Return Ture if all necessary vars are present, otherwise raise an err

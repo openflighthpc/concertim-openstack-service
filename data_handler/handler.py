@@ -25,7 +25,12 @@ class DataHandler(object):
         self.__current_devices = []
 
     def send_metrics(self):
-        self.__LOGGER.info('Sending Metrics!')
+        self.__LOGGER.info('Sending Metrics')
+        for project_id in self.devices_racks:
+            resources = self.openstack_service.get_project_resources(project_id)
+            for rack_id in self.devices_racks[project_id]:
+                for instance_id in self.devices_racks[project_id][rack_id]['devices']:
+                    self.handle_metrics(resources[instance_id])
 
     def update_concertim(self):
         self.__LOGGER.info('Updating Concertim')
@@ -36,6 +41,33 @@ class DataHandler(object):
         self.__update_templates_dict() # Finished
         self.__update_devices_racks_dict() # Finished
 
+    def handle_metrics(self, instance_resource_dict):
+        self.__LOGGER.debug(f"Processing metrics for instance:{instance_resource_dict['display_name']}")
+        # 10 minute window starting from 1 and 10 min ago to 1 hour ago
+        stop = datetime.now() - timedelta(minutes=60)
+        start = stop - timedelta(minutes=1)
+
+        for resource in instance_resource_dict["resources"]:
+            # Metric Fetching based on resource
+            if resource["type"] == "instance":
+                # CPU Load as a percent
+                cpu_load = self.openstack_service.get_cpu_load(resource, start, stop)
+                self.concertim_service.send_metric(instance_resource_dict["display_name"], {'type': "double",'name': "os.instance.cpu_utilization",'value': cpu_load,'units': '%','slope': "both",'ttl': 3600})
+                # RAM Usage as a percent
+                ram_usage = self.openstack_service.get_ram_usage(resource, start, stop)
+                self.concertim_service.send_metric(instance_resource_dict["display_name"], {'type': "double",'name': "os.instance.ram_usage",'value': ram_usage,'units': '%','slope': "both",'ttl': 3600})
+            elif resource["type"] == "instance_network_interface":
+                # Network usgae in bytes/s
+                network_usage = self.openstack_service.get_network_usage(resource, start, stop)
+                self.concertim_service.send_metric(instance_resource_dict["display_name"], {'type': "double",'name': "os.net.avg_usage",'value': network_usage,'units': 'B/s','slope': "both",'ttl': 3600})
+            elif resource["type"] == "instance_disk":
+                # Throughput in bytes/s
+                throughput = self.openstack_service.get_throughput(resource, start, stop)
+                self.concertim_service.send_metric(instance_resource_dict["display_name"], {'type': "double",'name': "os.disk.avg_throughput",'value': throughput,'units': 'B/s','slope': "both",'ttl': 3600})
+                # IOPs in Ops/s
+                iops = self.openstack_service.get_iops(resource, start, stop)
+                self.concertim_service.send_metric(instance_resource_dict["display_name"], {'type': "double",'name': "os.disk.avg_iops",'value': iops,'units': 'Ops/s','slope': "both",'ttl': 3600})
+        
     def __update_projects_list(self):
         updated_projects_list = self.openstack_service.get_concertim_projects()
         new_projects = list(set(updated_projects_list) - set(self.projects))
@@ -126,6 +158,7 @@ class DataHandler(object):
         rack = ConcertimRack(rack_name, owner, height, cluster_name, instance.tenant_id)
         rack_in_con = None
         rack_in_con_details = None
+        rack_in_con_details_needed = False
         # try to create the new rack in concertim
         # if there is a conflict, pull from concertim and check
         # if there is still no rack, raise e
@@ -134,17 +167,19 @@ class DataHandler(object):
         except FileExistsError as e:
             self.__LOGGER.warning(f"The rack '{rack_name}' already exists. Searching for rack.")
             rack_in_con = self.__search_local_racks(rack)
-            if not rack_in_con:
+            if rack_in_con is not None:
+                rack_in_con_details_needed = True
+            else:
                 self.__LOGGER.exception(f"No usable rack found after seaching - please check concertim and restart process.")
                 raise SystemExit(e)
-            self.__LOGGER.debug(f"Getting {rack_in_con['name']} details.")
-            rack_in_con_details = self.concertim_service.show_rack(rack_in_con['id'])
         except Exception as e:
             self.__LOGGER.exception(f"Unhandled Exception {e}")
             raise SystemExit(e)
         finally:
             rack.rack_id = rack_in_con['id']
-            if rack_in_con_details:
+            if rack_in_con_details_needed:
+                self.__LOGGER.debug(f"Getting {rack_in_con['name']} details.")
+                rack_in_con_details = self.concertim_service.show_rack(rack_in_con['id'])
                 rack.occupied = self.__get_occupied(rack_in_con_details['devices'])
             owner.owned_racks = owner.owned_racks.append(rack)
             return rack
