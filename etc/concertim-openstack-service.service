@@ -1,0 +1,14 @@
+[Unit]
+Description=Concertim Openstack Service
+After=network.target
+
+[Service]
+User=<user>
+Group=<group>
+WorkingDirectory=<path_to_concertim_service>
+ExecStart=/usr/bin/python <path_to_concertim_service>/concertim_service.py
+Restart=always
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target
