@@ -39,12 +39,14 @@ def main(args):
 
     # Setup a local start process to handle the main funtion of the code
     def start():
+        #'''
         while True:
             for i in range(5):
                 handler.update_concertim()
                 time.sleep(5)
             handler.send_metrics()
             time.sleep(5)
+        #'''
         # FOR TESTING
         #handler.update_concertim()
         #time.sleep(2)

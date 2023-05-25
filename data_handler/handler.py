@@ -23,7 +23,9 @@ class DataHandler(object):
         self.__current_templates = []
         self.__current_racks = []
         self.__current_devices = []
+        self.__default_rack_height = int(config_obj['concertim']['default_rack_height'])
 
+    # Send all metrics for concertim/openstack devices
     def send_metrics(self):
         self.__LOGGER.info('Sending Metrics')
         for project_id in self.devices_racks:
@@ -32,21 +34,22 @@ class DataHandler(object):
                 for instance_id in self.devices_racks[project_id][rack_id]['devices']:
                     self.handle_metrics(resources[instance_id])
 
+    # Update concertim with Openstack info
     def update_concertim(self):
         self.__LOGGER.info('Updating Concertim')
         #print(self.concertim_service.list_templates())
         # Update Lists
         self.__update_projects_list() # Finished
-        self.__update_users_dict() # Finished
-        self.__update_templates_dict() # Finished
-        self.__update_devices_racks_dict() # Finished
+        self.__update_users() # Finished
+        self.__update_templates() # Finished
+        self.__update_devices_racks() # Finished
 
+    # Send all metrics for a given instance's resources
     def handle_metrics(self, instance_resource_dict):
         self.__LOGGER.debug(f"Processing metrics for instance:{instance_resource_dict['display_name']}")
         # 10 minute window starting from 1 and 10 min ago to 1 hour ago
         stop = datetime.now() - timedelta(minutes=60)
         start = stop - timedelta(minutes=1)
-
         for resource in instance_resource_dict["resources"]:
             # Metric Fetching based on resource
             if resource["type"] == "instance":
@@ -67,7 +70,8 @@ class DataHandler(object):
                 # IOPs in Ops/s
                 iops = self.openstack_service.get_iops(resource, start, stop)
                 self.concertim_service.send_metric(instance_resource_dict["display_name"], {'type': "double",'name': "os.disk.avg_iops",'value': iops,'units': 'Ops/s','slope': "both",'ttl': 3600})
-        
+    
+    # Update all openstack projects that have the OpenStack 'concertim' user as a member
     def __update_projects_list(self):
         updated_projects_list = self.openstack_service.get_concertim_projects()
         new_projects = list(set(updated_projects_list) - set(self.projects))
@@ -78,7 +82,8 @@ class DataHandler(object):
             self.__LOGGER.warning(f"Managed Project(s) have been deleted : {removed_projects}")
         self.projects = updated_projects_list
     
-    def __update_users_dict(self):
+    # Update all users from concertim for local dict
+    def __update_users(self):
         updated_user_list = self.concertim_service.list_users()
         for user in updated_user_list:
             if user['login'] == "admin" or str(user['id']) in self.users:
@@ -89,7 +94,9 @@ class DataHandler(object):
                                                     user['name'],
                                                     user['login'])
 
-    def __update_templates_dict(self):
+    # Update all templates
+    # Updates both local and in concertim
+    def __update_templates(self):
         openstack_flavors = self.openstack_service.get_flavors()
         for flavor in openstack_flavors:
             if openstack_flavors[flavor]['id'] in self.templates:
@@ -129,26 +136,93 @@ class DataHandler(object):
                 template.template_id = temp_in_con['id']
                 self.templates[openstack_flavors[flavor]['id']] = template
 
-    def __update_devices_racks_dict(self):
+    # Update all racks and devices
+    # Updates both local and in concertim
+    def __update_devices_racks(self):
         for project in self.projects:
             if project not in self.devices_racks:
                 self.devices_racks[project] = {}
             openstack_instances = self.openstack_service.get_instances(project)
+            # Check for new instances in openstack
             for instance in openstack_instances:
-                name_split = instance.name.split('.')
-                if name_split[1] not in self.devices_racks[project]:
-                    self.devices_racks[project][name_split[1]] = {'rack': None, 'devices': {}}
-                    rack = self.__build_rack(instance)
-                    self.devices_racks[project][name_split[1]]['rack'] = rack
-                if instance.id not in self.devices_racks[project][name_split[1]]['devices']:
-                    device = self.__build_device(instance)
-                    self.devices_racks[project][name_split[1]]['devices'][instance.id] = device
-                    self.devices_racks[project][name_split[1]]['rack'].devices.append(device)
+                if len(instance.name.split('.')) < 2:
+                    self.__LOGGER.debug(f"Irregular instance name found: {instance.name} - Pushing to 'other' rack")
+                    irreg_device = self.__handle_irregular_instance(instance)
+                    continue
+                new_rack = self.__check_new_rack(instance)
+                new_device = self.__check_new_device(instance)
+            
+            # Check for instances deleted from openstack
+            found = False
+            for rack_name in self.devices_racks[project]:
+                for instance_id in self.devices_racks[project][rack_name]['devices']:
+                    for os_instance in openstack_instances:
+                        if instance_id == os_instance.id:
+                            found = True
+                            break
+                    if not found:
+                        self.__delete_device(project,rack_name,instance_id)
+                if not self.devices_racks[project][rack_name]['devices']:
+                    self.__delete_rack(project,rack_name)
+            
     
+    # Returns the rack object if it is a new cluster, returns None otherwise
+    def __check_new_rack(self, instance):
+        name_split = instance.name.split('.')
+        project = instance.tenant_id
+        if name_split[1] not in self.devices_racks[project]:
+            self.devices_racks[project][name_split[1]] = {'rack': None, 'devices': {}}
+            rack = self.__build_rack(instance)
+            self.devices_racks[project][name_split[1]]['rack'] = rack
+            return rack
+        return None
+
+    # Returns the device object if it is a new instance, returns None otherwise
+    def __check_new_device(self, instance):
+        name_split = instance.name.split('.')
+        project = instance.tenant_id
+        if instance.id not in self.devices_racks[project][name_split[1]]['devices']:
+            device = self.__build_device(instance)
+            self.devices_racks[project][name_split[1]]['devices'][instance.id] = device
+            self.devices_racks[project][name_split[1]]['rack'].devices.append(device)
+            return device
+        return None
+
+    # Deletes the rack from both local lists and Concertim
+    def __delete_rack(self, project_id, rack_name):
+        self.__LOGGER.debug(f"Rack:{rack_name} was found to be EMPTY for project:{project_id}")
+        rack = self.devices_racks[project_id][rack_name]['rack']
+        del self.devices_racks[project_id][rack_name]
+        self.__LOGGER.debug(f"Deleting Rack:(ID:{rack.rack_id}, NAME:{rack.rack_name})")
+        result = self.concertim_service.delete_rack(rack.rack_id)
+        return result
+
+    # Deletes the device from both local lists and Concertim
+    def __delete_device(self, project_id, rack_name, instance_id):
+        self.__LOGGER.debug(f"Instance:{instance_id} was not found in project:{project_id}")
+        device = self.devices_racks[project_id][rack_name]['devices'][instance_id]
+        del self.devices_racks[project_id][rack_name]['devices'][instance_id]
+        self.__LOGGER.debug(f"Deleting device:(ID:{device.device_id}, NAME:{device.device_name}) from rack:{rack_name}")
+        result = self.concertim_service.delete_device(device.device_id)
+        return result
+
+    # Returns the device object for the irregular instance
+    def __handle_irregular_instance(self, instance):
+        ## CREATE `OTHERS` rack if none exists
+        rack_name = 'others-' + instance.tenant_id[:5]
+        if rack_name not in self.devices_racks[project]:
+            others_rack = self.__build_others_rack(instance)
+        else:
+            self.__LOGGER.debug(f"'Others' rack alredy existst for this user, adding '{instance.name}' to rack")
+        ## ADD DEVICE TO 'OTHERS' RACK
+        if instance.id not in self.devices_racks[project][rack_name]['devices']:
+            irregular_device = self.__build_irregular_device(instance)
+
+    # Returns the rack object for the cluster if it is able to create
     def __build_rack(self, instance):
         cluster_name = instance.name.split('.')[1]
         rack_name = cluster_name + '-' + instance.tenant_id[:5]
-        height = 20
+        height = self.__default_rack_height
         owner = None
         for user_id in self.users:
             if self.users[user_id].project_id != instance.tenant_id:
@@ -184,6 +258,48 @@ class DataHandler(object):
             owner.owned_racks = owner.owned_racks.append(rack)
             return rack
 
+    # Returns the 'others' rack object for the project if it is able to create
+    def __build_others_rack(self, instance):
+        project = instance.tenant_id
+        rack_name = 'others-' + project[:5]
+        self.devices_racks[project]['others'] = {'rack': None, 'devices': {}}
+        height = self.__default_rack_height
+        owner = None
+        for user_id in self.users:
+            if self.users[user_id].project_id != project:
+                continue
+            owner = self.users[user_id]
+        self.__LOGGER.debug(f"'Other' rack not found locally - Building new Rack(name: {rack_name}, owner: {owner.display_name}, height: {height})")
+        rack = ConcertimRack(rack_name, owner, height, 'others', project)
+        rack_in_con = None
+        rack_in_con_details = None
+        rack_in_con_details_needed = False
+        # try to create the new rack in concertim
+        # if there is a conflict, pull from concertim and check
+        # if there is still no rack, raise e
+        try:
+            rack_in_con = self.concertim_service.create_rack({'user_id': owner.user_id, 'name': rack_name, 'u_height': height})
+        except FileExistsError as e:
+            self.__LOGGER.warning(f"The rack '{rack_name}' already exists. Searching for rack.")
+            rack_in_con = self.__search_local_racks(rack)
+            if rack_in_con is not None:
+                rack_in_con_details_needed = True
+            else:
+                self.__LOGGER.exception(f"No usable rack found after seaching - please check concertim and restart process.")
+                raise SystemExit(e)
+        except Exception as e:
+            self.__LOGGER.exception(f"Unhandled Exception {e}")
+            raise SystemExit(e)
+        finally:
+            rack.rack_id = rack_in_con['id']
+            if rack_in_con_details_needed:
+                self.__LOGGER.debug(f"Getting {rack_in_con['name']} details.")
+                rack_in_con_details = self.concertim_service.show_rack(rack_in_con['id'])
+                rack.occupied = self.__get_occupied(rack_in_con_details['devices'])
+            owner.owned_racks = owner.owned_racks.append(rack)
+            return rack
+
+    # Returns the device object for the instance if it is able to create
     def __build_device(self, instance):
         template_id = self.templates[instance.flavor['id']].template_id
         size = int(self.templates[instance.flavor['id']].device_size)
@@ -192,8 +308,9 @@ class DataHandler(object):
         device_name = name_split[0] + '-' + instance.id[:5]
         rack = self.devices_racks[instance.tenant_id][name_split[1]]['rack']
         rack_id = rack.rack_id
+        self.__LOGGER.debug(f"New Instance Found - {instance.name}")
         start_u = self.__find_spot_in_rack(rack, size)
-        self.__LOGGER.debug(f"New Instance Found - Building new Deivce(name: {device_name}, rack: (name: {rack_name}, ID: {rack_id}, start_u: {start_u}), instance_id: {instance.id}, template_id: {template_id})")
+        self.__LOGGER.debug(f"Building new Deivce(name: {device_name}, rack: (name: {rack_name}, ID: {rack_id}, start_u: {start_u}), instance_id: {instance.id}, template_id: {template_id})")
         device = ConcertimDevice(instance.id, instance.name, device_name, instance.tenant_id, instance.flavor['id'], template_id, name_split[1])
         #get location for device
         device_in_con = None
@@ -215,6 +332,39 @@ class DataHandler(object):
             self.devices_racks[instance.tenant_id][name_split[1]]['rack'].occupied.extend([*range(start_u, start_u+size)])
             return device
 
+    # Returns the device object for the irregular instance if it is able to create
+    def __build_irregular_device(self, instance):
+        template_id = self.templates[instance.flavor['id']].template_id
+        size = int(self.templates[instance.flavor['id']].device_size)
+        rack_name = 'others-' + instance.tenant_id[:5]
+        device_name = instance.name + '-' + instance.id[:5]
+        rack = self.devices_racks[instance.tenant_id]['others']['rack']
+        rack_id = rack.rack_id
+        self.__LOGGER.debug(f"New Instance Found - {instance.name}")
+        start_u = self.__find_spot_in_rack(rack, size)
+        self.__LOGGER.debug(f"Building new Deivce(name: {device_name}, rack: (name: {rack_name}, ID: {rack_id}, start_u: {start_u}), instance_id: {instance.id}, template_id: {template_id})")
+        device = ConcertimDevice(instance.id, instance.name, device_name, instance.tenant_id, instance.flavor['id'], template_id, 'others')
+        #get location for device
+        device_in_con = None
+        try:
+            device_in_con = self.concertim_service.create_device({'template_id': template_id, 'description': instance.id, 'name': device_name, 'facing': 'f', 'rack_id': rack_id, 'start_u': start_u})
+        except FileExistsError as e:
+            self.__LOGGER.warning(f"The device '{device_name}' already exists. Searching for device.")
+            device_in_con = self.__search_local_devices(device)
+            if not device_in_con:
+                self.__LOGGER.exception(f"No usable device found after searching - please check concertim and restart service")
+                raise SystemExit(e)
+        except Exception as e:
+            self.__LOGGER.exception(f"Unhandled Exception {e}")
+            raise SystemExit(e)
+        finally:
+            device.device_id = device_in_con['id']
+            device.rack_id = device_in_con['location']['rack_id']
+            device.rack_start_u = device_in_con['location']['start_u']
+            self.devices_racks[instance.tenant_id]['others']['rack'].occupied.extend([*range(start_u, start_u+size)])
+            return device
+
+    # Returns the matching template found or None
     def __search_local_templates(self, template_obj):
         temp_in_con = None
         for temp in self.__current_templates:
@@ -232,6 +382,7 @@ class DataHandler(object):
                     break
         return temp_in_con
 
+    # Returns the matching rack found or None
     def __search_local_racks(self, rack_obj):
         rack_in_con = None
         project_id = rack_obj.project_id
@@ -250,6 +401,7 @@ class DataHandler(object):
                     break
         return rack_in_con
 
+    # Returns the matching device found or None
     def __search_local_devices(self, device_obj):
         device_in_con = None
         for device in self.__current_devices:
@@ -267,7 +419,7 @@ class DataHandler(object):
                     break
         return device_in_con
 
-
+    # Returns the 'start_u' as an int for a device of 'size' in 'rack'
     def __find_spot_in_rack(self, rack, size):
         self.__LOGGER.debug(f"Finding spot in rack:{rack.rack_name} for {size} slots")
         height = int(rack.rack_height)
@@ -292,6 +444,7 @@ class DataHandler(object):
         self.concertim_service.update_rack({'name': rack.rack_name, 'u_height': int(height + size)})
         return self.__find_spot_in_rack(rack, size)
 
+    # Returns the list of occupied slots in a rack (ex. [1,5,27,28,29])
     def __get_occupied(self, device_list):
         occupied = []
         for device in device_list:
