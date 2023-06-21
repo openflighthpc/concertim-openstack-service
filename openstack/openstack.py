@@ -11,7 +11,7 @@ class OpenstackService(object):
         self.__CONFIG = config_obj
         self.__LOGGER = create_logger(__name__, '/var/log/concertim-openstack-service-opt.log', self.__CONFIG['log_level'])
         self.__OPSTK_AUTH = OpenStackAuth(self.__CONFIG['openstack'])
-        self.keystone = KeystoneHandler(self.__OPSTK_AUTH.get_session(), self.__CONFIG['log_level'])
+        self.keystone = KeystoneHandler(self.__OPSTK_AUTH.get_session(), '/var/log/concertim-openstack-service-opt.log', self.__CONFIG['log_level'])
         self.gnocchi = GnocchiHandler(self.__OPSTK_AUTH.get_session(), self.__CONFIG['log_level'])
         self.nova = NovaHandler(self.__OPSTK_AUTH.get_session(), self.__CONFIG['log_level'])
     
