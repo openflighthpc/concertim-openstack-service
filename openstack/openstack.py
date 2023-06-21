@@ -4,7 +4,7 @@ from openstack.opstk_auth import OpenStackAuth
 from openstack.keystone import KeystoneHandler
 from openstack.nova import NovaHandler
 from openstack.gnocchi import GnocchiHandler
-
+from openstack.heat import HeatHandler
 
 class OpenstackService(object):
     def __init__(self, config_obj):
@@ -14,6 +14,7 @@ class OpenstackService(object):
         self.keystone = KeystoneHandler(self.__OPSTK_AUTH.get_session(), self.__CONFIG['log_level'])
         self.gnocchi = GnocchiHandler(self.__OPSTK_AUTH.get_session(), self.__CONFIG['log_level'])
         self.nova = NovaHandler(self.__OPSTK_AUTH.get_session(), self.__CONFIG['log_level'])
+        self.heat = HeatHandler(self.__OPSTK_AUTH.get_session(), self.__CONFIG['log_level'])
     
     # Returns a list of project ID that the openstack concertim user is a member of
     def get_concertim_projects(self):
@@ -106,6 +107,15 @@ class OpenstackService(object):
                 grouped_resources[instance_id]["display_name"] = display_name.split('.')[0] + '-' + instance_id[:5]
             grouped_resources[instance_id]["resources"].append(resource)
         return grouped_resources
+
+
+    def list_stacks(self):
+        self.__LOGGER.debug("Getting Openstack Heat Stacks")
+        return self.heat.list_stacks()
+
+    def get_stack(self, stack_id):
+        self.__LOGGER.debug(f"Getting Openstack Heat Stack {stack_id}")
+        return self.heat.get_stack(stack_id)
 
     def disconnect(self):
         self.__LOGGER.info("Disconnecting Openstack Services")

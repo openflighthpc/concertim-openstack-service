@@ -37,13 +37,41 @@ class DataHandler(object):
     # Update concertim with Openstack info
     def update_concertim(self):
         self.__LOGGER.info('Updating Concertim')
-        #print(self.concertim_service.list_templates())
+
         # Update Lists
         self.__update_projects_list() # Finished
         self.__update_users() # Finished
         self.__update_templates() # Finished
         self.__update_devices_racks() # Finished
 
+    # Update Openstack with changes made in Concertim
+    def update_openstack(self):
+        self.__LOGGER.info('Updating Openstack')
+
+        concertim_rack_set = set()
+
+        concertim_racks = self.concertim_service.list_racks()
+        self.__LOGGER.debug(f"Concertim Rack : {concertim_racks}")
+        for rack in concertim_racks:
+            if 'openstack_stack_id' in rack['metadata']:
+                concertim_rack_set.add(rack['metadata']['openstack_stack_id'])
+
+        self.__LOGGER.debug(f"Concertim Rack Set : {concertim_rack_set}")    
+        
+
+
+        openstack_stack_set = set()
+
+        openstack_stacks = self.openstack_service.list_stacks()
+
+        for stack in openstack_stacks:
+            openstack_stack_set.add(stack.id)
+            self.__LOGGER.debug(f"Openstack stack : {stack}")
+
+        self.__LOGGER.debug(f"Openstack Stack Set : {openstack_stack_set}")    
+
+        
+        
     # Send all metrics for a given instance's resources
     def handle_metrics(self, instance_resource_dict):
         self.__LOGGER.debug(f"Processing metrics for instance:{instance_resource_dict['display_name']}")
@@ -139,12 +167,31 @@ class DataHandler(object):
     # Update all racks and devices
     # Updates both local and in concertim
     def __update_devices_racks(self):
-        for project in self.projects:
-            if project not in self.devices_racks:
-                self.devices_racks[project] = {}
-            openstack_instances = self.openstack_service.get_instances(project)
+
+        openstack_stack_set = set()
+
+        openstack_stacks = self.openstack_service.list_stacks()
+
+        for stack in openstack_stacks:
+            openstack_stack_set.add(stack.id)
+            self.__LOGGER.debug(f"Openstack stack : {stack}")
+
+        self.__LOGGER.debug(f"Openstack Stack Set : {openstack_stack_set}")    
+
+
+        concertim_rack_set = set()
+
+        concertim_racks = self.concertim_service.list_racks()
+        self.__LOGGER.debug(f"Concertim Rack : {concertim_racks}")
+        for rack in concertim_racks:
+            if 'openstack_stack_id' in rack['metadata']:
+                concertim_rack_set.add(rack['metadata']['openstack_stack_id'])
+
+        self.__LOGGER.debug(f"Concertim Rack Set : {concertim_rack_set}") 
+        
+
             # Check for new instances in openstack
-            for instance in openstack_instances:
+            """ for instance in openstack_instances:
                 if len(instance.name.split('.')) < 2:
                     self.__LOGGER.debug(f"Irregular instance name found: {instance.name} - Pushing to 'other' rack")
                     irreg_device = self.__handle_irregular_instance(instance)
@@ -163,7 +210,7 @@ class DataHandler(object):
                     if not found:
                         self.__delete_device(project,rack_name,instance_id)
                 if not self.devices_racks[project][rack_name]['devices']:
-                    self.__delete_rack(project,rack_name)
+                    self.__delete_rack(project,rack_name) """
             
     
     # Returns the rack object if it is a new cluster, returns None otherwise
