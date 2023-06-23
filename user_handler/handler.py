@@ -19,6 +19,8 @@ __config_obj = load_config('/etc/concertim-openstack-service/config.yaml')
 __LOGGER = create_logger(__name__, __log_file, __config_obj['log_level'])
 
 def handle_new_user_project(user_data):
+    if 'cloud_env' not in user_data:
+        raise Exception("No Authentication data recieved.")
     if 'username' not in user_data or 'password' not in user_data:
         raise UserProjectException("Invalid user data. 'username' and 'password' are required.")
     
@@ -26,8 +28,8 @@ def handle_new_user_project(user_data):
     password = user_data['password']
     project_name = f"{username}_project"
 
-    # Create Keystone client
-    sess = OpenStackAuth(__config_obj['openstack']).get_session()
+    # Create Keystone client (this authenticates the call as well)
+    sess = OpenStackAuth(user_data['cloud_env']).get_session()
     keystone = KeystoneHandler(sess, __log_file, __config_obj['log_level'])
 
     # Create a new project
