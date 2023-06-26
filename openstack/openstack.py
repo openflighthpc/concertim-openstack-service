@@ -117,6 +117,9 @@ class OpenstackService(object):
         self.__LOGGER.debug(f"Getting Openstack Heat Stack {stack_id}")
         return self.heat.get_stack(stack_id)
 
+    def list_stack_resources(self, stack_id, **kwargs):
+        return self.heat.list_stack_resources(stack_id, **kwargs)
+
     def disconnect(self):
         self.__LOGGER.info("Disconnecting Openstack Services")
         self.__OPSTK_AUTH = None

@@ -42,13 +42,11 @@ def main(args):
         #'''
         while True:
             handler.update_concertim()
-            time.sleep(10)
-        #'''
-        # FOR TESTING
-        #handler.update_concertim()
-        #time.sleep(2)
-        #handler.send_metrics()
 
+            break
+        
+            time.sleep(10)
+       
 
     try:
         logger.info("BEGINNING COMMUNICATION")

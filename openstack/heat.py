@@ -43,14 +43,16 @@ class HeatHandler:
 
         stack = self.client.stacks.get(stack_id=stack_id)
 
-        self.__LOGGER.debug(f"stacks : {stack}")
+        #self.__LOGGER.debug(f"stack  : {stack}")
 
         return stack
 
+    def list_stack_resources(self, stack_id, **kwargs):
 
-    def create_stack(self):
-        pass
+        stack_resource = self.client.resources.list(stack_id=stack_id, **kwargs)
+        return stack_resource
 
+    
     def close(self):
         self.__LOGGER.debug("Closing Heat Client Connection")
         self.client = None
