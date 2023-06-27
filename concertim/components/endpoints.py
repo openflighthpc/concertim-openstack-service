@@ -21,7 +21,11 @@ ENDPOINTS = {
                                         "facing": '{facing}',
                                         "rack_id": '{rack_id}',
                                         "start_u": '{start_u}'
+                                    },
+                                    "metadata" : {
+                                        "openstack_instance_id" : "{openstack_instance_id}"
                                     }
+
                                 }}
                     },
                     'CREATE_RACK':{
@@ -30,7 +34,10 @@ ENDPOINTS = {
                         'data': {"rack": {
                                     "user_id": '{user_id}',
                                     "name": '{name}',
-                                    "u_height": '{u_height}'
+                                    "u_height": '{u_height}',
+                                    "metadata" : {
+                                        "openstack_stack_id" : "{openstack_stack_id}"
+                                    }
                                 }}
                     },
                     'CREATE_TEMPLATE':{

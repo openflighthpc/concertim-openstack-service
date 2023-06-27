@@ -32,6 +32,7 @@ class ConcertimService(object):
         return response
     
     def create_rack(self, variables_dict):
+        self.__LOGGER.debug(f"{variables_dict}")
         response = self.__api_call('post', 'CREATE_RACK', variables_dict=variables_dict)
         return response
     

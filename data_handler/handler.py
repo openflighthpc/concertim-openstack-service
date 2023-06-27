@@ -25,6 +25,56 @@ class DataHandler(object):
         self.__current_devices = []
         self.__default_rack_height = int(config_obj['concertim']['default_rack_height'])
 
+        self.__concertim_racks = {}
+        self.__concertim_devices = {}
+        self.__concertim_rackstodevices = {}
+
+        self.__populate_concertim_racks_devices()
+
+
+    
+    def __populate_concertim_racks_devices(self):
+        
+        self.__concertim_racks = {}
+        self.__concertim_devices = {}
+        self.__concertim_rackstodevices = {}
+
+        concertim_racks = self.concertim_service.list_racks()
+        self.__LOGGER.debug(f"Concertim Rack : {concertim_racks}")
+
+        for rack in concertim_racks:
+            if 'metadata' in rack and 'openstack_stack_id' in rack['metadata']:
+                rack_os_stack_id = rack['metadata']['openstack_stack_id']
+
+                self.__LOGGER.debug(f"Rack ID : {rack_os_stack_id}")
+                # Populate stack IDs in __concertim_racks
+                self.__concertim_racks[ rack_os_stack_id ] = rack
+
+                devices = self.concertim_service.show_rack(ID = rack['id'])['devices']
+                self.__LOGGER.debug(f"devices : {devices}")
+                for device in devices:
+                    if 'metadata' in device and 'openstack_instance_id' in device['metadata']:
+                        device_os_instance_id = device ['metadata']['openstack_instance_id']
+
+                        # Populate instance IDs in __concertim_devices
+                        self.__concertim_devices[ device_os_instance_id ] = device 
+
+                        # Populate stack to instance mapping in __concertim_rackstodevices
+                        if rack_os_stack_id not in self.__concertim_rackstodevices:
+                            self.__concertim_rackstodevices[rack_os_stack_id] = set()
+                        
+                        self.__concertim_rackstodevices[rack_os_stack_id].add(device_os_instance_id)
+
+
+        self.__LOGGER.debug(f"Concertim Rack Object : {self.__concertim_racks}")
+            
+        self.__LOGGER.debug(f"Concertim Device Object : {self.__concertim_devices}")
+
+        self.__LOGGER.debug(f"Concertim Rack to Device Object : {self.__concertim_rackstodevices}")
+
+       
+
+
     # Send all metrics for concertim/openstack devices
     def send_metrics(self):
         self.__LOGGER.info('Sending Metrics')
@@ -37,13 +87,41 @@ class DataHandler(object):
     # Update concertim with Openstack info
     def update_concertim(self):
         self.__LOGGER.info('Updating Concertim')
-        #print(self.concertim_service.list_templates())
+
         # Update Lists
         self.__update_projects_list() # Finished
-        self.__update_users() # Finished
-        self.__update_templates() # Finished
+        #self.__update_users() # Finished
+        #self.__update_templates() # Finished
         self.__update_devices_racks() # Finished
 
+    # Update Openstack with changes made in Concertim
+    def update_openstack(self):
+        self.__LOGGER.info('Updating Openstack')
+
+        concertim_rack_set = set()
+
+        concertim_racks = self.concertim_service.list_racks()
+        self.__LOGGER.debug(f"Concertim Rack : {concertim_racks}")
+        for rack in concertim_racks:
+            if 'openstack_stack_id' in rack['metadata']:
+                concertim_rack_set.add(rack['metadata']['openstack_stack_id'])
+
+        self.__LOGGER.debug(f"Concertim Rack Set : {concertim_rack_set}")    
+        
+
+
+        openstack_stack_set = set()
+
+        openstack_stacks = self.openstack_service.list_stacks()
+
+        for stack in openstack_stacks:
+            openstack_stack_set.add(stack.id)
+            self.__LOGGER.debug(f"Openstack stack : {stack}")
+
+        self.__LOGGER.debug(f"Openstack Stack Set : {openstack_stack_set}")    
+
+        
+        
     # Send all metrics for a given instance's resources
     def handle_metrics(self, instance_resource_dict):
         self.__LOGGER.debug(f"Processing metrics for instance:{instance_resource_dict['display_name']}")
@@ -139,54 +217,138 @@ class DataHandler(object):
     # Update all racks and devices
     # Updates both local and in concertim
     def __update_devices_racks(self):
-        for project in self.projects:
-            if project not in self.devices_racks:
-                self.devices_racks[project] = {}
-            openstack_instances = self.openstack_service.get_instances(project)
-            # Check for new instances in openstack
-            for instance in openstack_instances:
-                if len(instance.name.split('.')) < 2:
-                    self.__LOGGER.debug(f"Irregular instance name found: {instance.name} - Pushing to 'other' rack")
-                    irreg_device = self.__handle_irregular_instance(instance)
-                    continue
-                new_rack = self.__check_new_rack(instance)
-                new_device = self.__check_new_device(instance)
+
+        """  openstack_instance_set = set()
+
+        for stack_id in self.__concertim_racks :
+
+            stack_resources = self.openstack_service.list_stack_resources(stack_id = stack.id, type = 'OS::Nova::Server' )
+
+            for resource in stack_resources:
+                instance_id = resource['physical_resource_id']
+                self.__LOGGER.debug(f"Instance ID : {instance_id}")
+                openstack_instance_set.add(instance_id)
+
+                if instance_id not in self.__concertim_devices:
+                    # Add device to associated rack
+
+
+        for instance_id in self.__concertim_devices:
+            if instance_id not in openstack_instance_set:
+                # Delete device from associated
+            """
+        
+        self.__LOGGER.debug(f" *** Adding New Racks in Concertim ***")
+
+        #Create set of stacks/racks already created in Concertim
+        concertim_rack_set = set()
+        for stack_id in self.__concertim_racks:
+            concertim_rack_set.add(stack_id)
+
+        #Create set of stacks created in Openstack
+        openstack_stack_set = set()
+        openstack_stacks = self.openstack_service.list_stacks()
+        for stack in openstack_stacks:
+            self.__LOGGER.debug(f"Stack : {stack}")    
+
+            if stack.project in self.projects:
+                openstack_stack_set.add(stack.id)
+            else:
+                continue
+
+            if stack.id not in concertim_rack_set:
+                self.__create_new_rack(stack)
             
-            # Check for instances deleted from openstack
-            found = False
-            for rack_name in self.devices_racks[project]:
-                for instance_id in self.devices_racks[project][rack_name]['devices']:
-                    for os_instance in openstack_instances:
-                        if instance_id == os_instance.id:
-                            found = True
-                            break
-                    if not found:
-                        self.__delete_device(project,rack_name,instance_id)
-                if not self.devices_racks[project][rack_name]['devices']:
-                    self.__delete_rack(project,rack_name)
+
+        self.__populate_concertim_racks_devices()
+
+        self.__LOGGER.debug(f"Concertim Rack Set  : {concertim_rack_set}")
+
+        self.__LOGGER.debug(f"Openstack Stack Set  : {openstack_stack_set}")
+
+        self.__LOGGER.debug(f" *** Deleting Stale Racks in Concertim ***")
+        for rack_id in self.__concertim_racks:
+            if rack_id not in openstack_stack_set:
+                
+                # Delete Devices
+                if rack_id in self.__concertim_rackstodevices:
+                    for device_id in self.__concertim_rackstodevices[rack_id]:
+                        self.__LOGGER.debug(f" Deleteing Device {device_id}")
+                        result = self.concertim_service.delete_device(self.__concertim_devices[device_id]['id'])
+                        self.__LOGGER.debug(f"{result}")
+
+                # Delete Rack
+                self.__LOGGER.debug(f" Deleteing Rack {rack_id}")
+                result = self.concertim_service.delete_rack(self.__concertim_racks[rack_id]['id'])
+                self.__LOGGER.debug(f"{result}")
+
+       
+
+        
+       
             
     
-    # Returns the rack object if it is a new cluster, returns None otherwise
-    def __check_new_rack(self, instance):
-        name_split = instance.name.split('.')
-        project = instance.tenant_id
-        if name_split[1] not in self.devices_racks[project]:
-            self.devices_racks[project][name_split[1]] = {'rack': None, 'devices': {}}
-            rack = self.__build_rack(instance)
-            self.devices_racks[project][name_split[1]]['rack'] = rack
-            return rack
-        return None
+    def __create_new_rack(self, stack):
 
-    # Returns the device object if it is a new instance, returns None otherwise
-    def __check_new_device(self, instance):
-        name_split = instance.name.split('.')
-        project = instance.tenant_id
-        if instance.id not in self.devices_racks[project][name_split[1]]['devices']:
-            device = self.__build_device(instance)
-            self.devices_racks[project][name_split[1]]['devices'][instance.id] = device
-            self.devices_racks[project][name_split[1]]['rack'].devices.append(device)
-            return device
-        return None
+        self.__LOGGER.debug(f"Creating rack for stack id : {stack.id}")
+
+        height = self.__default_rack_height
+
+        rack_id = None
+
+        try:
+            rack_in_con = self.concertim_service.create_rack({ 'name': stack.stack_name, 'user_id' : '1', 'u_height': height, 'openstack_stack_id' : stack.id})
+
+            self.__LOGGER.debug(f"{rack_in_con}")
+
+            rack_id = rack_in_con['id']
+
+        except FileExistsError as e:
+            self.__LOGGER.debug(f" Rack already exists")
+        except Exception as e:
+            self.__LOGGER.debug(f"Unhandled Exception")
+
+        stack_resources = self.openstack_service.list_stack_resources(stack_id = stack.id, type = 'OS::Nova::Server' )
+        self.__LOGGER.debug(f"Stack resources : {stack_resources}")
+        start_u = 1
+        size = 2
+        space = 1
+
+        for resource in stack_resources:
+            
+            instance_id = resource.physical_resource_id
+            self.__LOGGER.debug(f"Instance ID : {instance_id}")
+            self.__create_new_device(rack_id, instance_id, start_u, size, space)
+
+            start_u = start_u + size + space
+            
+        
+        
+    
+
+   
+    def __create_new_device(self, rack_id, openstack_instance_id, start_u, size, space):
+        self.__LOGGER.debug(f"Creating device for instnace id : {openstack_instance_id}")
+
+        try:
+
+            device_in_con = self.concertim_service.create_device({'template_id': 3, 'description': openstack_instance_id, 'name': openstack_instance_id, 'facing': 'f', 'rack_id': rack_id, 'start_u': start_u, 'openstack_instance_id' : openstack_instance_id})
+        except FileExistsError as e:
+            self.__LOGGER.debug(f" Device already exists")
+        except Exception as e:
+            self.__LOGGER.debug(f"Unhandled Exception")
+
+   
+    def __delete_old_rack(self, stack_id):
+        self.__LOGGER.debug(f"Deleting rack for stack id : {stack_id}")
+
+
+    def __delete_device(self, rack_id, device_id):
+        self.__LOGGER.debug(f"Deleting device")
+    
+
+
+    
 
     # Deletes the rack from both local lists and Concertim
     def __delete_rack(self, project_id, rack_name):
@@ -206,28 +368,11 @@ class DataHandler(object):
         result = self.concertim_service.delete_device(device.device_id)
         return result
 
-    # Returns the device object for the irregular instance
-    def __handle_irregular_instance(self, instance):
-        ## CREATE `OTHERS` rack if none exists
-        rack_name = 'others-' + instance.tenant_id[:5]
-        if rack_name not in self.devices_racks[project]:
-            others_rack = self.__build_others_rack(instance)
-        else:
-            self.__LOGGER.debug(f"'Others' rack alredy existst for this user, adding '{instance.name}' to rack")
-        ## ADD DEVICE TO 'OTHERS' RACK
-        if instance.id not in self.devices_racks[project][rack_name]['devices']:
-            irregular_device = self.__build_irregular_device(instance)
 
     # Returns the rack object for the cluster if it is able to create
-    def __build_rack(self, instance):
-        cluster_name = instance.name.split('.')[1]
-        rack_name = cluster_name + '-' + instance.tenant_id[:5]
+    def __build_rack(self, rack_name):
+        
         height = self.__default_rack_height
-        owner = None
-        for user_id in self.users:
-            if self.users[user_id].project_id != instance.tenant_id:
-                continue
-            owner = self.users[user_id]
         self.__LOGGER.debug(f"New Cluster Found - Building new Rack(name: {rack_name}, owner: {owner.display_name}, height: {height})")
         rack = ConcertimRack(rack_name, owner, height, cluster_name, instance.tenant_id)
         rack_in_con = None
@@ -238,55 +383,6 @@ class DataHandler(object):
         # if there is still no rack, raise e
         try:
             rack_in_con = self.concertim_service.create_rack({'user_id': owner.user_id, 'name': rack_name, 'u_height': height})
-        except FileExistsError as e:
-            self.__LOGGER.warning(f"The rack '{rack_name}' already exists. Searching for rack.")
-            rack_in_con = self.__search_local_racks(rack)
-            if rack_in_con is not None:
-                rack_in_con_details_needed = True
-            else:
-                self.__LOGGER.exception(f"No usable rack found after seaching - please check concertim and restart process.")
-                raise SystemExit(e)
-        except Exception as e:
-            self.__LOGGER.exception(f"Unhandled Exception {e}")
-            raise SystemExit(e)
-        finally:
-            rack.rack_id = rack_in_con['id']
-            if rack_in_con_details_needed:
-                self.__LOGGER.debug(f"Getting {rack_in_con['name']} details.")
-                rack_in_con_details = self.concertim_service.show_rack(rack_in_con['id'])
-                rack.occupied = self.__get_occupied(rack_in_con_details['devices'])
-            owner.owned_racks = owner.owned_racks.append(rack)
-            return rack
-
-    # Returns the 'others' rack object for the project if it is able to create
-    def __build_others_rack(self, instance):
-        project = instance.tenant_id
-        rack_name = 'others-' + project[:5]
-        self.devices_racks[project]['others'] = {'rack': None, 'devices': {}}
-        height = self.__default_rack_height
-        owner = None
-        for user_id in self.users:
-            if self.users[user_id].project_id != project:
-                continue
-            owner = self.users[user_id]
-        self.__LOGGER.debug(f"'Other' rack not found locally - Building new Rack(name: {rack_name}, owner: {owner.display_name}, height: {height})")
-        rack = ConcertimRack(rack_name, owner, height, 'others', project)
-        rack_in_con = None
-        rack_in_con_details = None
-        rack_in_con_details_needed = False
-        # try to create the new rack in concertim
-        # if there is a conflict, pull from concertim and check
-        # if there is still no rack, raise e
-        try:
-            rack_in_con = self.concertim_service.create_rack({'user_id': owner.user_id, 'name': rack_name, 'u_height': height})
-        except FileExistsError as e:
-            self.__LOGGER.warning(f"The rack '{rack_name}' already exists. Searching for rack.")
-            rack_in_con = self.__search_local_racks(rack)
-            if rack_in_con is not None:
-                rack_in_con_details_needed = True
-            else:
-                self.__LOGGER.exception(f"No usable rack found after seaching - please check concertim and restart process.")
-                raise SystemExit(e)
         except Exception as e:
             self.__LOGGER.exception(f"Unhandled Exception {e}")
             raise SystemExit(e)
@@ -300,15 +396,13 @@ class DataHandler(object):
             return rack
 
     # Returns the device object for the instance if it is able to create
-    def __build_device(self, instance):
+    def __build_device(self, rack_id, instance_name):
         template_id = self.templates[instance.flavor['id']].template_id
         size = int(self.templates[instance.flavor['id']].device_size)
         name_split = instance.name.split('.')
         rack_name = name_split[1] + '-' + instance.tenant_id[:5]
         device_name = name_split[0] + '-' + instance.id[:5]
-        rack = self.devices_racks[instance.tenant_id][name_split[1]]['rack']
-        rack_id = rack.rack_id
-        self.__LOGGER.debug(f"New Instance Found - {instance.name}")
+
         start_u = self.__find_spot_in_rack(rack, size)
         self.__LOGGER.debug(f"Building new Deivce(name: {device_name}, rack: (name: {rack_name}, ID: {rack_id}, start_u: {start_u}), instance_id: {instance.id}, template_id: {template_id})")
         device = ConcertimDevice(instance.id, instance.name, device_name, instance.tenant_id, instance.flavor['id'], template_id, name_split[1])
@@ -332,38 +426,7 @@ class DataHandler(object):
             self.devices_racks[instance.tenant_id][name_split[1]]['rack'].occupied.extend([*range(start_u, start_u+size)])
             return device
 
-    # Returns the device object for the irregular instance if it is able to create
-    def __build_irregular_device(self, instance):
-        template_id = self.templates[instance.flavor['id']].template_id
-        size = int(self.templates[instance.flavor['id']].device_size)
-        rack_name = 'others-' + instance.tenant_id[:5]
-        device_name = instance.name + '-' + instance.id[:5]
-        rack = self.devices_racks[instance.tenant_id]['others']['rack']
-        rack_id = rack.rack_id
-        self.__LOGGER.debug(f"New Instance Found - {instance.name}")
-        start_u = self.__find_spot_in_rack(rack, size)
-        self.__LOGGER.debug(f"Building new Deivce(name: {device_name}, rack: (name: {rack_name}, ID: {rack_id}, start_u: {start_u}), instance_id: {instance.id}, template_id: {template_id})")
-        device = ConcertimDevice(instance.id, instance.name, device_name, instance.tenant_id, instance.flavor['id'], template_id, 'others')
-        #get location for device
-        device_in_con = None
-        try:
-            device_in_con = self.concertim_service.create_device({'template_id': template_id, 'description': instance.id, 'name': device_name, 'facing': 'f', 'rack_id': rack_id, 'start_u': start_u})
-        except FileExistsError as e:
-            self.__LOGGER.warning(f"The device '{device_name}' already exists. Searching for device.")
-            device_in_con = self.__search_local_devices(device)
-            if not device_in_con:
-                self.__LOGGER.exception(f"No usable device found after searching - please check concertim and restart service")
-                raise SystemExit(e)
-        except Exception as e:
-            self.__LOGGER.exception(f"Unhandled Exception {e}")
-            raise SystemExit(e)
-        finally:
-            device.device_id = device_in_con['id']
-            device.rack_id = device_in_con['location']['rack_id']
-            device.rack_start_u = device_in_con['location']['start_u']
-            self.devices_racks[instance.tenant_id]['others']['rack'].occupied.extend([*range(start_u, start_u+size)])
-            return device
-
+   
     # Returns the matching template found or None
     def __search_local_templates(self, template_obj):
         temp_in_con = None
@@ -420,9 +483,8 @@ class DataHandler(object):
         return device_in_con
 
     # Returns the 'start_u' as an int for a device of 'size' in 'rack'
-    def __find_spot_in_rack(self, rack, size):
-        self.__LOGGER.debug(f"Finding spot in rack:{rack.rack_name} for {size} slots")
-        height = int(rack.rack_height)
+    def __find_spot_in_rack(self, rack_height, size):
+        height = rack_height
         occupied = rack.occupied
         spot_found = False
         start_location = -1
