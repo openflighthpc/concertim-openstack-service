@@ -30,7 +30,10 @@ ENDPOINTS = {
                         'data': {"rack": {
                                     "user_id": '{user_id}',
                                     "name": '{name}',
-                                    "u_height": '{u_height}'
+                                    "u_height": '{u_height}',
+                                    "metadata" : {
+                                        "openstack_stack_id" : '{openstack_stack_id}'
+                                    }
                                 }}
                     },
                     'CREATE_TEMPLATE':{

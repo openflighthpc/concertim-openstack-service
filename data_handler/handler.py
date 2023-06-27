@@ -246,10 +246,16 @@ class DataHandler(object):
         openstack_stack_set = set()
         openstack_stacks = self.openstack_service.list_stacks()
         for stack in openstack_stacks:
-            self.__LOGGER.debug(f"Stack : {stack}")
+            self.__LOGGER.debug(f"Stack : {stack}")    
 
             if stack.project in self.projects:
                 openstack_stack_set.add(stack.id)
+            else:
+                continue
+
+            if stack.id not in concertim_rack_set:
+                self.__create_new_rack(stack)
+            
 
         
         self.__LOGGER.debug(f"Concertim Rack Set  : {concertim_rack_set}")
@@ -257,35 +263,70 @@ class DataHandler(object):
         self.__LOGGER.debug(f"Openstack Stack Set  : {openstack_stack_set}")
         
         # Create New stack in Concertim
-        stacks_to_create = openstack_stack_set - concertim_rack_set
-        for stack_id in stacks_to_create:
-            self.__create_new_rack(stack_id)
-
+        """ stacks_to_create = openstack_stack_set - concertim_rack_set
+        for stack in stacks_to_create:
+            self.__create_new_rack(stack)
+ """
 
         
         # Delete stack in Concertim
-        stacks_to_delete = concertim_rack_set - openstack_stack_set
-        for stack_id in stacks_to_delete:
-            self.__delete_old_rack(stack_id)
-
+        """   """
             
     
-    def __create_new_rack(self, stack_id):
+    def __create_new_rack(self, stack):
 
-        self.__LOGGER.debug(f"Creating rack for stack id : {stack_id}")
+        self.__LOGGER.debug(f"Creating rack for stack id : {stack.id}")
 
         height = self.__default_rack_height
-        rack_in_con = self.concertim_service.create_rack({ 'name': 'test-name', 'u_height': height})
 
+        rack_id = None
+
+        try:
+            rack_in_con = self.concertim_service.create_rack({ 'name': stack.stack_name, 'user_id' : '1', 'u_height': height, 'openstack_stack_id' : stack.id})
+
+            self.__LOGGER.debug(f"{rack_in_con}")
+
+            rack_id = rack_in_con['id']
+
+        except FileExistsError as e:
+            self.__LOGGER.debug(f" Rack already exists")
+        except Exception as e:
+            self.__LOGGER.debug(f"Unhandled Exception")
+
+        stack_resources = self.openstack_service.list_stack_resources(stack_id = stack.id, type = 'OS::Nova::Server' )
+        self.__LOGGER.debug(f"Stack resources : {stack_resources}")
+        start_u = 1
+        size = 2
+        space = 1
+
+        for resource in stack_resources:
+            
+            instance_id = resource.physical_resource_id
+            self.__LOGGER.debug(f"Instance ID : {instance_id}")
+            self.__create_new_device(rack_id, instance_id, start_u, size, space)
+
+            start_u = start_u + size + space
+            
+        
+        
     
 
+   
+    def __create_new_device(self, rack_id, instance_id, start_u, size, space):
+        self.__LOGGER.debug(f"Creating device for instnace id : {instance_id}")
+
+        try:
+
+            device_in_con = self.concertim_service.create_device({'template_id': 3, 'description': instance_id, 'name': instance_id, 'facing': 'f', 'rack_id': rack_id, 'start_u': start_u})
+        except FileExistsError as e:
+            self.__LOGGER.debug(f" Device already exists")
+        except Exception as e:
+            self.__LOGGER.debug(f"Unhandled Exception")
+
+   
     def __delete_old_rack(self, stack_id):
         self.__LOGGER.debug(f"Deleting rack for stack id : {stack_id}")
 
-    def __create_new_device(self, instance_id):
-        self.__LOGGER.debug(f"Creating device for instnace id : {instance_id}")
-
-   
 
     def __delete_device(self, instance_id):
         self.__LOGGER.debug(f"Deleting device for instance id : {instance_id}")
@@ -427,9 +468,8 @@ class DataHandler(object):
         return device_in_con
 
     # Returns the 'start_u' as an int for a device of 'size' in 'rack'
-    def __find_spot_in_rack(self, rack, size):
-        self.__LOGGER.debug(f"Finding spot in rack:{rack.rack_name} for {size} slots")
-        height = int(rack.rack_height)
+    def __find_spot_in_rack(self, rack_height, size):
+        height = rack_height
         occupied = rack.occupied
         spot_found = False
         start_location = -1
