@@ -46,10 +46,12 @@ class DataHandler(object):
             if 'metadata' in rack and 'openstack_stack_id' in rack['metadata']:
                 rack_os_stack_id = rack['metadata']['openstack_stack_id']
 
+                self.__LOGGER.debug(f"Rack ID : {rack_os_stack_id}")
                 # Populate stack IDs in __concertim_racks
                 self.__concertim_racks[ rack_os_stack_id ] = rack
 
                 devices = self.concertim_service.show_rack(ID = rack['id'])['devices']
+                self.__LOGGER.debug(f"devices : {devices}")
                 for device in devices:
                     if 'metadata' in device and 'openstack_instance_id' in device['metadata']:
                         device_os_instance_id = device ['metadata']['openstack_instance_id']
@@ -236,6 +238,7 @@ class DataHandler(object):
                 # Delete device from associated
             """
         
+        self.__LOGGER.debug(f" *** Adding New Racks in Concertim ***")
 
         #Create set of stacks/racks already created in Concertim
         concertim_rack_set = set()
@@ -257,20 +260,32 @@ class DataHandler(object):
                 self.__create_new_rack(stack)
             
 
-        
+        self.__populate_concertim_racks_devices()
+
         self.__LOGGER.debug(f"Concertim Rack Set  : {concertim_rack_set}")
 
         self.__LOGGER.debug(f"Openstack Stack Set  : {openstack_stack_set}")
-        
-        # Create New stack in Concertim
-        """ stacks_to_create = openstack_stack_set - concertim_rack_set
-        for stack in stacks_to_create:
-            self.__create_new_rack(stack)
- """
+
+        self.__LOGGER.debug(f" *** Deleting Stale Racks in Concertim ***")
+        for rack_id in self.__concertim_racks:
+            if rack_id not in openstack_stack_set:
+                
+                # Delete Devices
+                if rack_id in self.__concertim_rackstodevices:
+                    for device_id in self.__concertim_rackstodevices[rack_id]:
+                        self.__LOGGER.debug(f" Deleteing Device {device_id}")
+                        result = self.concertim_service.delete_device(self.__concertim_devices[device_id]['id'])
+                        self.__LOGGER.debug(f"{result}")
+
+                # Delete Rack
+                self.__LOGGER.debug(f" Deleteing Rack {rack_id}")
+                result = self.concertim_service.delete_rack(self.__concertim_racks[rack_id]['id'])
+                self.__LOGGER.debug(f"{result}")
+
+       
 
         
-        # Delete stack in Concertim
-        """   """
+       
             
     
     def __create_new_rack(self, stack):
@@ -312,12 +327,12 @@ class DataHandler(object):
     
 
    
-    def __create_new_device(self, rack_id, instance_id, start_u, size, space):
-        self.__LOGGER.debug(f"Creating device for instnace id : {instance_id}")
+    def __create_new_device(self, rack_id, openstack_instance_id, start_u, size, space):
+        self.__LOGGER.debug(f"Creating device for instnace id : {openstack_instance_id}")
 
         try:
 
-            device_in_con = self.concertim_service.create_device({'template_id': 3, 'description': instance_id, 'name': instance_id, 'facing': 'f', 'rack_id': rack_id, 'start_u': start_u})
+            device_in_con = self.concertim_service.create_device({'template_id': 3, 'description': openstack_instance_id, 'name': openstack_instance_id, 'facing': 'f', 'rack_id': rack_id, 'start_u': start_u, 'openstack_instance_id' : openstack_instance_id})
         except FileExistsError as e:
             self.__LOGGER.debug(f" Device already exists")
         except Exception as e:
@@ -328,8 +343,8 @@ class DataHandler(object):
         self.__LOGGER.debug(f"Deleting rack for stack id : {stack_id}")
 
 
-    def __delete_device(self, instance_id):
-        self.__LOGGER.debug(f"Deleting device for instance id : {instance_id}")
+    def __delete_device(self, rack_id, device_id):
+        self.__LOGGER.debug(f"Deleting device")
     
 
 
