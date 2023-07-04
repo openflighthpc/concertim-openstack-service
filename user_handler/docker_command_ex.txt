@@ -1,0 +1,5 @@
+# from concertim-openstack-service root directory
+sudo docker build --network=host --tag concertim-user-handler:latest -f user_handler/Dockerfile .
+
+# mounts the config file as a vol
+sudo docker run -d --name concertim-user-handler --network=host -v /etc/concertim-openstack-service/config.yaml:/etc/concertim-openstack-service/config.yaml --publish 10.151.0.167:42356:42356 concertim-user-handler
