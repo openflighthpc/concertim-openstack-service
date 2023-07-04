@@ -4,11 +4,14 @@ FROM python:3.8-slim-buster
 # Set the working directory in the container to /app
 WORKDIR /app
 
-# Add the parent directory contents into the container at /app
-ADD .. /app
+# Copy the directory contents into the container at /app
+COPY . /app
+
+# Copy the config file into the container
+#COPY config.yaml /etc/concertim-openstack-service/config.yaml
 
 # Install any needed packages specified in requirements-userhandler.txt
-RUN pip install --no-cache-dir -r requirements-userhandler.txt
+RUN pip install --no-cache-dir -r user_handler/requirements-userhandler.txt
 
 # Make port 42356 available to the world outside this container
 EXPOSE 42356
