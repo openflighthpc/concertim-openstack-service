@@ -5,6 +5,8 @@ from concertim.components.device import ConcertimDevice
 from concertim.components.rack import ConcertimRack
 from concertim.components.template import ConcertimTemplate
 from concertim.components.user import ConcertimUser
+from concertim.concertim import ConcertimData
+from concertim.concertim import OpenstackConcertimMap
 
 # Py Packages
 import time
@@ -16,59 +18,83 @@ class DataHandler(object):
         self.__LOGGER = create_logger(__name__, log_file, config_obj['log_level'])
         self.openstack_service = openstack
         self.concertim_service = concertim
-        self.projects = []
-        self.users = {}
-        self.devices_racks = {}
-        self.templates = {}
-        self.__current_templates = []
-        self.__current_racks = []
-        self.__current_devices = []
         self.__default_rack_height = int(config_obj['concertim']['default_rack_height'])
 
-        self.__concertim_racks = {}
-        self.__concertim_devices = {}
-        self.__concertim_rackstodevices = {}
+       
+
+
+        self.__concertim_data = None
+        self.__openstack_concertim_map = None
 
 
 
     def __populate_concertim_racks_devices(self):
         
-        self.__concertim_racks = {}
-        self.__concertim_devices = {}
-        self.__concertim_rackstodevices = {}
+        self.__concertim_data = ConcertimData()
+        self.__openstack_concertim_map = OpenstackConcertimMap()
 
         concertim_racks = self.concertim_service.list_racks()
-        self.__LOGGER.debug(f"Concertim Rack : {concertim_racks}")
+        #self.__LOGGER.debug(f"Concertim Rack : {concertim_racks}")
 
         for rack in concertim_racks:
             if 'metadata' in rack and 'openstack_stack_id' in rack['metadata']:
                 rack_os_stack_id = rack['metadata']['openstack_stack_id']
+            else:
+                continue
 
-                self.__LOGGER.debug(f"Rack ID : {rack_os_stack_id}")
-                # Populate stack IDs in __concertim_racks
-                self.__concertim_racks[ rack_os_stack_id ] = rack
+            if rack_os_stack_id not in self.__concertim_data.racks:
+                #self.__LOGGER.debug(f"Rack ID : {rack['id']}")
 
-                devices = self.concertim_service.show_rack(ID = rack['id'])['devices']
-                self.__LOGGER.debug(f"devices : {devices}")
-                for device in devices:
-                    if 'metadata' in device and 'openstack_instance_id' in device['metadata']:
-                        device_os_instance_id = device ['metadata']['openstack_instance_id']
+                self.__concertim_data.racks[ rack['id'] ] =  \
+                    ConcertimRack(rack_name=rack['name'],
+                                  owner = rack['owner']['id'],
+                                  rack_height = rack['u_height'],
+                                  rack_id = rack['id'],
+                                  openstack_stack_id = rack_os_stack_id,
+                                  status = rack['metadata']['status']  )
 
-                        # Populate instance IDs in __concertim_devices
-                        self.__concertim_devices[ device_os_instance_id ] = device 
-
-                        # Populate stack to instance mapping in __concertim_rackstodevices
-                        if rack_os_stack_id not in self.__concertim_rackstodevices:
-                            self.__concertim_rackstodevices[rack_os_stack_id] = set()
-                        
-                        self.__concertim_rackstodevices[rack_os_stack_id].add(device_os_instance_id)
+            if rack_os_stack_id not in self.__openstack_concertim_map.stack_to_rack:
+                self.__openstack_concertim_map.stack_to_rack[rack_os_stack_id] = rack['id'] 
 
 
-        self.__LOGGER.debug(f"Concertim Rack Object : {self.__concertim_racks}")
+
+            devices = self.concertim_service.show_rack(ID = rack['id'])['devices']
+            #self.__LOGGER.debug(f"devices : {devices}")
+            for device in devices:
+                if 'metadata' in device and 'openstack_instance_id' in device['metadata']:
+                    device_os_instance_id = device ['metadata']['openstack_instance_id']
+                else:
+                    continue
+
+                if device_os_instance_id not in self.__concertim_data.devices:
+                    # Populate instance IDs in __concertim_devices
+                    self.__concertim_data.devices[ device['id'] ] = \
+                        ConcertimDevice( openstack_instance_id = device['metadata']['openstack_instance_id'],
+                            openstack_instance_name = device['metadata']['openstack_instance_id'],
+                            device_name = device['name'],
+                            device_id = device['id'],
+                            start_u = device['location']['start_u'],
+                            end_u = device['location']['end_u'],
+                            facing = device['location']['facing'],
+                            depth = device['location']['depth'],
+                            rack_id = device['location']['rack_id']
+                        )  
+                
+                    self.__concertim_data.racks[ rack['id'] ].devices.add(device['id'])
+
+                if device_os_instance_id not in self.__openstack_concertim_map.instance_to_device:
+                    self.__openstack_concertim_map.instance_to_device[device_os_instance_id] = device['id']
+
+
+
+
+        #self.__LOGGER.debug(f"Concertim Rack Object : {self.__concertim_data.racks}")
             
-        self.__LOGGER.debug(f"Concertim Device Object : {self.__concertim_devices}")
+        #self.__LOGGER.debug(f"Concertim Device Object : {self.__concertim_data.devices}")
 
-        self.__LOGGER.debug(f"Concertim Rack to Device Object : {self.__concertim_rackstodevices}")
+        #self.__LOGGER.debug(f"Openstack Stack to Concertim Rack Object : {self.__openstack_concertim_map.stack_to_rack}")
+
+        #self.__LOGGER.debug(f"Openstack Instance to Concertim Device Object : {self.__openstack_concertim_map.instance_to_device}")
 
        
 
@@ -89,37 +115,10 @@ class DataHandler(object):
         self.__LOGGER.info('Updating Concertim')
         self.__populate_concertim_racks_devices()
         # Update Lists
-        self.__update_projects_list() # Finished
+        #self.__update_projects_list() # Finished
         #self.__update_users() # Finished
         #self.__update_templates() # Finished
         self.__update_devices_racks() # Finished
-
-    # Update Openstack with changes made in Concertim
-    def update_openstack(self):
-        self.__LOGGER.info('Updating Openstack')
-
-        concertim_rack_set = set()
-
-        concertim_racks = self.concertim_service.list_racks()
-        self.__LOGGER.debug(f"Concertim Rack : {concertim_racks}")
-        for rack in concertim_racks:
-            if 'openstack_stack_id' in rack['metadata']:
-                concertim_rack_set.add(rack['metadata']['openstack_stack_id'])
-
-        self.__LOGGER.debug(f"Concertim Rack Set : {concertim_rack_set}")    
-        
-
-
-        openstack_stack_set = set()
-
-        openstack_stacks = self.openstack_service.list_stacks()
-
-        for stack in openstack_stacks:
-            openstack_stack_set.add(stack.id)
-            self.__LOGGER.debug(f"Openstack stack : {stack}")
-
-        self.__LOGGER.debug(f"Openstack Stack Set : {openstack_stack_set}")    
-
         
         
     # Send all metrics for a given instance's resources
@@ -215,81 +214,115 @@ class DataHandler(object):
             finally:
                 template.template_id = temp_in_con['id']
                 self.templates[openstack_flavors[flavor]['id']] = template
-
+ 
     # Update all racks and devices
     # Updates both local and in concertim
     def __update_devices_racks(self):
 
-        """  openstack_instance_set = set()
-
-        for stack_id in self.__concertim_racks :
-
-            stack_resources = self.openstack_service.list_stack_resources(stack_id = stack.id, type = 'OS::Nova::Server' )
-
-            for resource in stack_resources:
-                instance_id = resource['physical_resource_id']
-                self.__LOGGER.debug(f"Instance ID : {instance_id}")
-                openstack_instance_set.add(instance_id)
-
-                if instance_id not in self.__concertim_devices:
-                    # Add device to associated rack
-
-
-        for instance_id in self.__concertim_devices:
-            if instance_id not in openstack_instance_set:
-                # Delete device from associated
-            """
-        
-        self.__LOGGER.debug(f" *** Adding New Racks in Concertim ***")
-
-        #Create set of stacks/racks already created in Concertim
-        concertim_rack_set = set()
-        for stack_id in self.__concertim_racks:
-            concertim_rack_set.add(stack_id)
-
         #Create set of stacks created in Openstack
         openstack_stack_set = set()
         openstack_stacks = self.openstack_service.list_stacks()
+
+        self.__LOGGER.debug(f" *** Adding New Racks in Concertim ***")
+
         for stack in openstack_stacks:
-            self.__LOGGER.debug(f"Stack : {stack}")    
+            #self.__LOGGER.debug(f"Stack : {stack}")    
 
-            if stack.project in self.projects:
-                openstack_stack_set.add(stack.id)
-            else:
-                continue
+            #if stack.project in self.projects:
+            
+            openstack_stack_set.add(stack.id)
+            #else:
+            #    continue
 
-            if stack.id not in concertim_rack_set:
+            
+            if stack.id not in self.__openstack_concertim_map.stack_to_rack:
                 self.__create_new_rack(stack)
             
-
+        self.__LOGGER.debug(f"Openstack Stack Set  : {openstack_stack_set}")
+    
+        # Repopulate Concertim Cache
         self.__populate_concertim_racks_devices()
 
-        self.__LOGGER.debug(f"Concertim Rack Set  : {concertim_rack_set}")
-
-        self.__LOGGER.debug(f"Openstack Stack Set  : {openstack_stack_set}")
-
-        self.__LOGGER.debug(f" *** Deleting Stale Racks in Concertim ***")
-        for rack_id in self.__concertim_racks:
-            if rack_id not in openstack_stack_set:
-                
-                # Delete Devices
-                if rack_id in self.__concertim_rackstodevices:
-                    for device_id in self.__concertim_rackstodevices[rack_id]:
-                        self.__LOGGER.debug(f" Deleteing Device {device_id}")
-                        result = self.concertim_service.delete_device(self.__concertim_devices[device_id]['id'])
-                        self.__LOGGER.debug(f"{result}")
-
-                # Delete Rack
-                self.__LOGGER.debug(f" Deleteing Rack {rack_id}")
-                result = self.concertim_service.delete_rack(self.__concertim_racks[rack_id]['id'])
-                self.__LOGGER.debug(f"{result}")
-
-       
-
         
-       
+        self.__LOGGER.debug(f" *** Deleting Stale Racks in Concertim ***")
+        for stack_id in self.__openstack_concertim_map.stack_to_rack:
+            if stack_id not in openstack_stack_set:
+                
+                rack_id = self.__openstack_concertim_map.stack_to_rack[stack_id]
+
+                # Deleting Devices
+                for device_id in self.__concertim_data.racks[rack_id].devices:
+                    self.__delete_device(device_id)
+
+                self.__delete_rack(rack_id) 
+        
+        # Repopulate Concertim Cache
+        self.__populate_concertim_racks_devices()
+
+        openstack_device_set = set()
+
+        self.__LOGGER.debug(f" *** Adding New Devices in Concertim ***")
+        for stack_id in openstack_stack_set:
+            stack_resources = self.openstack_service.list_stack_resources(stack_id = stack_id, type = 'OS::Nova::Server' )
+            self.__LOGGER.debug(f"Stack resources : {stack_resources}")
             
-    
+            size = 2
+            depth = 1
+
+
+            for instance in stack_resources:
+                
+                if instance.resource_type != 'OS::Nova::Server':
+                    continue
+                
+                instance_id = instance.physical_resource_id
+
+
+                if not self.openstack_service.nova.server_exists(instance_id):
+                    continue
+                
+                
+                openstack_device_set.add(instance_id)
+
+                if instance_id in self.__openstack_concertim_map.instance_to_device:
+                    continue
+
+                self.__LOGGER.debug(f"Instance ID : {instance_id}")
+                
+                rack_id = self.__openstack_concertim_map.stack_to_rack[stack_id]
+
+                start_u = self.__find_empty_slot(rack_id, depth)
+
+                self.__create_new_device(rack_id, instance, start_u)
+                self.__populate_concertim_racks_devices()
+
+        self.__LOGGER.debug(f" *** Deleting Stale Devices in Concertim ***")
+
+        for instance_id, device_id in self.__openstack_concertim_map.instance_to_device.items():
+            if not self.openstack_service.nova.server_exists(instance_id):
+                self.__delete_device(device_id)
+                self.__populate_concertim_racks_devices()
+           
+
+    def __find_empty_slot(self, rack_id, depth):
+
+        filled_slots = []
+        for device_id in self.__concertim_data.racks[rack_id].devices:
+            device = self.__concertim_data.devices[device_id]
+            filled_slots.append(tuple((device.start_u, device.depth)))
+
+        filled_slots.sort()
+        self.__LOGGER.debug(f"Filled slots in Rack id {rack_id} : {filled_slots}")
+
+        start_u = 1
+
+        for start, depth in filled_slots:
+            self.__LOGGER.debug(f" {start} , {depth}")
+            start_u = start + depth
+
+        return start_u
+
+
     def __create_new_rack(self, stack):
 
         self.__LOGGER.debug(f"Creating rack for stack id : {stack.id}")
@@ -299,7 +332,11 @@ class DataHandler(object):
         rack_id = None
 
         try:
-            rack_in_con = self.concertim_service.create_rack({ 'name': stack.stack_name, 'user_id' : '1', 'u_height': height, 'openstack_stack_id' : stack.id})
+            rack_in_con = self.concertim_service.create_rack({ 'name': stack.stack_name, \
+                                                            'user_id' : '1', \
+                                                            'u_height': height, \
+                                                            'openstack_stack_id' : stack.id, \
+                                                            'status' : stack.stack_status })
 
             self.__LOGGER.debug(f"{rack_in_con}")
 
@@ -308,68 +345,64 @@ class DataHandler(object):
         except FileExistsError as e:
             self.__LOGGER.debug(f" Rack already exists")
         except Exception as e:
-            self.__LOGGER.debug(f"Unhandled Exception")
-
-        stack_resources = self.openstack_service.list_stack_resources(stack_id = stack.id, type = 'OS::Nova::Server' )
-        self.__LOGGER.debug(f"Stack resources : {stack_resources}")
-        start_u = 1
-        size = 2
-        space = 1
-
-        for resource in stack_resources:
+            self.__LOGGER.debug(f"Unhandled Exception : {e}")
             
-            instance_id = resource.physical_resource_id
-            self.__LOGGER.debug(f"Instance ID : {instance_id}")
-            self.__create_new_device(rack_id, instance_id, start_u, size, space)
+           
+    def __create_new_device(self, rack_id, instance, start_u, template_id = 3):
 
-            start_u = start_u + size + space
-            
         
-        
-    
-
-   
-    def __create_new_device(self, rack_id, openstack_instance_id, start_u, size, space):
-        self.__LOGGER.debug(f"Creating device for instnace id : {openstack_instance_id}")
+        self.__LOGGER.debug(f"Creating device for instance id : {instance.physical_resource_id}")
 
         try:
 
-            device_in_con = self.concertim_service.create_device({'template_id': 3, 'description': openstack_instance_id, 'name': openstack_instance_id, 'facing': 'f', 'rack_id': rack_id, 'start_u': start_u, 'openstack_instance_id' : openstack_instance_id})
+            device_in_con = self.concertim_service.create_device({'template_id': template_id, \
+                                                                'description': instance.physical_resource_id, \
+                                                                'name': instance.physical_resource_id, \
+                                                                'facing': 'f', \
+                                                                'rack_id': rack_id, \
+                                                                'start_u': start_u, \
+                                                                'openstack_instance_id' : instance.physical_resource_id,
+                                                                'status' : instance.resource_status})
         except FileExistsError as e:
             self.__LOGGER.debug(f" Device already exists")
         except Exception as e:
-            self.__LOGGER.debug(f"Unhandled Exception")
+            self.__LOGGER.debug(f"Unhandled Exception : {e}")
 
    
-    def __delete_old_rack(self, stack_id):
-        self.__LOGGER.debug(f"Deleting rack for stack id : {stack_id}")
+    def __delete_rack(self, rack_id):
+        # Delete Rack
+        self.__LOGGER.debug(f" Deleting Rack {rack_id}")
+        result = self.concertim_service.delete_rack(rack_id)
+        self.__LOGGER.debug(f"{result}")
 
 
-    def __delete_device(self, rack_id, device_id):
-        self.__LOGGER.debug(f"Deleting device")
+    def __delete_device(self, device_id):
+        self.__LOGGER.debug(f" Deleteing Device {device_id}")
+        result = self.concertim_service.delete_device(device_id)
+        self.__LOGGER.debug(f"{result}")
     
 
 
     
 
     # Deletes the rack from both local lists and Concertim
-    def __delete_rack(self, project_id, rack_name):
+    """ def __delete_rack(self, project_id, rack_name):
         self.__LOGGER.debug(f"Rack:{rack_name} was found to be EMPTY for project:{project_id}")
         rack = self.devices_racks[project_id][rack_name]['rack']
         del self.devices_racks[project_id][rack_name]
         self.__LOGGER.debug(f"Deleting Rack:(ID:{rack.rack_id}, NAME:{rack.rack_name})")
         result = self.concertim_service.delete_rack(rack.rack_id)
-        return result
+        return result """
 
     # Deletes the device from both local lists and Concertim
-    def __delete_device(self, project_id, rack_name, instance_id):
+    """ def __delete_device(self, project_id, rack_name, instance_id):
         self.__LOGGER.debug(f"Instance:{instance_id} was not found in project:{project_id}")
         device = self.devices_racks[project_id][rack_name]['devices'][instance_id]
         del self.devices_racks[project_id][rack_name]['devices'][instance_id]
         self.__LOGGER.debug(f"Deleting device:(ID:{device.device_id}, NAME:{device.device_name}) from rack:{rack_name}")
         result = self.concertim_service.delete_device(device.device_id)
         return result
-
+ """
 
     # Returns the rack object for the cluster if it is able to create
     def __build_rack(self, rack_name):

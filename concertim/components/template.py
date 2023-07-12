@@ -1,3 +1,4 @@
+
 class ConcertimTemplate:
     __slots__ = ('__flavor_id', '__name', '__ram', '__disk', '__vcpus', '__template_id', '__device_size')
     def __init__(self, flavor_id, flavor_name, ram, disk, vcpus, template_id='', device_size=''):

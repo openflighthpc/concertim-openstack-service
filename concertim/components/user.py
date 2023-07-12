@@ -1,3 +1,4 @@
+
 class ConcertimUser:
     __slots__ = ('__user_id', '__project_id', '__display_name', '__login_name', '__owned_racks')
     def __init__(self, user_id, project_id, display_name, login_name, owned_racks=[]):
