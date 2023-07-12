@@ -113,7 +113,11 @@ ENDPOINTS = {
                         'required_vars': ['name','description'],
                         'data': {"device": {
                                     "name": '{name}',
-                                    "description": '{description}'
+                                    "description": '{description}',
+                                    "metadata": {
+                                        "status" : '{status}',
+                                        "openstack_instance_id" : '{openstack_instance_id}'
+                                    }
                                 }}
                     },
                     'UPDATE_RACK':{

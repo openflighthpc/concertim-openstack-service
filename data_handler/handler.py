@@ -12,6 +12,8 @@ from concertim.concertim import OpenstackConcertimMap
 import time
 from datetime import datetime, timedelta
 import sys
+import pika
+import json
 
 class DataHandler(object):
     def __init__(self, openstack, concertim, config_obj, log_file):
@@ -118,7 +120,61 @@ class DataHandler(object):
         #self.__update_projects_list() # Finished
         #self.__update_users() # Finished
         #self.__update_templates() # Finished
-        self.__update_devices_racks() # Finished
+        #self.__update_devices_racks() # Finished
+
+        credentials = pika.PlainCredentials('openstack', 'J4Hjk8kSG7CRuP1wVUsuB5lmDj53U9W5jr73IgVL')
+        parameters = pika.ConnectionParameters('10.151.0.184',
+                                            5672,
+                                            '/',
+                                            credentials)
+
+        
+
+
+
+        connection = pika.BlockingConnection(parameters)
+        channel = connection.channel()
+        # Specify the name of the queue to consume from
+        queue_name = 'notifications.info'
+        channel.basic_consume(queue=queue_name,
+                            on_message_callback=self.callback,
+                            auto_ack=True)
+
+        self.__LOGGER.debug(f"Openstack RMQ consumer enabled ")
+        channel.start_consuming()
+        self.__LOGGER.debug(f"Openstack RMQ consumer exited ")
+    
+    # This function will be called for every message in the queue
+    def callback(self, ch, method, properties, body):
+
+
+        response = json.loads(body)
+        message = json.loads(response['oslo.message'])
+
+        self.__LOGGER.debug(f"Call back function trigerred")
+        self.__LOGGER.debug(f" Event type : {message['event_type']}")
+        self.__LOGGER.debug(f"Event payload : {message['payload']}")
+
+        instance_id = message['payload']['instance_id']
+        instance_state = message['payload']['state'] + \
+            " , " + message['payload']['state_description'] + \
+            " , " + message['payload']['progress']
+
+        self.__LOGGER.debug(f" Instance {instance_id} state -> {instance_state}")
+
+        if instance_id in self.__openstack_concertim_map.instance_to_device:
+            device_id = self.__openstack_concertim_map.instance_to_device[instance_id]
+
+            device = self.concertim_service.show_device(device_id)
+            self.__LOGGER.debug(f" device {device}")
+
+            self.concertim_service.update_device(ID = device_id ,variables_dict = {'name' : device['name'],\
+                                                'description': device['description'], \
+                                                'status' : instance_state, \
+                                                'openstack_instance_id' : device['metadata']['openstack_instance_id'] })
+            
+
+
         
         
     # Send all metrics for a given instance's resources
@@ -385,82 +441,10 @@ class DataHandler(object):
 
     
 
-    # Deletes the rack from both local lists and Concertim
-    """ def __delete_rack(self, project_id, rack_name):
-        self.__LOGGER.debug(f"Rack:{rack_name} was found to be EMPTY for project:{project_id}")
-        rack = self.devices_racks[project_id][rack_name]['rack']
-        del self.devices_racks[project_id][rack_name]
-        self.__LOGGER.debug(f"Deleting Rack:(ID:{rack.rack_id}, NAME:{rack.rack_name})")
-        result = self.concertim_service.delete_rack(rack.rack_id)
-        return result """
+   
 
-    # Deletes the device from both local lists and Concertim
-    """ def __delete_device(self, project_id, rack_name, instance_id):
-        self.__LOGGER.debug(f"Instance:{instance_id} was not found in project:{project_id}")
-        device = self.devices_racks[project_id][rack_name]['devices'][instance_id]
-        del self.devices_racks[project_id][rack_name]['devices'][instance_id]
-        self.__LOGGER.debug(f"Deleting device:(ID:{device.device_id}, NAME:{device.device_name}) from rack:{rack_name}")
-        result = self.concertim_service.delete_device(device.device_id)
-        return result
- """
-
-    # Returns the rack object for the cluster if it is able to create
-    def __build_rack(self, rack_name):
-        
-        height = self.__default_rack_height
-        self.__LOGGER.debug(f"New Cluster Found - Building new Rack(name: {rack_name}, owner: {owner.display_name}, height: {height})")
-        rack = ConcertimRack(rack_name, owner, height, cluster_name, instance.tenant_id)
-        rack_in_con = None
-        rack_in_con_details = None
-        rack_in_con_details_needed = False
-        # try to create the new rack in concertim
-        # if there is a conflict, pull from concertim and check
-        # if there is still no rack, raise e
-        try:
-            rack_in_con = self.concertim_service.create_rack({'user_id': owner.user_id, 'name': rack_name, 'u_height': height})
-        except Exception as e:
-            self.__LOGGER.exception(f"Unhandled Exception {e}")
-            raise SystemExit(e)
-        finally:
-            rack.rack_id = rack_in_con['id']
-            if rack_in_con_details_needed:
-                self.__LOGGER.debug(f"Getting {rack_in_con['name']} details.")
-                rack_in_con_details = self.concertim_service.show_rack(rack_in_con['id'])
-                rack.occupied = self.__get_occupied(rack_in_con_details['devices'])
-            owner.owned_racks = owner.owned_racks.append(rack)
-            return rack
-
-    # Returns the device object for the instance if it is able to create
-    def __build_device(self, rack_id, instance_name):
-        template_id = self.templates[instance.flavor['id']].template_id
-        size = int(self.templates[instance.flavor['id']].device_size)
-        name_split = instance.name.split('.')
-        rack_name = name_split[1] + '-' + instance.tenant_id[:5]
-        device_name = name_split[0] + '-' + instance.id[:5]
-
-        start_u = self.__find_spot_in_rack(rack, size)
-        self.__LOGGER.debug(f"Building new Deivce(name: {device_name}, rack: (name: {rack_name}, ID: {rack_id}, start_u: {start_u}), instance_id: {instance.id}, template_id: {template_id})")
-        device = ConcertimDevice(instance.id, instance.name, device_name, instance.tenant_id, instance.flavor['id'], template_id, name_split[1])
-        #get location for device
-        device_in_con = None
-        try:
-            device_in_con = self.concertim_service.create_device({'template_id': template_id, 'description': instance.id, 'name': device_name, 'facing': 'f', 'rack_id': rack_id, 'start_u': start_u})
-        except FileExistsError as e:
-            self.__LOGGER.warning(f"The device '{device_name}' already exists. Searching for device.")
-            device_in_con = self.__search_local_devices(device)
-            if not device_in_con:
-                self.__LOGGER.exception(f"No usable device found after searching - please check concertim and restart service")
-                raise SystemExit(e)
-        except Exception as e:
-            self.__LOGGER.exception(f"Unhandled Exception {e}")
-            raise SystemExit(e)
-        finally:
-            device.device_id = device_in_con['id']
-            device.rack_id = device_in_con['location']['rack_id']
-            device.rack_start_u = device_in_con['location']['start_u']
-            self.devices_racks[instance.tenant_id][name_split[1]]['rack'].occupied.extend([*range(start_u, start_u+size)])
-            return device
-
+   
+   
    
     # Returns the matching template found or None
     def __search_local_templates(self, template_obj):
