@@ -20,7 +20,7 @@ with open('/etc/concertim-openstack-service/config.yaml', 'r') as f:
 # Logger config
 level = logging.getLevelName(config['log_level'])
 formatter = logging.Formatter('%(asctime)s - [%(levelname)s] (%(module)s) - %(message)s')
-fh = logging.FileHandler('/var/log/user_handler.log')
+fh = logging.FileHandler('/var/log/concertim-openstack-service/user_handler.log')
 fh.setFormatter(formatter)
 
 # Flask app

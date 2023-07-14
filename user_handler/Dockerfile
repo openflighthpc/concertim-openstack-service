@@ -13,6 +13,9 @@ COPY . /app
 # Install any needed packages specified in requirements-userhandler.txt
 RUN pip install --no-cache-dir -r user_handler/requirements-userhandler.txt
 
+# Create logging diretory
+RUN mkdir -p /var/log/concertim-openstack-service
+
 # Make port 42356 available to the world outside this container
 EXPOSE 42356
 
