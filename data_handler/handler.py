@@ -12,8 +12,8 @@ from datetime import datetime, timedelta
 import sys
 
 class DataHandler(object):
-    def __init__(self, openstack, concertim, config_obj):
-        self.__LOGGER = create_logger(__name__, '/var/log/concertim-openstack-service-opt.log', config_obj['log_level'])
+    def __init__(self, openstack, concertim, config_obj, log_file):
+        self.__LOGGER = create_logger(__name__, log_file, config_obj['log_level'])
         self.openstack_service = openstack
         self.concertim_service = concertim
         self.projects = []
@@ -125,9 +125,9 @@ class DataHandler(object):
     # Send all metrics for a given instance's resources
     def handle_metrics(self, instance_resource_dict):
         self.__LOGGER.debug(f"Processing metrics for instance:{instance_resource_dict['display_name']}")
-        # 10 minute window starting from 1 and 10 min ago to 1 hour ago
-        stop = datetime.now() - timedelta(minutes=60)
-        start = stop - timedelta(minutes=1)
+        # 5 minute window
+        stop = datetime.utcnow()
+        start = stop - timedelta(minutes=5)
         for resource in instance_resource_dict["resources"]:
             # Metric Fetching based on resource
             if resource["type"] == "instance":

@@ -8,8 +8,8 @@ import time
 import novaclient.client as n_client
 
 class NovaHandler:
-    def __init__(self, sess, log_level):
-        self.__LOGGER = create_logger(__name__, '/var/log/concertim-openstack-service-opt.log', log_level)
+    def __init__(self, sess, log_file, log_level):
+        self.__LOGGER = create_logger(__name__, log_file, log_level)
         self.client = self.__get_client(sess)
 
     def __get_client(self, sess):

@@ -10,9 +10,9 @@ import requests
 requests.packages.urllib3.disable_warnings() 
 
 class ConcertimService(object):
-    def __init__(self, config_obj):
+    def __init__(self, config_obj, log_file):
         self.__CONFIG = config_obj
-        self.__LOGGER = create_logger(__name__, '/var/log/concertim-openstack-service-opt.log', self.__CONFIG['log_level'])
+        self.__LOGGER = create_logger(__name__, log_file, self.__CONFIG['log_level'])
         self.__URL = self.__CONFIG['concertim']['concertim_url']
         self.__AUTH_TOKEN = self.__get_auth_token()
     

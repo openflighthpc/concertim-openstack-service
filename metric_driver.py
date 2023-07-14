@@ -12,14 +12,14 @@ import time
 
 # The main logic of the driver
 def main(args):
+    log_file = '/var/log/concertim-openstack-service/metrics.log'
     config = load_config('/etc/concertim-openstack-service/config.yaml')
-    logger = create_logger(__name__, '/var/log/concertim-openstack-service-opt.log', config['log_level'])
-
+    logger = create_logger(__name__, log_file, config['log_level'])
     logger.info("------- START -------")
     logger.info("CONNECTING SERVICES")
-    openstack = OpenstackService(config)
-    concertim = ConcertimService(config)
-    handler = DataHandler(openstack,concertim,config)
+    openstack = OpenstackService(config, log_file)
+    concertim = ConcertimService(config, log_file)
+    handler = DataHandler(openstack, concertim, config, log_file)
 
     # Setup a local stop process for when the service is over
     def stop():
