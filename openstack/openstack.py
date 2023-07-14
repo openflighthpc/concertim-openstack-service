@@ -7,17 +7,26 @@ from openstack.gnocchi import GnocchiHandler
 from openstack.heat import HeatHandler
 
 class OpenstackService(object):
-    def __init__(self, config_obj):
+    def __init__(self, config_obj, log_file):
         self.__CONFIG = config_obj
-        self.__LOGGER = create_logger(__name__, '/var/log/concertim-openstack-service-opt.log', self.__CONFIG['log_level'])
+        self.__LOGGER = create_logger(__name__, log_file, self.__CONFIG['log_level'])
         self.__OPSTK_AUTH = OpenStackAuth(self.__CONFIG['openstack'])
-        self.keystone = KeystoneHandler(self.__OPSTK_AUTH.get_session(), '/var/log/concertim-openstack-service-opt.log', self.__CONFIG['log_level'])
-        self.gnocchi = GnocchiHandler(self.__OPSTK_AUTH.get_session(), self.__CONFIG['log_level'])
-        self.nova = NovaHandler(self.__OPSTK_AUTH.get_session(), self.__CONFIG['log_level'])
-        self.heat = HeatHandler(self.__OPSTK_AUTH.get_session(), self.__CONFIG['log_level'])
+        self.keystone = KeystoneHandler(self.__OPSTK_AUTH.get_session(), log_file, self.__CONFIG['log_level'])
+        self.gnocchi = GnocchiHandler(self.__OPSTK_AUTH.get_session(), log_file, self.__CONFIG['log_level'])
+        self.nova = NovaHandler(self.__OPSTK_AUTH.get_session(), log_file, self.__CONFIG['log_level'])
+        self.heat = HeatHandler(self.__OPSTK_AUTH.get_session(), log_file, self.__CONFIG['log_level'])
     
-    # Returns a list of project ID that the openstack concertim user is a member of
+    # Returns a list of project ID that the openstack concertim user is a 'watcher' in
     def get_concertim_projects(self):
+        role=None
+        try:
+            self.__LOGGER.debug(f"Getting 'watcher' role")
+            role = self.keystone.client.roles.list(name='watcher')[0]
+        except IndexError as e:
+            self.__LOGGER.error(f"Could not find 'watcher' role, using member instead")
+            role = self.keystone.client.roles.list(name='member')[0]
+        ra_list = self.keystone.client.role_assignments.list()
+
         projects = self.keystone.get_projects(user=self.keystone._concertim_user)
         id_list = []
         for project in projects:

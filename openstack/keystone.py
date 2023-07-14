@@ -72,7 +72,7 @@ class KeystoneHandler:
     
     def add_user_to_project(self, user, project, role='member'):
         self.__LOGGER.debug(f"Adding User:{user} to Project:{project} with Role:{role}")
-        role_obj = self.client.roles.get(role)
+        role_obj = self.client.roles.list(name=role)[0]
         new_role = self.client.roles.grant(role=role_obj, user=user, project=project)
         self.__LOGGER.debug(f"NEW ROLE: {new_role} for USER:{user} in PROJECT:{project}")
         return new_role
