@@ -1,7 +1,7 @@
 # Local Imports
-from openstack.openstack import OpenstackService
+from openstack.openstack import OpenstackService, MissingOpenstackObject
 from concertim.concertim import ConcertimService
-from data_handler.handler import DataHandler
+from data_handler.metric import MetricHandler
 from utils.service_logger import create_logger
 
 # Py Packages
@@ -12,15 +12,17 @@ import time
 
 # The main logic of the driver
 def main(args):
-    log_file = '/var/log/concertim-openstack-service/metrics.log'
-    config = load_config('/etc/concertim-openstack-service/config.yaml')
-    logger = create_logger(__name__, log_file, config['log_level'])
-    logger.info("------- START -------")
-    logger.info("CONNECTING SERVICES")
-    openstack = OpenstackService(config, log_file)
-    concertim = ConcertimService(config, log_file)
-    handler = DataHandler(openstack, concertim, config, log_file)
-
+    # Setup a local start process to loop the metric sending
+    def start(i):
+        try:
+            #'''
+            while True:
+                handler.send_metrics()
+                time.sleep(i)
+            #'''
+            #handler.send_metrics()
+        except Exception as e:
+            raise e
     # Setup a local stop process for when the service is over
     def stop():
         logger.info("STOPPING PROCESS")
@@ -30,34 +32,28 @@ def main(args):
         logger.info("EXITING PROCESS")
         logger.info("------- END -------\n")
         raise SystemExit
-
     # Setup a signal handler to stop the service gracefully
     def signal_handler(sig, frame):
         stop()
+        
+    log_file = '/var/log/concertim-openstack-service/metrics.log'
+    config = load_config('/etc/concertim-openstack-service/config.yaml')
+    logger = create_logger(__name__, log_file, config['log_level'])
+    logger.info("------- START -------")
+    logger.info("CONNECTING SERVICES")
+    openstack = OpenstackService(config, log_file)
+    concertim = ConcertimService(config, log_file)
+    interval = 5
+    handler = MetricHandler(openstack, concertim, config, log_file, interval)
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
-
-    # Setup a local start process to handle the main funtion of the code
-    def start():
-        #'''
-        while True:
-            handler.send_metrics()
-            time.sleep(5)
-        #'''
-        # FOR TESTING
-        #handler.update_concertim()
-        #time.sleep(2)
-        #handler.send_metrics()
-
-
     try:
         logger.info("BEGINNING COMMUNICATION")
-        start()
+        start(interval)
     except Exception as e:
-        logger.exception("Unhandled exception occurred: %s", e)
-        raise e
-
-    stop()
+        logger.error(f"Unhandled exception occurred: {e}")
+    finally:
+        stop()
 
 def load_config(config_file):
     with open(config_file, 'r') as f:

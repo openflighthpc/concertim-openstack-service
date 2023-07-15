@@ -29,10 +29,8 @@ class DataHandler(object):
         self.__concertim_devices = {}
         self.__concertim_rackstodevices = {}
 
-        self.__populate_concertim_racks_devices()
 
 
-    
     def __populate_concertim_racks_devices(self):
         
         self.__concertim_racks = {}
@@ -76,6 +74,7 @@ class DataHandler(object):
 
 
     # Send all metrics for concertim/openstack devices
+    '''
     def send_metrics(self):
         self.__LOGGER.info('Sending Metrics')
         for project_id in self.devices_racks:
@@ -83,11 +82,12 @@ class DataHandler(object):
             for rack_id in self.devices_racks[project_id]:
                 for instance_id in self.devices_racks[project_id][rack_id]['devices']:
                     self.handle_metrics(resources[instance_id])
+    '''
 
     # Update concertim with Openstack info
     def update_concertim(self):
         self.__LOGGER.info('Updating Concertim')
-
+        self.__populate_concertim_racks_devices()
         # Update Lists
         self.__update_projects_list() # Finished
         #self.__update_users() # Finished
@@ -123,6 +123,7 @@ class DataHandler(object):
         
         
     # Send all metrics for a given instance's resources
+    '''
     def handle_metrics(self, instance_resource_dict):
         self.__LOGGER.debug(f"Processing metrics for instance:{instance_resource_dict['display_name']}")
         # 5 minute window
@@ -148,7 +149,8 @@ class DataHandler(object):
                 # IOPs in Ops/s
                 iops = self.openstack_service.get_iops(resource, start, stop)
                 self.concertim_service.send_metric(instance_resource_dict["display_name"], {'type': "double",'name': "os.disk.avg_iops",'value': iops,'units': 'Ops/s','slope': "both",'ttl': 3600})
-    
+    '''
+
     # Update all openstack projects that have the OpenStack 'concertim' user as a member
     def __update_projects_list(self):
         updated_projects_list = self.openstack_service.get_concertim_projects()

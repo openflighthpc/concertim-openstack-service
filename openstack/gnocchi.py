@@ -1,9 +1,7 @@
 # Local Imports
 from utils.service_logger import create_logger
-
 # Py Packages
 import time
-
 # Openstack Packages
 import gnocchiclient.v1.client as g_client
 
@@ -30,13 +28,26 @@ class GnocchiHandler:
             return self.client.resource.search(resource_type=resource_type, query=query, details=details)
         return self.client.resource.search(query=query, details=details)
 
-    def get_aggregate(self, op, start, stop):
-        tup = self.client.aggregates.fetch(operations=op, start=start,stop=stop)['measures']['aggregated'][0]
-        return tup
+    def get_aggregate(self, operations, granularity=None, start=None, stop=None):
+        args = {'operations':operations, 'granularity':granularity, 'start':start, 'stop':stop}
+        not_none_args = {k:v for k,v in args.items() if v is not None}
+        self.__LOGGER.debug(f"Getting aggregates: [{not_none_args}]")
+        aggregates = self.client.aggregates.fetch(**not_none_args)['measures']['aggregated']
+        return aggregates
 
-    def get_metric_measure(self, metric, start, stop):
-        tup = self.client.metric.get_measures(metric=metric, start=start, stop=stop)[0]
-        return tup
+    def get_metric_measure(self, metric, granularity=None, aggregation=None, refresh=True, start=None, stop=None, limit=None):
+        args = {'metric':metric, 'granularity':granularity, 'aggregation':aggregation, 'refresh':refresh, 'start':start, 'stop':stop, 'limit':limit}
+        not_none_args = {k:v for k,v in args.items() if v is not None}
+        self.__LOGGER.debug(f"Getting measures: [{not_none_args}]")
+        measures = self.client.metric.get_measures(**not_none_args)
+        return measures
+
+    def get_metric_aggregate(self, metric, granularity=None, aggregation=None, refresh=True, start=None, stop=None, limit=None):
+        args = {'metric':metric, 'granularity':granularity, 'aggregation':aggregation, 'refresh':refresh, 'start':start, 'stop':stop, 'limit':limit}
+        not_none_args = {k:v for k,v in args.items() if v is not None}
+        self.__LOGGER.debug(f"Getting aggregation: [{not_none_args}]")
+        measures = self.client.metric.aggregation(**not_none_args)
+        return measures
 
     def close(self):
         self.__LOGGER.debug("Closing Gnocchi Client Connection")

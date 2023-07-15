@@ -99,8 +99,13 @@ class ConcertimService(object):
         return response
 
     def send_metric(self, ID, variables_dict):
-        response = self.__api_call('put', 'METRIC', variables_dict=variables_dict, endpoint_var=str(ID))
-        return response
+        try:
+            response = self.__api_call('put', 'METRIC', variables_dict=variables_dict, endpoint_var=str(ID))
+            return response
+        except ValueError as e:
+            self.__LOGGER.error(f"{e}")
+            self.__LOGGER.warning(f"FAILED - Could not send metric for {variables_dict['name']}")
+            raise e
 
     # Generic method for handling Concertim API calls.
     def __api_call(self, method, endpoint_name, variables_dict={}, endpoint_var=''):
@@ -159,23 +164,23 @@ class ConcertimService(object):
                 return response.headers.get("Authorization")
             return response.json()
         elif response.status_code == 400:
-            e = ValueError('Bad request, please check your data.')
+            e = ValueError(f"Bad request, please check your data: {response.json()}")
             self.__LOGGER.exception(str(e))
             raise e
         elif response.status_code == 401:
-            e =  ValueError('Unauthorized, please check your credentials.')
+            e = ValueError(f"Unauthorized, please check your credentials: {response.json()}")
             self.__LOGGER.exception(str(e))
             raise e
         elif response.status_code == 404:
-            e =  ValueError('No path found, please check your endpoint.')
+            e = ValueError(f"No path found, please check your endpoint: {response.json()}")
             self.__LOGGER.exception(str(e))
             raise e
         elif response.status_code == 500:
-            e =  ValueError('Server error, please check the server or try again later.')
+            e = ValueError(f"Server error, please check the Concertim host server or try again later: {response.json()}")
             self.__LOGGER.exception(str(e))
             raise e
         elif response.status_code == 422:
-            e = FileExistsError(f"Cannot process {response}")
+            e = FileExistsError(f"Cannot process: {response.json()}")
             self.__LOGGER.warning("The item you are trying to add already exists")
             raise e
         else:
