@@ -12,7 +12,6 @@ from concertim.concertim import OpenstackConcertimMap
 import time
 from datetime import datetime, timedelta
 import sys
-import pika
 import json
 
 class DataHandler(object):
@@ -35,8 +34,7 @@ class DataHandler(object):
 
         self.__populate_concertim_templates()
 
-        #self.__populate_concertim_users()
-
+        self.__populate_concertim_users()
 
         self.__populate_concertim_racks_devices()
 
@@ -180,6 +178,12 @@ class DataHandler(object):
         self.__update_templates() # Finished
         self.__update_devices_racks() # Finished
 
+        self.rmq_listener()
+
+        
+
+    def rmq_listener(self):
+
         credentials = pika.PlainCredentials('openstack', 'J4Hjk8kSG7CRuP1wVUsuB5lmDj53U9W5jr73IgVL')
         parameters = pika.ConnectionParameters('10.151.0.184',
                                             5672,
@@ -188,23 +192,19 @@ class DataHandler(object):
 
         
 
-
-
-        """ connection = pika.BlockingConnection(parameters)
+        connection = pika.BlockingConnection(parameters)
         channel = connection.channel()
         # Specify the name of the queue to consume from
         queue_name = 'notifications.info'
         channel.basic_consume(queue=queue_name,
-                            on_message_callback=self.callback,
+                            on_message_callback=self.rmq_callback,
                             auto_ack=True)
 
         self.__LOGGER.debug(f"Openstack RMQ consumer enabled ")
         channel.start_consuming()
-        self.__LOGGER.debug(f"Openstack RMQ consumer exited ") """
-    
-    # This function will be called for every message in the queue
-    def callback(self, ch, method, properties, body):
+        self.__LOGGER.debug(f"Openstack RMQ consumer exited ")
 
+    def rmq_callback(self, ch, method, properties, body):
 
         response = json.loads(body)
         message = json.loads(response['oslo.message'])
@@ -213,6 +213,37 @@ class DataHandler(object):
         self.__LOGGER.debug(f" Event type : {message['event_type']}")
         self.__LOGGER.debug(f"Event payload : {message['payload']}")
 
+        if message['event_type'] == 'compute.instance.power_off.start' or \
+            message['event_type'] == 'compute.instance.power_off.end' or \
+            message['event_type'] == 'compute.instance.power_on.start' or \
+            message['event_type'] == 'compute.instance.power_on.end':
+            self.rmq_update_instance(message)
+        
+        if message['event_type'] == 'orchestration.stack.delete.end' or \
+            message['event_type'] == 'orchestration.stack.create.end':
+            self.rmq_update_rack(message)
+        
+        
+    def rmq_update_rack(self, message):
+        # orchestration.stack.delete.end , 
+        # orchestration.stack.create.end
+        stack_id = message['payload']['stack_identity']
+        stack_state = message['payload']['state']
+
+        self.__LOGGER.debug(f" Heat {stack_id} state -> {stack_state}")
+
+        if stack_id in self.__openstack_concertim_map.stack_to_rack:
+            rack_id = self.__openstack_concertim_map.stack_to_rack[stack_id]
+
+            rack = self.concertim_service.show_rack(rack_id)
+            self.__LOGGER.debug(f" Rack {rack}")
+
+            self.concertim_service.update_rack(ID=rack_id, u_height = rack['u_height'], status = stack_state)
+
+
+    def rmq_update_instance(self, message):
+        # compute.instance.power_off.start , compute.instance.power_off.end  
+        # compute.instance.power_on.start , compute.instance.power_on.end
         instance_id = message['payload']['instance_id']
         instance_state = message['payload']['state'] + \
             " , " + message['payload']['state_description'] + \
@@ -231,7 +262,6 @@ class DataHandler(object):
                                                 'status' : instance_state, \
                                                 'openstack_instance_id' : device['metadata']['openstack_instance_id'] })
             
-
 
         
         
@@ -351,17 +381,18 @@ class DataHandler(object):
         self.__LOGGER.debug(f" *** Adding New Racks in Concertim ***")
 
         for stack in openstack_stacks:
-            #self.__LOGGER.debug(f"Stack : {stack}")    
+            self.__LOGGER.debug(f"Stack : {stack}")    
 
-            #if stack.project in self.projects:
-            
-            openstack_stack_set.add(stack.id)
-            #else:
-            #    continue
+            if stack.project in self.__openstack_concertim_map.os_project_to_concertim_user:
+                user_id = self.__openstack_concertim_map.os_project_to_concertim_user[stack.project]
+                openstack_stack_set.add(stack.id)
+            else:
+                continue
 
             
+            # Create new rack
             if stack.id not in self.__openstack_concertim_map.stack_to_rack:
-                self.__create_new_rack(stack)
+                self.__create_new_rack(stack, user_id)
             
         self.__LOGGER.debug(f"Openstack Stack Set  : {openstack_stack_set}")
     
@@ -457,7 +488,7 @@ class DataHandler(object):
         return start_u
 
 
-    def __create_new_rack(self, stack, user_id = '1'):
+    def __create_new_rack(self, stack, user_id):
 
         self.__LOGGER.debug(f"Creating rack for stack id : {stack.id}")
 

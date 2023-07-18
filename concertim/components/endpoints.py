@@ -129,7 +129,8 @@ ENDPOINTS = {
                         'required_vars': ['name','u_height'],
                         'data': {"rack": {
                                     "name": '{name}',
-                                    "u_height": '{u_height}'
+                                    "u_height": '{u_height}',
+                                    "status" : '{status}'
                                 }}
                     },
                     'UPDATE_TEMPLATE':{
