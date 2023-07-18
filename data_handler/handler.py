@@ -13,12 +13,14 @@ import time
 from datetime import datetime, timedelta
 import sys
 import json
+import pika
 
 class DataHandler(object):
     def __init__(self, openstack, concertim, config_obj, log_file):
         self.__LOGGER = create_logger(__name__, log_file, config_obj['log_level'])
         self.openstack_service = openstack
         self.concertim_service = concertim
+        self.config = config_obj
         self.__default_rack_height = int(config_obj['concertim']['default_rack_height'])
 
        
@@ -184,14 +186,13 @@ class DataHandler(object):
 
     def rmq_listener(self):
 
-        credentials = pika.PlainCredentials('openstack', 'J4Hjk8kSG7CRuP1wVUsuB5lmDj53U9W5jr73IgVL')
-        parameters = pika.ConnectionParameters('10.151.0.184',
-                                            5672,
-                                            '/',
+        credentials = pika.PlainCredentials(self.config['rmq']['rmq_username'], self.config['rmq']['rmq_password'])
+        parameters = pika.ConnectionParameters(self.config['rmq']['rmq_address'],
+                                            self.config['rmq']['rmq_port'],
+                                            self.config['rmq']['rmq_path'],
                                             credentials)
 
         
-
         connection = pika.BlockingConnection(parameters)
         channel = connection.channel()
         # Specify the name of the queue to consume from
@@ -230,6 +231,13 @@ class DataHandler(object):
         stack_id = message['payload']['stack_identity']
         stack_state = message['payload']['state']
 
+        if stack_state == 'CREATE_COMPLETE':
+            concertim_rack_status = 'ACTIVE'
+        elif stack_state == 'CREATE_IN_PROGRESS':
+            concertim_rack_status = 'IN_PROGRESS'
+        else:
+            concertim_rack_status = 'FAILED'
+
         self.__LOGGER.debug(f" Heat {stack_id} state -> {stack_state}")
 
         if stack_id in self.__openstack_concertim_map.stack_to_rack:
@@ -238,16 +246,21 @@ class DataHandler(object):
             rack = self.concertim_service.show_rack(rack_id)
             self.__LOGGER.debug(f" Rack {rack}")
 
-            self.concertim_service.update_rack(ID=rack_id, u_height = rack['u_height'], status = stack_state)
+            self.concertim_service.update_rack(ID=rack_id, u_height = rack['u_height'], status = concertim_rack_status)
 
 
     def rmq_update_instance(self, message):
         # compute.instance.power_off.start , compute.instance.power_off.end  
         # compute.instance.power_on.start , compute.instance.power_on.end
         instance_id = message['payload']['instance_id']
-        instance_state = message['payload']['state'] + \
-            " , " + message['payload']['state_description'] + \
-            " , " + message['payload']['progress']
+        instance_state = message['payload']['state']
+
+        if instance_state == 'active':
+            concertim_device_status = 'ACTIVE'
+        elif instance_state == 'stopped':
+            concertim_device_status = 'STOPPED'
+        else:
+            concertim_device_status = 'FAILED'
 
         self.__LOGGER.debug(f" Instance {instance_id} state -> {instance_state}")
 
@@ -259,7 +272,7 @@ class DataHandler(object):
 
             self.concertim_service.update_device(ID = device_id ,variables_dict = {'name' : device['name'],\
                                                 'description': device['description'], \
-                                                'status' : instance_state, \
+                                                'status' : concertim_device_status, \
                                                 'openstack_instance_id' : device['metadata']['openstack_instance_id'] })
             
 
@@ -423,7 +436,6 @@ class DataHandler(object):
             self.__LOGGER.debug(f"Stack resources : {stack_resources}")
             
             
-            depth = 1
 
 
             for instance in stack_resources:
@@ -497,13 +509,20 @@ class DataHandler(object):
         rack_id = None
 
         status = stack.stack_status
-        status = 'IN_PROGRESS'
+
+        if status == 'CREATE_COMPLETE':
+            concertim_rack_status = 'ACTIVE'
+        elif status == 'CREATE_IN_PROGRESS':
+            concertim_rack_status = 'IN_PROGRESS'
+        else:
+            concertim_rack_status = 'FAILED'
+
         try:
             rack_in_con = self.concertim_service.create_rack({ 'name': stack.stack_name, \
                                                             'user_id' : user_id, \
                                                             'u_height': height, \
                                                             'openstack_stack_id' : stack.id, \
-                                                            'status' : status })
+                                                            'status' : concertim_rack_status })
 
             self.__LOGGER.debug(f"{rack_in_con}")
 
@@ -521,7 +540,14 @@ class DataHandler(object):
         self.__LOGGER.debug(f"Creating device for instance id : {instance.physical_resource_id}")
 
         status = instance.resource_status
-        status = 'IN_PROGRESS'
+
+        if status == 'CREATE_COMPLETE':
+            concertim_device_status = 'ACTIVE'
+        elif status == 'CREATE_IN_PROGRESS':
+            concertim_device_status = 'IN_PROGRESS'
+        else:
+            concertim_device_status = 'FAILED'
+        
         try:
 
             device_in_con = self.concertim_service.create_device({'template_id': template_id, \
@@ -531,7 +557,7 @@ class DataHandler(object):
                                                                 'rack_id': rack_id, \
                                                                 'start_u': start_u, \
                                                                 'openstack_instance_id' : instance.physical_resource_id,
-                                                                'status' : status})
+                                                                'status' : concertim_device_status})
         except FileExistsError as e:
             self.__LOGGER.debug(f" Device already exists : {e}")
         except Exception as e:
