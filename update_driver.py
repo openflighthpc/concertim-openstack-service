@@ -17,9 +17,9 @@ def main(args):
 
     logger.info("------- START -------")
     logger.info("CONNECTING SERVICES")
-    openstack = OpenstackService(config)
-    concertim = ConcertimService(config)
-    handler = DataHandler(openstack,concertim,config)
+    openstack = OpenstackService(config, '/var/log/concertim-openstack-service-opt.log')
+    concertim = ConcertimService(config, '/var/log/concertim-openstack-service-opt.log')
+    handler = DataHandler(openstack,concertim,config, '/var/log/concertim-openstack-service-opt.log')
 
     # Setup a local stop process for when the service is over
     def stop():

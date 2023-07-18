@@ -17,14 +17,14 @@ ENDPOINTS = {
                                 "device": {
                                     "name": '{name}',
                                     "description": '{description}',
+                                    "status" : "{status}",
                                     "location": {
                                         "facing": '{facing}',
                                         "rack_id": '{rack_id}',
                                         "start_u": '{start_u}'
                                     },
                                     "metadata" : {
-                                        "openstack_instance_id" : "{openstack_instance_id}",
-                                        "status" : "{status}"
+                                        "openstack_instance_id" : "{openstack_instance_id}"
                                     }
 
                                 }}
@@ -36,9 +36,9 @@ ENDPOINTS = {
                                     "user_id": '{user_id}',
                                     "name": '{name}',
                                     "u_height": '{u_height}',
+                                    "status" : "{status}",
                                     "metadata" : {
-                                        "openstack_stack_id" : "{openstack_stack_id}",
-                                        "status" : "{status}"
+                                        "openstack_stack_id" : "{openstack_stack_id}"
                                     }
                                 }}
                     },
@@ -48,7 +48,11 @@ ENDPOINTS = {
                         'data': {"template": {
                                     "name": '{name}',
                                     "description": '{description}',
-                                    "height": '{height}'
+                                    "height": '{height}',
+                                    "ram" : '{ram}',
+                                    "disk" :'{disk}',
+                                    "vcpus" : '{vcpus}',
+                                    "foreign_id" : '{foreign_id}'
                                 }}
                     }
                 },

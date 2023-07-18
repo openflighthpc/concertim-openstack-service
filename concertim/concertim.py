@@ -235,3 +235,4 @@ class OpenstackConcertimMap:
         self.instance_to_device = {}
         self.flavor_to_template = {}
         self.os_user_to_concertim_user = {}
+        self.os_project_to_concertim_user = {}

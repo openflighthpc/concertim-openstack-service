@@ -29,12 +29,41 @@ class DataHandler(object):
         self.__openstack_concertim_map = None
 
 
-
-    def __populate_concertim_racks_devices(self):
-        
+    def __populate_cache(self):
         self.__concertim_data = ConcertimData()
         self.__openstack_concertim_map = OpenstackConcertimMap()
 
+        self.__populate_concertim_templates()
+
+        #self.__populate_concertim_users()
+
+
+        self.__populate_concertim_racks_devices()
+
+        
+
+    def __populate_concertim_users(self):
+        user_list = self.concertim_service.list_users()
+        self.__LOGGER.debug(f'{user_list}')
+        
+        for user in user_list:
+            if user['login'] == "admin" or str(user['id']) in self.__concertim_data.users:
+                continue
+            self.__LOGGER.debug(f"New User found - creating User(ID: {user['id']}, project_id: {user['project_id']}, name: {user['name']}, login: {user['login']})")
+            self.__concertim_data.users[str(user['id'])] = ConcertimUser(str(user['id']),
+                                                    user['project_id'],
+                                                    user['name'],
+                                                    user['login'])
+
+            if user['project_id'] is not None:
+                self.__openstack_concertim_map.os_project_to_concertim_user[user['project_id']] = str(user['id']) 
+            
+        self.__LOGGER.debug(f'User Objects {self.__concertim_data.users}')
+        self.__LOGGER.debug(f'User Mapping Objects {self.__openstack_concertim_map.os_project_to_concertim_user}')
+
+    def __populate_concertim_racks_devices(self):
+        
+        
         concertim_racks = self.concertim_service.list_racks()
         #self.__LOGGER.debug(f"Concertim Rack : {concertim_racks}")
 
@@ -53,7 +82,7 @@ class DataHandler(object):
                                   rack_height = rack['u_height'],
                                   rack_id = rack['id'],
                                   openstack_stack_id = rack_os_stack_id,
-                                  status = rack['metadata']['status']  )
+                                  status = rack['status']  )
 
             if rack_os_stack_id not in self.__openstack_concertim_map.stack_to_rack:
                 self.__openstack_concertim_map.stack_to_rack[rack_os_stack_id] = rack['id'] 
@@ -112,15 +141,44 @@ class DataHandler(object):
                     self.handle_metrics(resources[instance_id])
     '''
 
+    def __populate_concertim_templates(self):
+
+        templates = self.concertim_service.list_templates()
+        self.__LOGGER.debug(f'{templates}')
+
+        for template in templates:
+            temp_obj = ConcertimTemplate(template_id = template['id'], \
+                                        flavor_name = template['name'], \
+                                        ram = template['ram'], \
+                                        disk = template['disk'], \
+                                        vcpus = template['vcpus'], \
+                                        device_size = template['height'], \
+                                        flavor_id = template['foreign_id'])
+            
+            #Creating Concertim object in local cache
+            self.__concertim_data.templates[template['id']] = temp_obj
+
+            # Creating Openstac flavor to Concertim Template mapping
+            if template['foreign_id'] is not None:
+                self.__openstack_concertim_map.flavor_to_template[template['foreign_id']] = template['id']
+
+
+        self.__LOGGER.debug(f'Template Objects {self.__concertim_data.templates}')
+        self.__LOGGER.debug(f'Template Mapping {self.__openstack_concertim_map.flavor_to_template}')
+
     # Update concertim with Openstack info
     def update_concertim(self):
         self.__LOGGER.info('Updating Concertim')
-        self.__populate_concertim_racks_devices()
+        #self.__populate_concertim_racks_devices()
+       
+        self.__populate_cache()
+        
+
         # Update Lists
         #self.__update_projects_list() # Finished
         #self.__update_users() # Finished
-        #self.__update_templates() # Finished
-        #self.__update_devices_racks() # Finished
+        self.__update_templates() # Finished
+        self.__update_devices_racks() # Finished
 
         credentials = pika.PlainCredentials('openstack', 'J4Hjk8kSG7CRuP1wVUsuB5lmDj53U9W5jr73IgVL')
         parameters = pika.ConnectionParameters('10.151.0.184',
@@ -132,7 +190,7 @@ class DataHandler(object):
 
 
 
-        connection = pika.BlockingConnection(parameters)
+        """ connection = pika.BlockingConnection(parameters)
         channel = connection.channel()
         # Specify the name of the queue to consume from
         queue_name = 'notifications.info'
@@ -142,7 +200,7 @@ class DataHandler(object):
 
         self.__LOGGER.debug(f"Openstack RMQ consumer enabled ")
         channel.start_consuming()
-        self.__LOGGER.debug(f"Openstack RMQ consumer exited ")
+        self.__LOGGER.debug(f"Openstack RMQ consumer exited ") """
     
     # This function will be called for every message in the queue
     def callback(self, ch, method, properties, body):
@@ -217,59 +275,70 @@ class DataHandler(object):
             self.__LOGGER.warning(f"Managed Project(s) have been deleted : {removed_projects}")
         self.projects = updated_projects_list
     
-    # Update all users from concertim for local dict
-    def __update_users(self):
-        updated_user_list = self.concertim_service.list_users()
-        for user in updated_user_list:
-            if user['login'] == "admin" or str(user['id']) in self.users:
-                continue
-            self.__LOGGER.debug(f"New User found - creating User(ID: {user['id']}, project_id: {user['project_id']}, name: {user['name']}, login: {user['login']})")
-            self.users[str(user['id'])] = ConcertimUser(str(user['id']),
-                                                    user['project_id'],
-                                                    user['name'],
-                                                    user['login'])
 
     # Update all templates
     # Updates both local and in concertim
     def __update_templates(self):
+
+        self.__LOGGER.debug(f"*** Creating Templates ***")
         openstack_flavors = self.openstack_service.get_flavors()
+        openstack_flavor_set = set()
+
+        self.__LOGGER.debug(f"Openstack flavor {openstack_flavors}")
+
         for flavor in openstack_flavors:
-            if openstack_flavors[flavor]['id'] in self.templates:
+
+            openstack_flavor_set.add(openstack_flavors[flavor]['id'])
+            if openstack_flavors[flavor]['id'] in self.__openstack_concertim_map.flavor_to_template:
                 continue
             if openstack_flavors[flavor]['vcpus'] <= 1:
-                size = 1
+                device_height = 1
             elif openstack_flavors[flavor]['vcpus'] <= 2:
-                size = 2
+                device_height = 2
             elif openstack_flavors[flavor]['vcpus'] <= 4:
-                size = 3
+                device_height = 3
             else:
-                size = 4
+                device_height = 4
             description = f"{openstack_flavors[flavor]['name']} - {openstack_flavors[flavor]['ram']}MB RAM, {openstack_flavors[flavor]['disk']}GB disk, {openstack_flavors[flavor]['vcpus']} vCPU"
-            self.__LOGGER.debug(f"New Flavor found - creating template(name: {openstack_flavors[flavor]['name']}, description: '{description}', size: {size})")
-            template = ConcertimTemplate(openstack_flavors[flavor]['id'],
-                                    openstack_flavors[flavor]['name'],
-                                    openstack_flavors[flavor]['ram'],
-                                    openstack_flavors[flavor]['disk'],
-                                    openstack_flavors[flavor]['vcpus'],
-                                    device_size=size)
+            self.__LOGGER.debug(f"New Flavor found - creating template(name: {openstack_flavors[flavor]['name']}, description: '{description}', size: {device_height})")
+            
             temp_in_con = None
             # try to create the new template in concertim
             # if there is a conflict, pull from concertim and check
             # if there is still no template, raise e
             try:
-                temp_in_con = self.concertim_service.create_template({'name': openstack_flavors[flavor]['id'], 'description': description, 'height': size})
+                temp_in_con = self.concertim_service.create_template({'name': openstack_flavors[flavor]['name'], 'description': description, 'height': device_height, 'ram' : openstack_flavors[flavor]['ram'], 'disk' : openstack_flavors[flavor]['disk'], 'vcpus' : openstack_flavors[flavor]['vcpus'], 'foreign_id' : openstack_flavors[flavor]['id']})
+
             except FileExistsError as e:
-                self.__LOGGER.warning(f"The template '{template.flavor_id}' already exists. Searching concertim for the template.")
-                temp_in_con = self.__search_local_templates(template)
+                self.__LOGGER.warning(f"The template {openstack_flavors[flavor]['name']} already exists. Searching concertim for the template.")
+                """ temp_in_con = self.__search_local_templates(template)
                 if not temp_in_con:
                     self.__LOGGER.exception(f"No template found after updating - please check concertim and restart process.")
-                    raise SystemExit(e)
+                    raise SystemExit(e) """
             except Exception as e:
                 self.__LOGGER.exception(f"Unhandled Exception {e}")
-                raise SystemExit(e)
+                #raise SystemExit(e)
             finally:
-                template.template_id = temp_in_con['id']
-                self.templates[openstack_flavors[flavor]['id']] = template
+                self.__populate_concertim_templates()
+
+
+        self.__LOGGER.debug(f"*** Deleting stale Templates from Concertim ***")
+
+        self.__LOGGER.debug(f"Openstack falvor set {openstack_flavor_set}")
+
+        for openstack_flavor_id in self.__openstack_concertim_map.flavor_to_template:
+            if openstack_flavor_id not in openstack_flavor_set:
+                try:
+                    template_id = self.__openstack_concertim_map.flavor_to_template[openstack_flavor_id]
+
+                    self.__LOGGER.debug(f"Deleting Template {template_id}")
+
+                    self.concertim_service.delete_template(template_id)
+                except Exception as e:
+                    self.__LOGGER.exception(f"Unhandled Exception {e}")
+                    #raise SystemExit(e)
+                finally:
+                    self.__populate_concertim_templates()
  
     # Update all racks and devices
     # Updates both local and in concertim
@@ -322,7 +391,7 @@ class DataHandler(object):
             stack_resources = self.openstack_service.list_stack_resources(stack_id = stack_id, type = 'OS::Nova::Server' )
             self.__LOGGER.debug(f"Stack resources : {stack_resources}")
             
-            size = 2
+            
             depth = 1
 
 
@@ -337,7 +406,16 @@ class DataHandler(object):
                 if not self.openstack_service.nova.server_exists(instance_id):
                     continue
                 
-                
+                instance_info = self.openstack_service.nova.get_server(instance_id)
+                self.__LOGGER.debug(f"Instance flavor ID : {instance_info.flavor['id']}")
+
+                instance_flavor_id = instance_info.flavor['id']
+
+                template_id = self.__openstack_concertim_map.flavor_to_template[instance_flavor_id]
+                template = self.__concertim_data.templates[ template_id ]
+
+
+
                 openstack_device_set.add(instance_id)
 
                 if instance_id in self.__openstack_concertim_map.instance_to_device:
@@ -347,9 +425,9 @@ class DataHandler(object):
                 
                 rack_id = self.__openstack_concertim_map.stack_to_rack[stack_id]
 
-                start_u = self.__find_empty_slot(rack_id, depth)
+                start_u = self.__find_empty_slot(rack_id, template.device_size)
 
-                self.__create_new_device(rack_id, instance, start_u)
+                self.__create_new_device(rack_id, instance, start_u, template.template_id)
                 self.__populate_concertim_racks_devices()
 
         self.__LOGGER.debug(f" *** Deleting Stale Devices in Concertim ***")
@@ -379,7 +457,7 @@ class DataHandler(object):
         return start_u
 
 
-    def __create_new_rack(self, stack):
+    def __create_new_rack(self, stack, user_id = '1'):
 
         self.__LOGGER.debug(f"Creating rack for stack id : {stack.id}")
 
@@ -387,28 +465,32 @@ class DataHandler(object):
 
         rack_id = None
 
+        status = stack.stack_status
+        status = 'IN_PROGRESS'
         try:
             rack_in_con = self.concertim_service.create_rack({ 'name': stack.stack_name, \
-                                                            'user_id' : '1', \
+                                                            'user_id' : user_id, \
                                                             'u_height': height, \
                                                             'openstack_stack_id' : stack.id, \
-                                                            'status' : stack.stack_status })
+                                                            'status' : status })
 
             self.__LOGGER.debug(f"{rack_in_con}")
 
             rack_id = rack_in_con['id']
 
         except FileExistsError as e:
-            self.__LOGGER.debug(f" Rack already exists")
+            self.__LOGGER.debug(f" Rack already exists : {e}")
         except Exception as e:
             self.__LOGGER.debug(f"Unhandled Exception : {e}")
             
            
-    def __create_new_device(self, rack_id, instance, start_u, template_id = 3):
+    def __create_new_device(self, rack_id, instance, start_u, template_id):
 
         
         self.__LOGGER.debug(f"Creating device for instance id : {instance.physical_resource_id}")
 
+        status = instance.resource_status
+        status = 'IN_PROGRESS'
         try:
 
             device_in_con = self.concertim_service.create_device({'template_id': template_id, \
@@ -418,9 +500,9 @@ class DataHandler(object):
                                                                 'rack_id': rack_id, \
                                                                 'start_u': start_u, \
                                                                 'openstack_instance_id' : instance.physical_resource_id,
-                                                                'status' : instance.resource_status})
+                                                                'status' : status})
         except FileExistsError as e:
-            self.__LOGGER.debug(f" Device already exists")
+            self.__LOGGER.debug(f" Device already exists : {e}")
         except Exception as e:
             self.__LOGGER.debug(f"Unhandled Exception : {e}")
 
