@@ -15,12 +15,12 @@ def main(args):
     # Setup a local start process to loop the metric sending
     def start(i):
         try:
-            #'''
+            '''
             while True:
                 handler.send_metrics()
                 time.sleep(i)
-            #'''
-            #handler.send_metrics()
+            '''
+            handler.send_metrics()
         except Exception as e:
             raise e
     # Setup a local stop process for when the service is over
@@ -43,7 +43,9 @@ def main(args):
     logger.info("CONNECTING SERVICES")
     openstack = OpenstackService(config, log_file)
     concertim = ConcertimService(config, log_file)
-    interval = 5
+    # Interval currently set to match concertim MRD ganglia rate
+    interval = 15
+    #
     handler = MetricHandler(openstack, concertim, config, log_file, interval)
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)

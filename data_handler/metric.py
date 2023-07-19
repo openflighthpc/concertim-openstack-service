@@ -11,6 +11,9 @@ class MetricHandler(DataHandler):
     def __init__(self, openstack, concertim, config_obj, log_file, interval=5):
         self.__LOGGER = create_logger(__name__, log_file, config_obj['log_level'])
         self.interval = interval
+        # Granularity currently set to match concertim visu app IRV refresh rate 
+        self.granularity = 60
+        #
         super().__init__(openstack, concertim, config_obj, log_file)
 
     def send_metrics(self):
@@ -50,7 +53,8 @@ class MetricHandler(DataHandler):
         self.__LOGGER.debug(f"Starting - Processing metrics for instance:{instance_resource_dict['display_name']}")
         # 'interval' seconds window (range from now-interval to now)
         # NOTE: 'interval' and 'granularity' are closely related. 
-        #       'interval' should only equal a valid granularity to ensure proper calculation
+        #       'interval'       - time between each send / aggregation of the metrics
+        #       'granularity'   - time between each datapoint to be aggregated
         stop = datetime.utcnow()- timedelta(seconds=1)
         start = stop - timedelta(seconds=self.interval)
         self.__LOGGER.debug(f"Metric window: [start:'{start}' - stop:'{stop}']")
@@ -59,29 +63,29 @@ class MetricHandler(DataHandler):
             # '''
             if resource["type"] == "instance":
                 # CPU Load as a percent
-                cpu_load = self.openstack_service.get_cpu_load(resource, start, stop, granularity=5)
+                cpu_load = self.openstack_service.get_cpu_load(resource, start, stop, granularity=self.granularity)
                 #print(f"CPU LOAD FOR {resource['id']} : {cpu_load} %")
                 self.concertim_service.send_metric(instance_resource_dict["concertim_id"], {'type': "double",'name': "os.instance.cpu_utilization",'value': cpu_load,'units': '%','slope': "both",'ttl': 3600})
                 #'''
                 # RAM Usage as a percent
-                ram_usage = self.openstack_service.get_ram_usage(resource, start, stop, granularity=5)
+                ram_usage = self.openstack_service.get_ram_usage(resource, start, stop, granularity=self.granularity)
                 #print(f"RAM USAGE FOR {resource['id']} : {ram_usage} %")
                 self.concertim_service.send_metric(instance_resource_dict["concertim_id"], {'type': "double",'name': "os.instance.ram_usage",'value': ram_usage,'units': '%','slope': "both",'ttl': 3600})
             #'''
             elif resource["type"] == "instance_network_interface":
                 # Network usgae in megabytes/s
-                network_usage = self.openstack_service.get_network_usage(resource, start, stop, granularity=5)
+                network_usage = self.openstack_service.get_network_usage(resource, start, stop, granularity=self.granularity)
                 #print(f"NET USAGE FOR {resource['id']} : {network_usage} B/s")
                 self.concertim_service.send_metric(instance_resource_dict["concertim_id"], {'type': "double",'name': "os.net.avg_usage",'value': network_usage,'units': 'B/s','slope': "both",'ttl': 3600})
             #'''
             elif resource["type"] == "instance_disk":
                 # Throughput in megabytes/s
-                throughput = self.openstack_service.get_throughput(resource, start, stop, granularity=5)
+                throughput = self.openstack_service.get_throughput(resource, start, stop, granularity=self.granularity)
                 #print(f"THROUGHPUT FOR {resource['id']} : {throughput} B/s")
                 self.concertim_service.send_metric(instance_resource_dict["concertim_id"], {'type': "double",'name': "os.disk.avg_throughput",'value': throughput,'units': 'B/s','slope': "both",'ttl': 3600})
                 #'''
                 # IOPs in Ops/s
-                iops = self.openstack_service.get_iops(resource, start, stop, granularity=5)
+                iops = self.openstack_service.get_iops(resource, start, stop, granularity=self.granularity)
                 #print(f"IOPS FOR {resource['id']} : {iops} Ops/s")
                 self.concertim_service.send_metric(instance_resource_dict["concertim_id"], {'type': "double",'name': "os.disk.avg_iops",'value': iops,'units': 'Ops/s','slope': "both",'ttl': 3600})
             #'''
