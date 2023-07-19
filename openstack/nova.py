@@ -8,8 +8,8 @@ import time
 import novaclient.client as n_client
 
 class NovaHandler:
-    def __init__(self, sess, log_level):
-        self.__LOGGER = create_logger(__name__, '/var/log/concertim-openstack-service-opt.log', log_level)
+    def __init__(self, sess, log_file, log_level):
+        self.__LOGGER = create_logger(__name__, log_file, log_level)
         self.client = self.__get_client(sess)
 
     def __get_client(self, sess):
@@ -35,6 +35,20 @@ class NovaHandler:
             return self.client.servers.list(detailed=True, search_opts={'all_tenants':1, 'vm_state': 'ACTIVE', 'project_id': project_id})
         self.__LOGGER.debug("Fetching servers for all projects")
         return self.client.servers.list(detailed=True, search_opts={'all_tenants':1, 'vm_state': 'ACTIVE'})
+
+    def get_server(self, instance_id):
+        return self.client.servers.get(instance_id)
+
+    def server_exists(self, instance_id):
+
+        try:
+            ret = self.get_server(instance_id)
+        except Exception as e:
+            self.__LOGGER.debug(f"Server return exception : {e}")
+            return False
+        
+        self.__LOGGER.debug(f"Server return status : {ret}")
+        return True
 
     def close(self):
         self.__LOGGER.debug("Closing Nova Client Connection")

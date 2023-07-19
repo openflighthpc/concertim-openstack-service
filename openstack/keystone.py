@@ -8,10 +8,11 @@ import time
 import keystoneclient.v3.client as ks_client
 
 class KeystoneHandler:
-    def __init__(self, sess, log_level):
-        self.__LOGGER = create_logger(__name__, '/var/log/concertim-openstack-service-opt.log', log_level)
+    def __init__(self, sess, log_file, log_level):
+        self.__LOGGER = create_logger(__name__, log_file, log_level)
         self.client = self.__get_client(sess)
-        self._concertim_user = self.get_user('concertim')
+        self.watcher_role = self.get_role('watcher')
+        self.concertim_user = self.get_user('concertim')
 
     def __get_client(self, sess):
         start_time = time.time()
@@ -49,6 +50,52 @@ class KeystoneHandler:
 
     def get_user(self, name):
         self.__LOGGER.debug(f"Getting Openstack User : {name}")
-        user = self.client.users.list(name=name)[0]
-        self.__LOGGER.debug(f"USER : {user}")
+        users_list = self.client.users.list(name=name)
+        if not users_list:
+            self.__LOGGER.error(f"User {name} not found, returning None")
+            return None
+        elif len(users_list) > 1:
+            self.__LOGGER.debug(f"Multiple User matching name {name} found, returning list of matching Users")
+            return users_list
+        else:
+            user = users_list[0]
+            self.__LOGGER.debug(f"User {user} found.")
+            return user
+
+    def get_role(self, name):
+        self.__LOGGER.debug(f"Getting Openstack Role : {name}")
+        roles_list = self.client.roles.list(name=name)
+        if not roles_list:
+            self.__LOGGER.error(f"Role {name} not found, returning None")
+            return None
+        elif len(roles_list) > 1:
+            self.__LOGGER.debug(f"Multiple Roles matching name {name} found, returning list of matching Roles")
+            return roles_list
+        else:
+            role = roles_list[0]
+            self.__LOGGER.debug(f"Role {role} found.")
+            return role
+
+    def create_user(self, username, password, domain, project=None):
+        self.__LOGGER.debug(f"Creating new User '{username}' in domain configured in the concertim-openstack-service configuration file")
+        user = None
+        if project:
+            self.__LOGGER.debug(f"Adding {project} as default project for User: '{username}'")
+            user = self.client.users.create(name=username,password=password,default_project=project,domain=domain)
+        else:
+            user = self.client.users.create(name=username,password=password,domain=domain)
+        self.__LOGGER.debug(f"NEW USER: {user}")
         return user
+    
+    def create_project(self, name, domain):
+        self.__LOGGER.debug(f"Creating new project '{name}' in domain configured in the concertim-openstack-service configuration file")
+        project = self.client.projects.create(name=name,domain=domain)
+        self.__LOGGER.debug(f"NEW PROJECT: {project}")
+        return project
+    
+    def add_user_to_project(self, user, project, role='member'):
+        self.__LOGGER.debug(f"Adding User:{user} to Project:{project} with Role:{role}")
+        role_obj = self.client.roles.list(name=role)[0]
+        new_role = self.client.roles.grant(role=role_obj, user=user, project=project)
+        self.__LOGGER.debug(f"NEW ROLE: {new_role} for USER:{user} in PROJECT:{project}")
+        return new_role

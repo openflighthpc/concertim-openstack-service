@@ -4,24 +4,56 @@ from openstack.opstk_auth import OpenStackAuth
 from openstack.keystone import KeystoneHandler
 from openstack.nova import NovaHandler
 from openstack.gnocchi import GnocchiHandler
+from openstack.heat import HeatHandler
 
+# Custom Exceptions
+class MissingOpenstackObject(Exception):
+    pass
 
 class OpenstackService(object):
-    def __init__(self, config_obj):
+    def __init__(self, config_obj, log_file):
         self.__CONFIG = config_obj
-        self.__LOGGER = create_logger(__name__, '/var/log/concertim-openstack-service-opt.log', self.__CONFIG['log_level'])
+        self.__LOGGER = create_logger(__name__, log_file, self.__CONFIG['log_level'])
         self.__OPSTK_AUTH = OpenStackAuth(self.__CONFIG['openstack'])
-        self.keystone = KeystoneHandler(self.__OPSTK_AUTH.get_session(), self.__CONFIG['log_level'])
-        self.gnocchi = GnocchiHandler(self.__OPSTK_AUTH.get_session(), self.__CONFIG['log_level'])
-        self.nova = NovaHandler(self.__OPSTK_AUTH.get_session(), self.__CONFIG['log_level'])
+        self.keystone = KeystoneHandler(self.__OPSTK_AUTH.get_session(), log_file, self.__CONFIG['log_level'])
+        self.gnocchi = GnocchiHandler(self.__OPSTK_AUTH.get_session(), log_file, self.__CONFIG['log_level'])
+        self.nova = NovaHandler(self.__OPSTK_AUTH.get_session(), log_file, self.__CONFIG['log_level'])
+        self.heat = HeatHandler(self.__OPSTK_AUTH.get_session(), log_file, self.__CONFIG['log_level'])
     
-    # Returns a list of project ID that the openstack concertim user is a member of
+    # Returns a list of project ID that the openstack concertim user is a 'watcher' in
     def get_concertim_projects(self):
-        projects = self.keystone.get_projects(user=self.keystone._concertim_user)
-        id_list = []
-        for project in projects:
-            id_list.append(project.id)
-        return id_list
+        role=None
+        user=None
+        proj_id_list=[]
+        self.__LOGGER.debug(f"Getting 'watcher' role")
+        watcher_role = self.keystone.watcher_role
+        if watcher_role is None:
+            self.__LOGGER.error(f"Could not find 'watcher' role, please have an Admin create the 'watcher' role in Openstack.")
+            raise MissingOpenstackObject(f"Could not find 'watcher' role, please have an Admin create the 'watcher' role in Openstack.")
+        elif type(watcher_role) is list:
+            self.__LOGGER.debug(f"Multiple 'watcher' roles found, using first occurance.")
+            role = watcher_role[0]
+        else:
+            role = watcher_role
+
+        self.__LOGGER.debug(f"Getting 'concertim' user")
+        concertim_user = self.keystone.concertim_user
+        if concertim_user is None:
+            self.__LOGGER.error(f"Could not find 'concertim' user, please have an Admin create the 'concertim' user in Openstack.")
+            raise MissingOpenstackObject(f"Could not find 'concertim' user, please have an Admin create the 'concertim' user in Openstack.")
+        elif type(concertim_user) is list:
+            self.__LOGGER.debug(f"Multiple 'concertim' users found, using first occurance.")
+            user = concertim_user[0]
+        else:
+            user = concertim_user
+        
+        self.__LOGGER.debug(f"Getting 'concertim' user role assignments for 'watcher' role.")
+        ra_list = self.keystone.client.role_assignments.list(user=user, role=role)
+        for ra in ra_list:
+            proj_id_list.append(ra.scope['project']['id'])
+        
+        self.__LOGGER.debug(f"Projects found for concertim:watcher : {proj_id_list}")
+        return proj_id_list
 
     def get_instances(self, project_id):
         instances = self.nova.list_servers(project_id)
@@ -42,52 +74,79 @@ class OpenstackService(object):
         sorted_results = self.__sort_resource_list(results)
         return sorted_results
 
-    def get_cpu_load(self, resource, start, stop):
+    def get_cpu_load(self, resource, start, stop, granularity=5):
         self.__LOGGER.debug(f"Getting CPU Load % for {resource['id']}")
-        cpu_metric_id = resource['metrics']['cpu']
-        cpu_load_tuple = self.gnocchi.get_aggregate(f"(aggregate rate:mean (metric {cpu_metric_id} mean))", start, stop)
-        granularity = cpu_load_tuple[1]
-        cpu_load_val = (cpu_load_tuple[2] / (1000000000.0 * granularity)) * 100
-        return cpu_load_val
+        try:
+            cpu_metric_id = resource['metrics']['cpu']
+            ns_gran_prod = 1000000000.0 * granularity
+            cpu_rate_resposes = self.gnocchi.get_metric_measure(metric=cpu_metric_id, aggregation='rate:mean', granularity=granularity, start=start, stop=stop)[-1]
+            self.__LOGGER.debug(f"Calculating CPU Load Percent")
+            cpu_load_ns_to_s = cpu_rate_resposes[2] / ns_gran_prod
+            cpu_load_percent = cpu_load_ns_to_s * 100
+            return round(cpu_load_percent,2)
+        except IndexError as e:
+            self.__LOGGER.error(f"Metric retrieval returned no values, returning '0.0'  : {e}")
+            return 0.0
 
-    def get_ram_usage(self, resource, start, stop):
+    def get_ram_usage(self, resource, start, stop, granularity=5):
         self.__LOGGER.debug(f"Getting RAM Usage % for {resource['id']}")
-        memory_metric_id = resource['metrics']['memory']
-        memory_usage_metric_id = resource['metrics']['memory.usage']
-        memory = self.gnocchi.client.metric.get_measures(metric=memory_metric_id, limit=1)[0][2]
-        memory_usage = self.gnocchi.get_metric_measure(metric=memory_usage_metric_id, start=start, stop=stop)[2]
-        ram_usage_percent = memory_usage/memory*100
-        return ram_usage_percent
+        try:
+            memory_metric_id = resource['metrics']['memory']
+            memory_usage_metric_id = resource['metrics']['memory.usage']
+            memory = self.gnocchi.get_metric_measure(metric=memory_metric_id, refresh=False, limit=1)[0][2]
+            memory_usage = self.gnocchi.get_metric_measure(metric=memory_usage_metric_id, aggregation='mean', granularity=granularity, start=start, stop=stop)[-1]
+            self.__LOGGER.debug(f"Calculating RAM used Percentage")
+            ram_usage_percent = memory_usage[2] / memory * 100
+            return round(ram_usage_percent,2)
+        except IndexError as e:
+            self.__LOGGER.error(f"Metric retrieval returned no values, returning '0.0'  : {e}")
+            return 0.0
     
-    def get_network_usage(self, resource, start, stop):
+    def get_network_usage(self, resource, start, stop, granularity=5):
         self.__LOGGER.debug(f"Getting Network Usage for {resource['id']}")
-        net_in_metric = resource['metrics']['network.incoming.bytes']
-        net_out_metric = resource['metrics']['network.outgoing.bytes']
-        net_in_tup = self.gnocchi.client.metric.get_measures(metric=net_in_metric, aggregation="rate:mean", start=start, stop=stop)[0]
-        net_out_tup = self.gnocchi.client.metric.get_measures(metric=net_out_metric, aggregation="rate:mean", start=start, stop=stop)[0]
-        usage_rate = (net_in_tup[2] + net_out_tup[2]) / net_in_tup[1]
-        return usage_rate
+        try:
+            net_in_metric = resource['metrics']['network.incoming.bytes']
+            net_out_metric = resource['metrics']['network.outgoing.bytes']
+            net_in_tup = self.gnocchi.get_metric_measure(metric=net_in_metric, aggregation='rate:mean', granularity=granularity, start=start, stop=stop)[-1]
+            net_out_tup = self.gnocchi.get_metric_measure(metric=net_out_metric, aggregation='rate:mean', granularity=granularity, start=start, stop=stop)[-1]
+            self.__LOGGER.debug(f"Calculating Network usage in B/s")
+            usage_rate = (net_in_tup[2] + net_out_tup[2]) / granularity
+            return round(usage_rate,2)
+        except IndexError as e:
+            self.__LOGGER.error(f"Metric retrieval returned no values, returning '0.0'  : {e}")
+            return 0.0
 
-    def get_throughput(self, resource, start, stop):
+    def get_throughput(self, resource, start, stop, granularity=5):
         self.__LOGGER.debug(f"Getting Disk Throughput for {resource['id']}")
-        disk_read_metric = resource['metrics']['disk.device.read.bytes']
-        disk_write_metric = resource['metrics']['disk.device.write.bytes']
-        disk_read_tup = self.gnocchi.client.metric.get_measures(metric=disk_read_metric, aggregation="rate:mean", start=start, stop=stop)[0]
-        disk_write_tup = self.gnocchi.client.metric.get_measures(metric=disk_write_metric, aggregation="rate:mean", start=start, stop=stop)[0]
-        throughput = (disk_write_tup[2] + disk_read_tup[2]) / disk_read_tup[1]
-        return throughput
+        try:
+            disk_read_metric = resource['metrics']['disk.device.read.bytes']
+            disk_write_metric = resource['metrics']['disk.device.write.bytes']
+            disk_read_tup = self.gnocchi.get_metric_measure(metric=disk_read_metric, aggregation='rate:mean', granularity=granularity, start=start, stop=stop)[-1]
+            disk_write_tup = self.gnocchi.get_metric_measure(metric=disk_write_metric, aggregation='rate:mean', granularity=granularity, start=start, stop=stop)[-1]
+            self.__LOGGER.debug(f"Calculating Disk Throughput in B/s")
+            throughput = (disk_write_tup[2] + disk_read_tup[2]) / granularity
+            return round(throughput,2)
+        except IndexError as e:
+            self.__LOGGER.error(f"Metric retrieval returned no values, returning '0.0'  : {e}")
+            return 0.0
 
-    def get_iops(self, resource, start, stop):
+    def get_iops(self, resource, start, stop, granularity=5):
         self.__LOGGER.debug(f"Getting Disk IOPs for {resource['id']}")
-        disk_read_metric = resource['metrics']['disk.device.read.requests']
-        disk_write_metric = resource['metrics']['disk.device.write.requests']
-        disk_read_tup = self.gnocchi.client.metric.get_measures(metric=disk_read_metric, aggregation="rate:mean", start=start, stop=stop)[0]
-        disk_write_tup = self.gnocchi.client.metric.get_measures(metric=disk_write_metric, aggregation="rate:mean", start=start, stop=stop)[0]
-        iops = (disk_write_tup[2] + disk_read_tup[2]) / disk_read_tup[1]
-        return iops
+        try:
+            disk_read_metric = resource['metrics']['disk.device.read.requests']
+            disk_write_metric = resource['metrics']['disk.device.write.requests']
+            disk_read_tup = self.gnocchi.get_metric_measure(metric=disk_read_metric, aggregation='rate:mean', granularity=granularity, start=start, stop=stop)[-1]
+            disk_write_tup = self.gnocchi.get_metric_measure(metric=disk_write_metric, aggregation='rate:mean', granularity=granularity, start=start, stop=stop)[-1]
+            self.__LOGGER.debug(f"Calculating Disk IOPs in Ops/s")
+            iops = (disk_write_tup[2] + disk_read_tup[2]) / granularity
+            return round(iops,2)
+        except IndexError as e:
+            self.__LOGGER.error(f"Metric retrieval returned no values, returning '0.0'  : {e}")
+            return 0.0
 
     # Sort Openstack project resources and group by instance_id
     def __sort_resource_list(self, resource_list):
+        self.__LOGGER.debug(f"Sorting Gnocchi Resources")
         grouped_resources = {}
         for resource in resource_list:
             display_name = None
@@ -101,11 +160,23 @@ class OpenstackService(object):
             else:
                 continue
             if instance_id not in grouped_resources:
-                grouped_resources[instance_id] = {"display_name":None,"resources":[]}
+                grouped_resources[instance_id] = {"display_name":None,"concertim_id":None,"resources":[]}
             if display_name is not None:
                 grouped_resources[instance_id]["display_name"] = display_name.split('.')[0] + '-' + instance_id[:5]
             grouped_resources[instance_id]["resources"].append(resource)
+        self.__LOGGER.debug(f"Sorting Completed")
         return grouped_resources
+
+    def list_stacks(self):
+        self.__LOGGER.debug("Getting Openstack Heat Stacks")
+        return self.heat.list_stacks()
+
+    def get_stack(self, stack_id):
+        self.__LOGGER.debug(f"Getting Openstack Heat Stack {stack_id}")
+        return self.heat.get_stack(stack_id)
+
+    def list_stack_resources(self, stack_id, **kwargs):
+        return self.heat.list_stack_resources(stack_id, **kwargs)
 
     def disconnect(self):
         self.__LOGGER.info("Disconnecting Openstack Services")

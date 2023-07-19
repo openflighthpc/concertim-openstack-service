@@ -10,9 +10,9 @@ import requests
 requests.packages.urllib3.disable_warnings() 
 
 class ConcertimService(object):
-    def __init__(self, config_obj):
+    def __init__(self, config_obj, log_file):
         self.__CONFIG = config_obj
-        self.__LOGGER = create_logger(__name__, '/var/log/concertim-openstack-service-opt.log', self.__CONFIG['log_level'])
+        self.__LOGGER = create_logger(__name__, log_file, self.__CONFIG['log_level'])
         self.__URL = self.__CONFIG['concertim']['concertim_url']
         self.__AUTH_TOKEN = self.__get_auth_token()
     
@@ -32,6 +32,7 @@ class ConcertimService(object):
         return response
     
     def create_rack(self, variables_dict):
+        self.__LOGGER.debug(f"{variables_dict}")
         response = self.__api_call('post', 'CREATE_RACK', variables_dict=variables_dict)
         return response
     
@@ -98,8 +99,13 @@ class ConcertimService(object):
         return response
 
     def send_metric(self, ID, variables_dict):
-        response = self.__api_call('put', 'METRIC', variables_dict=variables_dict, endpoint_var=str(ID))
-        return response
+        try:
+            response = self.__api_call('put', 'METRIC', variables_dict=variables_dict, endpoint_var=str(ID))
+            return response
+        except ValueError as e:
+            self.__LOGGER.error(f"{e}")
+            self.__LOGGER.warning(f"FAILED - Could not send metric for {variables_dict['name']}")
+            raise e
 
     # Generic method for handling Concertim API calls.
     def __api_call(self, method, endpoint_name, variables_dict={}, endpoint_var=''):
@@ -158,23 +164,23 @@ class ConcertimService(object):
                 return response.headers.get("Authorization")
             return response.json()
         elif response.status_code == 400:
-            e = ValueError('Bad request, please check your data.')
+            e = ValueError(f"Bad request, please check your data: {response.json()}")
             self.__LOGGER.exception(str(e))
             raise e
         elif response.status_code == 401:
-            e =  ValueError('Unauthorized, please check your credentials.')
+            e = ValueError(f"Unauthorized, please check your credentials: {response.json()}")
             self.__LOGGER.exception(str(e))
             raise e
         elif response.status_code == 404:
-            e =  ValueError('No path found, please check your endpoint.')
+            e = ValueError(f"No path found, please check your endpoint: {response.json()}")
             self.__LOGGER.exception(str(e))
             raise e
         elif response.status_code == 500:
-            e =  ValueError('Server error, please check the server or try again later.')
+            e = ValueError(f"Server error, please check the Concertim host server or try again later: {response.json()}")
             self.__LOGGER.exception(str(e))
             raise e
         elif response.status_code == 422:
-            e = FileExistsError(f"Cannot process {response}")
+            e = FileExistsError(f"Cannot process: {response.json()}")
             self.__LOGGER.warning("The item you are trying to add already exists")
             raise e
         else:
@@ -208,3 +214,25 @@ class ConcertimService(object):
     def disconnect(self):
         self.__LOGGER.info("Disconnecting Concertim Services")
         return
+
+
+class ConcertimData:
+    def __init__(self):
+        self.racks = {}
+        self.devices = {}
+        self.users = {}
+        self.templates = {}
+
+    def __repr__(self):
+        return f"{self.racks.__repr__()} \n \
+            {self.devices.__repr__()} \n \
+            {self.users.__repr__()} \n  \
+            {self.templates.__repr__()} \n"
+
+class OpenstackConcertimMap:
+    def __init__(self):
+        self.stack_to_rack = {}
+        self.instance_to_device = {}
+        self.flavor_to_template = {}
+        self.os_user_to_concertim_user = {}
+        self.os_project_to_concertim_user = {}
