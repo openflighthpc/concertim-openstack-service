@@ -218,7 +218,9 @@ class DataHandler(object):
             self.rmq_update_instance(message)
         
         if message['event_type'] == 'orchestration.stack.delete.end' or \
-            message['event_type'] == 'orchestration.stack.create.end':
+            message['event_type'] == 'orchestration.stack.create.end' or \
+            message['event_type'] == 'orchestration.stack.suspend.end' or \
+            message['event_type'] == 'orchestration.stack.resume.end' :
             self.rmq_update_rack(message)
         
         
@@ -228,10 +230,12 @@ class DataHandler(object):
         stack_id = message['payload']['stack_identity']
         stack_state = message['payload']['state']
 
-        if stack_state == 'CREATE_COMPLETE':
+        if stack_state == 'CREATE_COMPLETE' or stack_state == 'RESUME_COMPLETE':
             concertim_rack_status = 'ACTIVE'
         elif stack_state == 'CREATE_IN_PROGRESS':
             concertim_rack_status = 'IN_PROGRESS'
+        elif stack_state == 'SUSPEND_COMPLETE':
+            concertim_rack_status = 'STOPPED'
         else:
             concertim_rack_status = 'FAILED'
 
@@ -261,7 +265,7 @@ class DataHandler(object):
 
         if instance_state == 'active':
             concertim_device_status = 'ACTIVE'
-        elif instance_state == 'stopped':
+        elif instance_state == 'stopped' or instance_state == 'suspended':
             concertim_device_status = 'STOPPED'
         elif instance_state == 'building':
             concertim_device_status = 'IN_PROGRESS'
@@ -598,7 +602,7 @@ class DataHandler(object):
 
         for start, depth in filled_slots:
             self.__LOGGER.debug(f" {start} , {depth}")
-            start_u = start + depth
+            start_u = start + depth + 1
 
         return start_u 
     
