@@ -1,14 +1,24 @@
-class ConcertimRack:
-    __slots__ = ('__rack_name','__owner','__devices','__rack_id','__rack_height', '__project_id', '__cluster','__occupied')
-    def __init__(self, rack_name, owner, rack_height, cluster, project_id, rack_id='', devices=[]):
+from concertim.concertim import ConcertimData
+
+class ConcertimRack():
+    #__slots__ = ('__rack_name','__owner','__devices','__rack_id','__rack_height', '__project_id', '__cluster','__occupied')
+    def __init__(self, rack_name, owner, rack_height, status, openstack_stack_id, rack_id='', devices=[]):
         self.__rack_name = rack_name
         self.__owner = owner
-        self.__devices = devices
+        self.devices = set()
         self.__rack_id = rack_id
         self.__rack_height = rack_height
-        self.__project_id = project_id
-        self.__cluster = cluster
+        self.__openstack_stack_id = openstack_stack_id
+#        self.__project_id = project_id
+#        self.__cluster = cluster
+        self.__status = status
         self.__occupied = []
+
+    def __repr__(self):
+        lines = ['\n' + self.__class__.__name__ + ':']
+        for key, val in vars(self).items():
+            lines += '{}: {}'.format(key, val.__repr__()).split('\n')
+        return '{' + '\n '.join(lines) + '}'
 
     @property
     def rack_name(self):
@@ -22,13 +32,13 @@ class ConcertimRack:
     def owner(self):
         return self.__owner
 
-    @property
+    """ @property
     def devices(self):
         return self.__devices
 
     @devices.setter
     def devices(self, new_devices):
-        self.__devices = new_devices
+        self.__devices = new_devices """
 
     @property
     def project_id(self):

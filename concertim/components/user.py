@@ -1,11 +1,19 @@
+from concertim.concertim import ConcertimData
+
 class ConcertimUser:
-    __slots__ = ('__user_id', '__project_id', '__display_name', '__login_name', '__owned_racks')
+    #__slots__ = ('__user_id', '__project_id', '__display_name', '__login_name', '__owned_racks')
     def __init__(self, user_id, project_id, display_name, login_name, owned_racks=[]):
         self.__user_id = user_id
         self.__project_id = project_id
         self.__display_name = display_name
         self.__login_name = login_name
         self.__owned_racks = owned_racks
+
+    def __repr__(self):
+        lines = ['\n' + self.__class__.__name__ + ':']
+        for key, val in vars(self).items():
+            lines += '{}: {}'.format(key, val.__repr__()).split('\n')
+        return '{' + '\n '.join(lines) + '}'
 
     @property
     def user_id(self):

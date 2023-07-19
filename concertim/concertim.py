@@ -214,3 +214,25 @@ class ConcertimService(object):
     def disconnect(self):
         self.__LOGGER.info("Disconnecting Concertim Services")
         return
+
+
+class ConcertimData:
+    def __init__(self):
+        self.racks = {}
+        self.devices = {}
+        self.users = {}
+        self.templates = {}
+
+    def __repr__(self):
+        return f"{self.racks.__repr__()} \n \
+            {self.devices.__repr__()} \n \
+            {self.users.__repr__()} \n  \
+            {self.templates.__repr__()} \n"
+
+class OpenstackConcertimMap:
+    def __init__(self):
+        self.stack_to_rack = {}
+        self.instance_to_device = {}
+        self.flavor_to_template = {}
+        self.os_user_to_concertim_user = {}
+        self.os_project_to_concertim_user = {}

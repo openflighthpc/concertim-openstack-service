@@ -36,6 +36,20 @@ class NovaHandler:
         self.__LOGGER.debug("Fetching servers for all projects")
         return self.client.servers.list(detailed=True, search_opts={'all_tenants':1, 'vm_state': 'ACTIVE'})
 
+    def get_server(self, instance_id):
+        return self.client.servers.get(instance_id)
+
+    def server_exists(self, instance_id):
+
+        try:
+            ret = self.get_server(instance_id)
+        except Exception as e:
+            self.__LOGGER.debug(f"Server return exception : {e}")
+            return False
+        
+        self.__LOGGER.debug(f"Server return status : {ret}")
+        return True
+
     def close(self):
         self.__LOGGER.debug("Closing Nova Client Connection")
         self.client = None
