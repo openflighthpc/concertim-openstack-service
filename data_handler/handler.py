@@ -29,6 +29,8 @@ class DataHandler(object):
         self.__concertim_data = None
         self.__openstack_concertim_map = None
 
+        self.update_timestamp = datetime.now()
+
 
     def __populate_cache(self):
         self.__concertim_data = ConcertimData()
@@ -40,7 +42,7 @@ class DataHandler(object):
 
         self.__populate_concertim_racks_devices()
 
-        
+ 
 
     def __populate_concertim_users(self):
         user_list = self.concertim_service.list_users()
@@ -127,20 +129,6 @@ class DataHandler(object):
 
         #self.__LOGGER.debug(f"Openstack Instance to Concertim Device Object : {self.__openstack_concertim_map.instance_to_device}")
 
-       
-
-
-    # Send all metrics for concertim/openstack devices
-    '''
-    def send_metrics(self):
-        self.__LOGGER.info('Sending Metrics')
-        for project_id in self.devices_racks:
-            resources = self.openstack_service.get_project_resources(project_id)
-            for rack_id in self.devices_racks[project_id]:
-                for instance_id in self.devices_racks[project_id][rack_id]['devices']:
-                    self.handle_metrics(resources[instance_id])
-    '''
-
     def __populate_concertim_templates(self):
 
         templates = self.concertim_service.list_templates()
@@ -166,11 +154,10 @@ class DataHandler(object):
         self.__LOGGER.debug(f'Template Objects {self.__concertim_data.templates}')
         self.__LOGGER.debug(f'Template Mapping {self.__openstack_concertim_map.flavor_to_template}')
 
+
     # Update concertim with Openstack info
     def update_concertim(self):
-        self.__LOGGER.info('Updating Concertim')
-        #self.__populate_concertim_racks_devices()
-       
+        self.__LOGGER.info('Updating Concertim')       
         self.__populate_cache()
         
 
@@ -180,8 +167,7 @@ class DataHandler(object):
         self.__update_templates() # Finished
         self.__update_devices_racks() # Finished
 
-        self.rmq_listener()
-
+        self.update_timestamp =  datetime.now()
         
 
     def rmq_listener(self):
@@ -207,6 +193,15 @@ class DataHandler(object):
 
     def rmq_callback(self, ch, method, properties, body):
 
+        current_timestamp = datetime.now()
+        self.__LOGGER.info(f'Previous timestamp {self.update_timestamp}')
+        self.__LOGGER.info(f'Current timestamp {current_timestamp}')
+        
+        if (current_timestamp - self.update_timestamp).total_seconds() >= 10:
+            time.sleep(4)
+            self.update_concertim() 
+
+
         response = json.loads(body)
         message = json.loads(response['oslo.message'])
 
@@ -217,7 +212,9 @@ class DataHandler(object):
         if message['event_type'] == 'compute.instance.power_off.start' or \
             message['event_type'] == 'compute.instance.power_off.end' or \
             message['event_type'] == 'compute.instance.power_on.start' or \
-            message['event_type'] == 'compute.instance.power_on.end':
+            message['event_type'] == 'compute.instance.power_on.end' or \
+            message['event_type'] == 'compute.instance.update' or \
+            message['event_type'] == 'compute.instance.create.end':
             self.rmq_update_instance(message)
         
         if message['event_type'] == 'orchestration.stack.delete.end' or \
@@ -243,11 +240,18 @@ class DataHandler(object):
         if stack_id in self.__openstack_concertim_map.stack_to_rack:
             rack_id = self.__openstack_concertim_map.stack_to_rack[stack_id]
 
-            rack = self.concertim_service.show_rack(rack_id)
+            try:
+                rack = self.concertim_service.show_rack(rack_id)
+            except Exception as e:
+                self.__LOGGER.debug(f" Exception : {e}")
+                return
+            
             self.__LOGGER.debug(f" Rack {rack}")
 
-            self.concertim_service.update_rack(ID=rack_id, u_height = rack['u_height'], status = concertim_rack_status)
-
+            try:
+                self.concertim_service.update_rack(ID=rack_id,variables_dict = {'name' : rack['name'], 'u_height' : rack['u_height'], 'status' : concertim_rack_status})
+            except Exception as e:
+                self.__LOGGER.debug(f"Exception : {e}")
 
     def rmq_update_instance(self, message):
         # compute.instance.power_off.start , compute.instance.power_off.end  
@@ -259,6 +263,8 @@ class DataHandler(object):
             concertim_device_status = 'ACTIVE'
         elif instance_state == 'stopped':
             concertim_device_status = 'STOPPED'
+        elif instance_state == 'building':
+            concertim_device_status = 'IN_PROGRESS'
         else:
             concertim_device_status = 'FAILED'
 
@@ -267,14 +273,21 @@ class DataHandler(object):
         if instance_id in self.__openstack_concertim_map.instance_to_device:
             device_id = self.__openstack_concertim_map.instance_to_device[instance_id]
 
-            device = self.concertim_service.show_device(device_id)
+            try:
+                device = self.concertim_service.show_device(device_id)
+            except Exception as e:
+                self.__LOGGER.debug(f" Exception : {e}")
+                return 
+            
             self.__LOGGER.debug(f" device {device}")
 
-            self.concertim_service.update_device(ID = device_id ,variables_dict = {'name' : device['name'],\
+            try:
+                self.concertim_service.update_device(ID = device_id ,variables_dict = {'name' : device['name'],\
                                                 'description': device['description'], \
                                                 'status' : concertim_device_status, \
                                                 'openstack_instance_id' : device['metadata']['openstack_instance_id'] })
-            
+            except Exception as e:
+                self.__LOGGER.debug(f" Exception : {e}")
 
         
         
@@ -410,7 +423,7 @@ class DataHandler(object):
         self.__LOGGER.debug(f"Openstack Stack Set  : {openstack_stack_set}")
     
         # Repopulate Concertim Cache
-        self.__populate_concertim_racks_devices()
+        self.__populate_cache()
 
         
         self.__LOGGER.debug(f" *** Deleting Stale Racks in Concertim ***")
@@ -426,7 +439,7 @@ class DataHandler(object):
                 self.__delete_rack(rack_id) 
         
         # Repopulate Concertim Cache
-        self.__populate_concertim_racks_devices()
+        self.__populate_cache()
 
         openstack_device_set = set()
 
@@ -471,33 +484,23 @@ class DataHandler(object):
                 start_u = self.__find_empty_slot(rack_id, template.device_size)
 
                 self.__create_new_device(rack_id, instance, start_u, template.template_id)
-                self.__populate_concertim_racks_devices()
+                #self.__populate_concertim_racks_devices()
+                # Repopulate Concertim Cache
+                self.__populate_cache()
+
+        
 
         self.__LOGGER.debug(f" *** Deleting Stale Devices in Concertim ***")
 
         for instance_id, device_id in self.__openstack_concertim_map.instance_to_device.items():
             if not self.openstack_service.nova.server_exists(instance_id):
                 self.__delete_device(device_id)
-                self.__populate_concertim_racks_devices()
+                #self.__populate_concertim_racks_devices()
+                # Repopulate Concertim Cache
+                self.__populate_cache()
            
-
-    def __find_empty_slot(self, rack_id, depth):
-
-        filled_slots = []
-        for device_id in self.__concertim_data.racks[rack_id].devices:
-            device = self.__concertim_data.devices[device_id]
-            filled_slots.append(tuple((device.start_u, device.depth)))
-
-        filled_slots.sort()
-        self.__LOGGER.debug(f"Filled slots in Rack id {rack_id} : {filled_slots}")
-
-        start_u = 1
-
-        for start, depth in filled_slots:
-            self.__LOGGER.debug(f" {start} , {depth}")
-            start_u = start + depth
-
-        return start_u
+        
+    
 
 
     def __create_new_rack(self, stack, user_id):
@@ -533,7 +536,6 @@ class DataHandler(object):
         except Exception as e:
             self.__LOGGER.debug(f"Unhandled Exception : {e}")
             
-           
     def __create_new_device(self, rack_id, instance, start_u, template_id):
 
         
@@ -561,20 +563,44 @@ class DataHandler(object):
         except FileExistsError as e:
             self.__LOGGER.debug(f" Device already exists : {e}")
         except Exception as e:
-            self.__LOGGER.debug(f"Unhandled Exception : {e}")
+            self.__LOGGER.debug(f" Exception : {e}")
 
    
     def __delete_rack(self, rack_id):
         # Delete Rack
         self.__LOGGER.debug(f" Deleting Rack {rack_id}")
-        result = self.concertim_service.delete_rack(rack_id)
-        self.__LOGGER.debug(f"{result}")
-
+        try:
+            result = self.concertim_service.delete_rack(rack_id)
+            self.__LOGGER.debug(f"{result}")
+        except Exception as e:
+            self.__LOGGER.debug(f"Unhandled Exception : {e}")
 
     def __delete_device(self, device_id):
         self.__LOGGER.debug(f" Deleteing Device {device_id}")
-        result = self.concertim_service.delete_device(device_id)
-        self.__LOGGER.debug(f"{result}")
+
+        try:
+            result = self.concertim_service.delete_device(device_id)
+            self.__LOGGER.debug(f"{result}")
+        except Exception as e:
+            self.__LOGGER.debug(f" Exception : {e}")
+
+    def __find_empty_slot(self, rack_id, depth):
+
+        filled_slots = []
+        for device_id in self.__concertim_data.racks[rack_id].devices:
+            device = self.__concertim_data.devices[device_id]
+            filled_slots.append(tuple((device.start_u, device.depth)))
+
+        filled_slots.sort()
+        self.__LOGGER.debug(f"Filled slots in Rack id {rack_id} : {filled_slots}")
+
+        start_u = 1
+
+        for start, depth in filled_slots:
+            self.__LOGGER.debug(f" {start} , {depth}")
+            start_u = start + depth
+
+        return start_u 
     
 
 
@@ -584,7 +610,9 @@ class DataHandler(object):
 
    
    
-   
+
+
+    ####################################################   
     # Returns the matching template found or None
     def __search_local_templates(self, template_obj):
         temp_in_con = None

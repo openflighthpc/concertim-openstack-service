@@ -39,13 +39,12 @@ def main(args):
 
     # Setup a local start process to handle the main funtion of the code
     def start():
-        #'''
-        while True:
-            handler.update_concertim()
 
-            break
-        
-            time.sleep(10)
+        #Populate Cache, Run delta calculations
+        handler.update_concertim()
+
+        #Call RMQ Listener
+        handler.rmq_listener()
        
 
     try:
