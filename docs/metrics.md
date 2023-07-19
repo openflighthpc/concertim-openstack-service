@@ -29,6 +29,8 @@ The recommended method for deploying the MetricHandler is by using the [MetricHa
 
 The MetricHandler leverages the Openstack Telemetry service - Ceilometer - and a time-series database - Gnocchi. Both of these need to be configured and available on the Openstack Host.
 
+Please see [the example config.yaml](/etc/config-sample.yaml) for how the authentication is configured.
+
 #### Gnocchi
 
 The MetricHandler assumes the existance of the `concertim_rate_policy` and `concertim_policy` archive-policies to be created in gnocchi in the Openstack env. An example [creation script](/etc/concertim-archive-policy-create.sql) for this is provided. 
@@ -37,8 +39,9 @@ The MetricHandler assumes the existance of the `concertim_rate_policy` and `conc
 
 Sample files for configuring Openstack Ceilometer's policies are also provided: [polling.yaml](/etc/polling-sample.yaml), [pipeline.yaml](/etc/pipeline-sample.yaml). These files should be used to configure the telemtry service unless the user is experienced with altering Openstack configurations.
 
+
 ## Usage
 
-The MetricHandler is configured to gather and send metrics at a `5 second` interval by default. This can only be changed by directly editing the [MetricHandler](/metric_driver.py) process and rebuilding the docker image.
+The MetricHandler is configured to gather and send metrics at a `15 second` interval by default. This can only be changed by directly editing the [MetricHandler](/metric_driver.py) process and rebuilding the docker image.
 
 After running the Docker container the process will run until stopped, sending metrics to the Concertim app configured in `/etc/concertim-openstack-service/config.yaml`.

@@ -360,7 +360,6 @@ class DataHandler(object):
             # if there is still no template, raise e
             try:
                 temp_in_con = self.concertim_service.create_template({'name': openstack_flavors[flavor]['name'], 'description': description, 'height': device_height, 'ram' : openstack_flavors[flavor]['ram'], 'disk' : openstack_flavors[flavor]['disk'], 'vcpus' : openstack_flavors[flavor]['vcpus'], 'foreign_id' : openstack_flavors[flavor]['id']})
-
             except FileExistsError as e:
                 self.__LOGGER.warning(f"The template {openstack_flavors[flavor]['name']} already exists. Searching concertim for the template.")
                 """ temp_in_con = self.__search_local_templates(template)
@@ -373,13 +372,10 @@ class DataHandler(object):
             finally:
                 self.__populate_concertim_templates()
 
-
-        self.__LOGGER.debug(f"*** Deleting stale Templates from Concertim ***")
-
         self.__LOGGER.debug(f"Openstack falvor set {openstack_flavor_set}")
-
         for openstack_flavor_id in self.__openstack_concertim_map.flavor_to_template:
             if openstack_flavor_id not in openstack_flavor_set:
+                self.__LOGGER.debug(f"*** Deleting stale Template from Concertim ***")
                 try:
                     template_id = self.__openstack_concertim_map.flavor_to_template[openstack_flavor_id]
 

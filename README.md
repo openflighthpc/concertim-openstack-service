@@ -45,6 +45,8 @@ Values with no header:
 
 ##### **Openstack Values**
 
+###### AUTH
+
 In order for the service to connect to the openstack deployment, authentication data is required. A `keystoneauth1.identity.[v3,v2].password.Password` object is used to authenticate against the keystone service and can accept any variation of password-based authentication ([accepted value sets source](/openstack/opstk_auth.py))
 
 Values under the `openstack` header:
@@ -64,6 +66,15 @@ Values under the `openstack` header:
     - `password` : Password for authenticating with OpenStack
     - `project_id` : ID of the OpenStack project - recommended to use an admin project
 
+###### RABBIT MQ
+
+The [Update Handler](/docs/updater.md) listens to the Openstack Rabbit MQ messaging queue to catch updates that happen in the openstack backend. RabbitMQ requires its own auth details.
+
+- `rmq_username` : The username for the Openstack notification queue inside RabbitMQ (default is `openstack`)
+- `rmq_password` : The password for the RabbitMQ user
+- `rmq_address` : The IP of the RabbitMQ host
+- `rmq_port` : Port that RabbitMQ is running on
+- `rmq_path` : RabbitMQ message path (default is `/`)
 
 ##### **Concertim Values**
 
@@ -105,6 +116,21 @@ The recommended method for using the Concertim-Openstack service is by deploying
 - LOGS - tail 50 with follow
     ``````
      docker exec concertim-metrics tail -50f /var/log/concertim-openstack-service/user-handler.log
+     ``````
+
+##### Update Handler setup
+
+- BUILD - from concertim-openstack-service root directory
+    ``````
+     docker build --network=host --tag concertim-updates:<version> -f Dockerfiles/Dockerfile.updates .
+    ``````
+- RUN - mounts the config file as a vol
+    ``````
+     docker run -d --name concertim-updates --network=host -v /etc/concertim-openstack-service/config.yaml:/etc/concertim-openstack-service/config.yaml concertim-updates
+     ``````
+- LOGS - tail 50 with follow
+    ``````
+     docker exec concertim-updates tail -50f /var/log/concertim-openstack-service/updates.log
      ``````
 
 ##### Metric Handler setup
