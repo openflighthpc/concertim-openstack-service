@@ -209,18 +209,10 @@ class DataHandler(object):
         self.__LOGGER.debug(f" Event type : {message['event_type']}")
         self.__LOGGER.debug(f"Event payload : {message['payload']}")
 
-        if message['event_type'] == 'compute.instance.power_off.start' or \
-            message['event_type'] == 'compute.instance.power_off.end' or \
-            message['event_type'] == 'compute.instance.power_on.start' or \
-            message['event_type'] == 'compute.instance.power_on.end' or \
-            message['event_type'] == 'compute.instance.update' or \
-            message['event_type'] == 'compute.instance.create.end':
+        if message['event_type'].startswith('compute.instance'):
             self.rmq_update_instance(message)
         
-        if message['event_type'] == 'orchestration.stack.delete.end' or \
-            message['event_type'] == 'orchestration.stack.create.end' or \
-            message['event_type'] == 'orchestration.stack.suspend.end' or \
-            message['event_type'] == 'orchestration.stack.resume.end' :
+        if message['event_type'].startswith('orchestration.stack'):
             self.rmq_update_rack(message)
         
         
@@ -232,7 +224,7 @@ class DataHandler(object):
 
         if stack_state == 'CREATE_COMPLETE' or stack_state == 'RESUME_COMPLETE':
             concertim_rack_status = 'ACTIVE'
-        elif stack_state == 'CREATE_IN_PROGRESS':
+        elif stack_state == 'CREATE_IN_PROGRESS' or stack_state == 'SUSPEND_IN_PROGRESS':
             concertim_rack_status = 'IN_PROGRESS'
         elif stack_state == 'SUSPEND_COMPLETE':
             concertim_rack_status = 'STOPPED'
@@ -452,7 +444,8 @@ class DataHandler(object):
             stack_resources = self.openstack_service.list_stack_resources(stack_id = stack_id, type = 'OS::Nova::Server' )
             self.__LOGGER.debug(f"Stack resources : {stack_resources}")
             
-            
+            if stack_id not in self.__openstack_concertim_map.stack_to_rack:
+                continue
 
 
             for instance in stack_resources:
