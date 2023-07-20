@@ -36,7 +36,8 @@ class GnocchiHandler:
             aggregates = self.client.aggregates.fetch(**not_none_args)['measures']['aggregated']
             return aggregates
         except Exception as e:
-            self.__LOGGER.error(f"An unexpected error occured: {e}")
+            self.__LOGGER.error(f"FAILED - attempt : [{not_none_args}]")
+            self.__LOGGER.error(f"An unexpected error occured during the above metric call : {e}")
             self.__LOGGER.warning(f"Returning empty list due to error")
             return []
 
@@ -48,7 +49,8 @@ class GnocchiHandler:
             measures = self.client.metric.get_measures(**not_none_args)
             return measures
         except Exception as e:
-            self.__LOGGER.error(f"An unexpected error occured: {e}")
+            self.__LOGGER.error(f"FAILED - attempt : [{not_none_args}]")
+            self.__LOGGER.error(f"An unexpected error occured during the above metric call : {e}")
             self.__LOGGER.warning(f"Returning empty list due to error")
             return []
 
@@ -60,7 +62,8 @@ class GnocchiHandler:
             measures = self.client.metric.aggregation(**not_none_args)
             return measures
         except Exception as e:
-            self.__LOGGER.error(f"An unexpected error occured: {e}")
+            self.__LOGGER.error(f"FAILED - attempt : [{not_none_args}]")
+            self.__LOGGER.error(f"An unexpected error occured during the above metric call : {e}")
             self.__LOGGER.warning(f"Returning empty list due to error")
             return []
 
