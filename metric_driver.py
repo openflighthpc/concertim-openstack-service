@@ -19,7 +19,7 @@ def main(args):
             try:
                 handler.send_metrics()
             except Exception as e:
-                logger.error(f"Unexpected exception hass cause metric loop to terminate : {e}")
+                logger.error(f"Unexpected exception hass cause metric loop to terminate : {type(e)} : {e}")
                 logger.warning(f"Continuing loop at next interval.")
                 continue
             finally:
