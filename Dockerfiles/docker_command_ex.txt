@@ -2,7 +2,7 @@
     # BUILD - from concertim-openstack-service root directory
     sudo docker build --network=host --tag concertim-user-handler:latest -f Dockerfiles/Dockerfile.user_handler .
     # RUN - mounts the config file as a vol, publish port 42356 on host net
-    sudo docker run -d --name concertim-user-handler --network=host -v /etc/concertim-openstack-service/config.yaml:/etc/concertim-openstack-service/config.yaml --publish 10.151.0.167:42356:42356 concertim-user-handler
+    sudo docker run -d --name concertim-user-handler --network=host -v /etc/concertim-openstack-service/config.yaml:/etc/concertim-openstack-service/config.yaml --publish <IP>:42356:42356 concertim-user-handler
     # LOGS - tail 50 with follow
     sudo docker exec concertim-metrics tail -50f /var/log/concertim-openstack-service/user-handler.log
 

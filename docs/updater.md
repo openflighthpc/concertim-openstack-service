@@ -31,6 +31,13 @@ The UpdateHandler makes use of the base Openstack Components APIs as well as the
 
 Please see [the example config.yaml](/etc/config-sample.yaml) for how the authentication is configured.
 
+### Openstack
+
+Each component in the Concertim-Openstack sesrvice makes use of various openstack objects for tracking Concertim-managed systems. To achieve this, the folling needs to be created in Openstack:
+
+- Openstack Role : `watcher`
+- Openstack User : `concertim`
+
 ## Usage
 
 The UserHnalder is intended to function as a daemon process that continuously updates Concertim with changes that occure in Openstack. As such, once the docker container is completely configured and running the service should act on its own.

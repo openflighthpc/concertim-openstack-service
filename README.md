@@ -31,6 +31,17 @@ For Non-Docker ENVs:
 
 ## Configuration
 
+NOTE: This configuration is for the service as a whole - please see the [individual component docs](/docs/) for more detailed configuration instructions for each component.
+
+### Openstack
+
+Each component in the Concertim-Openstack sesrvice makes use of various openstack objects for tracking Concertim-managed systems. To achieve this, the folling needs to be created in Openstack:
+
+- Openstack Role : `watcher`
+- Openstack User : `concertim`
+
+### Host Server Env
+
 As of the current release, configuration of the Concertim-Openstack service is managaed through use of a `config.yaml` file that is read upon execution of the individual components. The configuration file for the Concertim-Openstack Service should be stored in the path `/etc/concertim-openstack-service/config.yaml`. ([Example config.yaml](/etc/config-sample.yaml))
 
 #### Required Values

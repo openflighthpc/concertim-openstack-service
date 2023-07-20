@@ -12,6 +12,8 @@ COPY . /app
 
 # Install any needed packages specified in requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
+# Install component specific packages
+RUN pip install --no-cache-dir -r data_handler/requirements-metrics.txt
 
 # Create logging diretory
 RUN mkdir -p /var/log/concertim-openstack-service
