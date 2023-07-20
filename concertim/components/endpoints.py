@@ -24,7 +24,8 @@ ENDPOINTS = {
                                         "start_u": '{start_u}'
                                     },
                                     "metadata" : {
-                                        "openstack_instance_id" : "{openstack_instance_id}"
+                                        "openstack_instance_id" : "{openstack_instance_id}",
+                                        "openstack_instance_info" : "{openstack_instance_info}"
                                     }
 
                                 }}
@@ -38,7 +39,8 @@ ENDPOINTS = {
                                     "u_height": '{u_height}',
                                     "status" : "{status}",
                                     "metadata" : {
-                                        "openstack_stack_id" : "{openstack_stack_id}"
+                                        "openstack_stack_id" : "{openstack_stack_id}",
+                                        "openstack_stack_info" : "{openstack_stack_info}"
                                     }
                                 }}
                     },
@@ -118,10 +120,7 @@ ENDPOINTS = {
                         'data': {"device": {
                                     "name": '{name}',
                                     "description": '{description}',
-                                    "status" : '{status}',
-                                    "metadata": {
-                                        "openstack_instance_id" : '{openstack_instance_id}'
-                                    }
+                                    "status" : '{status}'
                                 }}
                     },
                     'UPDATE_RACK':{
