@@ -99,6 +99,16 @@ class DataHandler(object):
                 else:
                     continue
 
+                # HOTFIX (1/2) Start - address not filled for device
+                if len(device['metadata']['openstack_instance_info']) < 1 and device['status'] == 'ACTIVE':
+                    self.__LOGGER.warning(f"Device [{device['name']}] does not contain IP info. Populating")
+                    temp_device = self.__temp_recreate_device(device)
+                    if temp_device:
+                        device = temp_device
+                    else:
+                        self.__LOGGER.warning(f"Could not populate for [{device['name']}]")
+                # HOTFIX (1/2) End
+
                 if device_os_instance_id not in self.__concertim_data.devices:
                     # Populate instance IDs in __concertim_devices
                     self.__concertim_data.devices[ device['id'] ] = \
@@ -118,8 +128,28 @@ class DataHandler(object):
                 if device_os_instance_id not in self.__openstack_concertim_map.instance_to_device:
                     self.__openstack_concertim_map.instance_to_device[device_os_instance_id] = device['id']
 
-
-
+    # HOTFIX (2/2) Start - address not filled for device
+    def __temp_recreate_device(self, device):
+        instance_info = self.openstack_service.nova.get_server(device['metadata']['openstack_instance_id'])
+        if instance_info.__dict__['_info']['addresses']:
+            device_info = self.concertim_service.show_device(ID = device['id'])
+            self.concertim_service.delete_device(device['id'])
+            try:
+                device_in_con = self.concertim_service.create_device({'template_id': device_info['template']['id'], \
+                                                                'description': device_info['description'], \
+                                                                'name': device_info['name'], \
+                                                                'facing': 'f', \
+                                                                'rack_id': device_info['location']['rack_id'], \
+                                                                'start_u': device_info['location']['start_u'], \
+                                                                'openstack_instance_id' : device_info['metadata']['openstack_instance_id'],
+                                                                'status' : device_info['status'], \
+                                                                'openstack_instance_info' : instance_info.__dict__['_info']['addresses']})
+                return device_in_con
+            except Exception as e:
+                self.__LOGGER.error(f"Failed trying to recreate device {device_info['name']}")
+                raise e
+        return None
+    # HOTFIX (2/2) End
 
         #self.__LOGGER.debug(f"Concertim Rack Object : {self.__concertim_data.racks}")
             
@@ -550,7 +580,6 @@ class DataHandler(object):
             concertim_device_status = 'FAILED'
         self.__LOGGER.debug(f"Creating device for instance  : {instance_info.__dict__}")
         try:
-
             device_in_con = self.concertim_service.create_device({'template_id': template_id, \
                                                                 'description': instance.physical_resource_id, \
                                                                 'name': instance.physical_resource_id, \
