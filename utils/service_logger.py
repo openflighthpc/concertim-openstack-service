@@ -5,7 +5,8 @@ import os
 def create_logger(name, log_file, level):
     logger = logging.getLogger(name)
     levels = {'DEBUG': logging.DEBUG, 'INFO': logging.INFO, 'WARNING': logging.WARNING, 'ERROR': logging.ERROR, 'CRITICAL': logging.CRITICAL}
-    logger.setLevel(levels[level.upper()])
+    lvl = (levels[level.upper()])
+    logger.setLevel(lvl)
     formatter = logging.Formatter('%(asctime)s - [%(levelname)s] (%(module)s) - %(message)s')
     dir_name = os.path.dirname(log_file)
     try:
@@ -20,8 +21,15 @@ def create_logger(name, log_file, level):
 
     try:
         fh = logging.FileHandler(log_file)
+        fh.setLevel(lvl)
         fh.setFormatter(formatter)
+
+        ch = logging.StreamHandler()
+        ch.setLevel(logging.WARNING)
+        ch.setFormatter(formatter)
+
         logger.addHandler(fh)
+        logger.addHandler(ch)
     except Exception as e:
         raise Exception(f"Could not create FileHandler for log file: {log_file}. Reason: {str(e)}")
     
