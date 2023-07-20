@@ -15,12 +15,12 @@ def main(args):
     # Setup a local start process to loop the metric sending
     def start(i):
         try:
-            '''
+            #'''
             while True:
                 handler.send_metrics()
                 time.sleep(i)
-            '''
-            handler.send_metrics()
+            #'''
+            #handler.send_metrics()
         except Exception as e:
             raise e
     # Setup a local stop process for when the service is over

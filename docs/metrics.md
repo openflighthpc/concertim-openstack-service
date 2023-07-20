@@ -31,6 +31,13 @@ The MetricHandler leverages the Openstack Telemetry service - Ceilometer - and a
 
 Please see [the example config.yaml](/etc/config-sample.yaml) for how the authentication is configured.
 
+### Openstack
+
+Each component in the Concertim-Openstack sesrvice makes use of various openstack objects for tracking Concertim-managed systems. To achieve this, the folling needs to be created in Openstack:
+
+- Openstack Role : `watcher`
+- Openstack User : `concertim`
+
 #### Gnocchi
 
 The MetricHandler assumes the existance of the `concertim_rate_policy` and `concertim_policy` archive-policies to be created in gnocchi in the Openstack env. An example [creation script](/etc/concertim-archive-policy-create.sql) for this is provided. 
@@ -39,6 +46,26 @@ The MetricHandler assumes the existance of the `concertim_rate_policy` and `conc
 
 Sample files for configuring Openstack Ceilometer's policies are also provided: [polling.yaml](/etc/polling-sample.yaml), [pipeline.yaml](/etc/pipeline-sample.yaml). These files should be used to configure the telemtry service unless the user is experienced with altering Openstack configurations.
 
+*Sample commands if Openstack is deployed with kolla-ansible*
+``````
+cp ./etc/pipeline-sample.yaml /etc/kolla/ceilometer-central/pipeline.yaml
+cp ./etc/pipeline-sample.yaml /etc/kolla/ceilometer-compute/pipeline.yaml
+cp ./etc/pipeline-sample.yaml /etc/kolla/ceilometer-notification/pipeline.yaml
+
+cp ./etc/polling-sample.yaml /etc/kolla/ceilometer-central/polling.yaml
+cp ./etc/polling-sample.yaml /etc/kolla/ceilometer-compute/polling.yaml
+cp ./etc/polling-sample.yaml /etc/kolla/ceilometer-notification/polling.yaml
+
+### add to /etc/kolla/ceilometer*/config.json
+       {
+           "source": "/var/lib/kolla/config_files/polling.yaml",
+           "dest": "/etc/ceilometer/polling.yaml",
+           "owner": "ceilometer",
+           "perm": "0600"
+       },
+
+docker restart ceilometer_compute ceilometer_central ceilometer_notification gnocchi_metricd gnocchi_api
+``````
 
 ## Usage
 
