@@ -85,7 +85,7 @@ class OpenstackService(object):
             cpu_load_percent = cpu_load_ns_to_s * 100
             return round(cpu_load_percent,2)
         except IndexError as e:
-            self.__LOGGER.warning(f"Metric retrieval returned no values, returning '0.0'  : {e}")
+            self.__LOGGER.warning(f"Metric retrieval [CPU Load : resource : {resource['id']}] returned no values, returning '0.0'  : {e}")
             return 0.0
 
     def get_ram_usage(self, resource, start, stop, granularity=5):
@@ -99,7 +99,7 @@ class OpenstackService(object):
             ram_usage_percent = memory_usage[2] / memory * 100
             return round(ram_usage_percent,2)
         except IndexError as e:
-            self.__LOGGER.warning(f"Metric retrieval returned no values, returning '0.0'  : {e}")
+            self.__LOGGER.warning(f"Metric retrieval [RAM Usage : resource : {resource['id']}] returned no values, returning '0.0'  : {e}")
             return 0.0
     
     def get_network_usage(self, resource, start, stop, granularity=5):
@@ -113,7 +113,7 @@ class OpenstackService(object):
             usage_rate = (net_in_tup[2] + net_out_tup[2]) / granularity
             return round(usage_rate,2)
         except IndexError as e:
-            self.__LOGGER.warning(f"Metric retrieval returned no values, returning '0.0'  : {e}")
+            self.__LOGGER.warning(f"Metric retrieval [Network Usage : resource : {resource['id']}] returned no values, returning '0.0'  : {e}")
             return 0.0
 
     def get_throughput(self, resource, start, stop, granularity=5):
@@ -127,7 +127,7 @@ class OpenstackService(object):
             throughput = (disk_write_tup[2] + disk_read_tup[2]) / granularity
             return round(throughput,2)
         except IndexError as e:
-            self.__LOGGER.error(f"Metric retrieval returned no values, returning '0.0'  : {e}")
+            self.__LOGGER.warning(f"Metric retrieval [Throughput : resource : {resource['id']}] returned no values, returning '0.0'  : {e}")
             return 0.0
 
     def get_iops(self, resource, start, stop, granularity=5):
@@ -141,7 +141,7 @@ class OpenstackService(object):
             iops = (disk_write_tup[2] + disk_read_tup[2]) / granularity
             return round(iops,2)
         except IndexError as e:
-            self.__LOGGER.warning(f"Metric retrieval returned no values, returning '0.0'  : {e}")
+            self.__LOGGER.warning(f"Metric retrieval [IOPs : resource : {resource['id']}] returned no values, returning '0.0'  : {e}")
             return 0.0
 
     # Sort Openstack project resources and group by instance_id
