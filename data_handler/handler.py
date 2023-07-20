@@ -46,7 +46,7 @@ class DataHandler(object):
 
     def __populate_concertim_users(self):
         user_list = self.concertim_service.list_users()
-        self.__LOGGER.debug(f'{user_list}')
+        #self.__LOGGER.debug(f'{user_list}')
         
         for user in user_list:
             if user['login'] == "admin" or str(user['id']) in self.__concertim_data.users:
@@ -132,7 +132,7 @@ class DataHandler(object):
     def __populate_concertim_templates(self):
 
         templates = self.concertim_service.list_templates()
-        self.__LOGGER.debug(f'{templates}')
+        #self.__LOGGER.debug(f'{templates}')
 
         for template in templates:
             temp_obj = ConcertimTemplate(template_id = template['id'], \
@@ -198,23 +198,29 @@ class DataHandler(object):
         self.__LOGGER.info(f'Current timestamp {current_timestamp}')
         
         if (current_timestamp - self.update_timestamp).total_seconds() >= 10:
-            time.sleep(4)
+            time.sleep(5)
             self.update_concertim() 
 
 
-        response = json.loads(body)
-        message = json.loads(response['oslo.message'])
 
         self.__LOGGER.debug(f"Call back function trigerred")
+        #self.__LOGGER.debug(f"{body}")
+
+        response = json.loads(body)
+
+        message = json.loads(response['oslo.message'])
+            
         self.__LOGGER.debug(f" Event type : {message['event_type']}")
         self.__LOGGER.debug(f"Event payload : {message['payload']}")
 
         if message['event_type'].startswith('compute.instance'):
             self.rmq_update_instance(message)
-        
+            
         if message['event_type'].startswith('orchestration.stack'):
             self.rmq_update_rack(message)
+
         
+    
         
     def rmq_update_rack(self, message):
         # orchestration.stack.delete.end , 
@@ -275,13 +281,12 @@ class DataHandler(object):
                 self.__LOGGER.debug(f" Exception : {e}")
                 return 
             
-            self.__LOGGER.debug(f" device {device}")
+            #self.__LOGGER.debug(f" device {device}")
 
             try:
                 self.concertim_service.update_device(ID = device_id ,variables_dict = {'name' : device['name'],\
                                                 'description': device['description'], \
-                                                'status' : concertim_device_status, \
-                                                'openstack_instance_id' : device['metadata']['openstack_instance_id'] })
+                                                'status' : concertim_device_status })
             except Exception as e:
                 self.__LOGGER.debug(f" Exception : {e}")
 
@@ -476,7 +481,7 @@ class DataHandler(object):
 
                 start_u = self.__find_empty_slot(rack_id, template.device_size)
 
-                self.__create_new_device(rack_id, instance, start_u, template.template_id)
+                self.__create_new_device(rack_id, instance, instance_info, start_u, template.template_id)
                 #self.__populate_concertim_racks_devices()
                 # Repopulate Concertim Cache
                 self.__populate_cache()
@@ -518,7 +523,8 @@ class DataHandler(object):
                                                             'user_id' : user_id, \
                                                             'u_height': height, \
                                                             'openstack_stack_id' : stack.id, \
-                                                            'status' : concertim_rack_status })
+                                                            'status' : concertim_rack_status, \
+                                                            'openstack_stack_info' : str(stack)[7:-1] })
 
             self.__LOGGER.debug(f"{rack_in_con}")
 
@@ -529,7 +535,7 @@ class DataHandler(object):
         except Exception as e:
             self.__LOGGER.debug(f"Unhandled Exception : {e}")
             
-    def __create_new_device(self, rack_id, instance, start_u, template_id):
+    def __create_new_device(self, rack_id, instance, instance_info, start_u, template_id):
 
         
         self.__LOGGER.debug(f"Creating device for instance id : {instance.physical_resource_id}")
@@ -542,7 +548,7 @@ class DataHandler(object):
             concertim_device_status = 'IN_PROGRESS'
         else:
             concertim_device_status = 'FAILED'
-        
+        self.__LOGGER.debug(f"Creating device for instance  : {instance_info.__dict__}")
         try:
 
             device_in_con = self.concertim_service.create_device({'template_id': template_id, \
@@ -552,7 +558,8 @@ class DataHandler(object):
                                                                 'rack_id': rack_id, \
                                                                 'start_u': start_u, \
                                                                 'openstack_instance_id' : instance.physical_resource_id,
-                                                                'status' : concertim_device_status})
+                                                                'status' : concertim_device_status, \
+                                                                'openstack_instance_info' : instance_info.__dict__['_info']['addresses']})
         except FileExistsError as e:
             self.__LOGGER.debug(f" Device already exists : {e}")
         except Exception as e:
