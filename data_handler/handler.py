@@ -100,7 +100,11 @@ class DataHandler(object):
                     continue
 
                 # HOTFIX (1/2) Start - address not filled for device
-                if len(device['metadata']['openstack_instance_info']) < 1 and device['status'] == 'ACTIVE':
+                self.__LOGGER.debug(f"CHECKING - {device['name']} - {device['metadata']['openstack_instance_info']} - {device['status']}")
+                #con1 = len(eval(device['metadata']['openstack_instance_info']))
+                #con2 = device['status'] == 'ACTIVE'
+                #self.__LOGGER.debug(f"CHECKING - {device['name']} - {con1} - {con2}")
+                if len(eval(device['metadata']['openstack_instance_info'])) < 1 and device['status'] in ["ACTIVE"]:
                     self.__LOGGER.warning(f"Device [{device['name']}] does not contain IP info. Populating")
                     temp_device = self.__temp_recreate_device(device)
                     if temp_device:
