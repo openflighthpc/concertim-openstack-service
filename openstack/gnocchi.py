@@ -29,25 +29,43 @@ class GnocchiHandler:
         return self.client.resource.search(query=query, details=details)
 
     def get_aggregate(self, operations, granularity=None, start=None, stop=None):
-        args = {'operations':operations, 'granularity':granularity, 'start':start, 'stop':stop}
-        not_none_args = {k:v for k,v in args.items() if v is not None}
-        self.__LOGGER.debug(f"Getting aggregates: [{not_none_args}]")
-        aggregates = self.client.aggregates.fetch(**not_none_args)['measures']['aggregated']
-        return aggregates
+        try:
+            args = {'operations':operations, 'granularity':granularity, 'start':start, 'stop':stop}
+            not_none_args = {k:v for k,v in args.items() if v is not None}
+            self.__LOGGER.debug(f"Getting aggregates: [{not_none_args}]")
+            aggregates = self.client.aggregates.fetch(**not_none_args)['measures']['aggregated']
+            return aggregates
+        except Exception as e:
+            self.__LOGGER.error(f"FAILED - attempt : [{not_none_args}]")
+            self.__LOGGER.error(f"An unexpected error occured during the above metric call : {e}")
+            self.__LOGGER.warning(f"Returning empty list due to error")
+            return []
 
     def get_metric_measure(self, metric, granularity=None, aggregation=None, refresh=True, start=None, stop=None, limit=None):
-        args = {'metric':metric, 'granularity':granularity, 'aggregation':aggregation, 'refresh':refresh, 'start':start, 'stop':stop, 'limit':limit}
-        not_none_args = {k:v for k,v in args.items() if v is not None}
-        self.__LOGGER.debug(f"Getting measures: [{not_none_args}]")
-        measures = self.client.metric.get_measures(**not_none_args)
-        return measures
+        try:
+            args = {'metric':metric, 'granularity':granularity, 'aggregation':aggregation, 'refresh':refresh, 'start':start, 'stop':stop, 'limit':limit}
+            not_none_args = {k:v for k,v in args.items() if v is not None}
+            self.__LOGGER.debug(f"Getting measures: [{not_none_args}]")
+            measures = self.client.metric.get_measures(**not_none_args)
+            return measures
+        except Exception as e:
+            self.__LOGGER.error(f"FAILED - attempt : [{not_none_args}]")
+            self.__LOGGER.error(f"An unexpected error occured during the above metric call : {e}")
+            self.__LOGGER.warning(f"Returning empty list due to error")
+            return []
 
     def get_metric_aggregate(self, metric, granularity=None, aggregation=None, refresh=True, start=None, stop=None, limit=None):
-        args = {'metric':metric, 'granularity':granularity, 'aggregation':aggregation, 'refresh':refresh, 'start':start, 'stop':stop, 'limit':limit}
-        not_none_args = {k:v for k,v in args.items() if v is not None}
-        self.__LOGGER.debug(f"Getting aggregation: [{not_none_args}]")
-        measures = self.client.metric.aggregation(**not_none_args)
-        return measures
+        try:
+            args = {'metric':metric, 'granularity':granularity, 'aggregation':aggregation, 'refresh':refresh, 'start':start, 'stop':stop, 'limit':limit}
+            not_none_args = {k:v for k,v in args.items() if v is not None}
+            self.__LOGGER.debug(f"Getting aggregation: [{not_none_args}]")
+            measures = self.client.metric.aggregation(**not_none_args)
+            return measures
+        except Exception as e:
+            self.__LOGGER.error(f"FAILED - attempt : [{not_none_args}]")
+            self.__LOGGER.error(f"An unexpected error occured during the above metric call : {e}")
+            self.__LOGGER.warning(f"Returning empty list due to error")
+            return []
 
     def close(self):
         self.__LOGGER.debug("Closing Gnocchi Client Connection")

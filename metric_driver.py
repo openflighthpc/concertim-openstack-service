@@ -14,15 +14,19 @@ import time
 def main(args):
     # Setup a local start process to loop the metric sending
     def start(i):
-        try:
-            #'''
-            while True:
+        #'''
+        while True:
+            try:
                 handler.send_metrics()
+            except Exception as e:
+                logger.error(f"Unexpected exception hass cause metric loop to terminate : {type(e)} : {e}")
+                logger.warning(f"Continuing loop at next interval.")
+                continue
+            finally:
                 time.sleep(i)
-            #'''
-            #handler.send_metrics()
-        except Exception as e:
-            raise e
+        #'''
+        #handler.send_metrics()
+
     # Setup a local stop process for when the service is over
     def stop():
         logger.info("STOPPING PROCESS")
@@ -53,7 +57,8 @@ def main(args):
         logger.info("BEGINNING COMMUNICATION")
         start(interval)
     except Exception as e:
-        logger.error(f"Unhandled exception occurred: {e}")
+        logger.error(f"Main metric loop has encountered an unrecoverable error : {e}")
+        logger.error(f"Killing process - please check logs")
     finally:
         stop()
 
