@@ -28,7 +28,7 @@ def run_metrics(test=False):
     # Add signals
     # Setup a signal handler to stop the service gracefully
     def signal_handler(sig, frame):
-        stop(metric_handler)
+        stop(logger,metric_handler)
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
 
@@ -59,7 +59,7 @@ def run_metrics(test=False):
     except Exception as e:
         msg = f"Could not run Metrics process - {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}"
         logger.error(msg)
-        stop(metric_handler)
+        stop(logger,metric_handler)
 
 def run_bulk_updates(test=False):
     # Common
@@ -74,7 +74,7 @@ def run_bulk_updates(test=False):
     # Add signals
     # Setup a signal handler to stop the service gracefully
     def signal_handler(sig, frame):
-        stop(bulk_update_handler)
+        stop(logger,bulk_update_handler)
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
 
@@ -105,7 +105,7 @@ def run_bulk_updates(test=False):
     except Exception as e:
         msg = f"Could not run All-In-One Updates process - {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}"
         logger.error(msg)
-        stop(bulk_update_handler)
+        stop(logger,bulk_update_handler)
 
 def run_mq_updates(test=False):
     # Common
@@ -120,7 +120,7 @@ def run_mq_updates(test=False):
     # Add signals
     # Setup a signal handler to stop the service gracefully
     def signal_handler(sig, frame):
-        stop(mq_update_handler)
+        stop(logger,mq_update_handler)
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
 
@@ -136,7 +136,7 @@ def run_mq_updates(test=False):
     except Exception as e:
         msg = f"Could not run MQ Listener Updates process - {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}"
         logger.error(msg)
-        stop(mq_update_handler)
+        stop(logger,mq_update_handler)
 
 def run_updates_aio(test=False):
     # Common
@@ -153,7 +153,7 @@ def run_updates_aio(test=False):
     # Add signals
     # Setup a signal handler to stop the service gracefully
     def signal_handler(sig, frame):
-        stop(bulk_update_handler,mq_update_handler)
+        stop(logger,bulk_update_handler,mq_update_handler)
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
 
@@ -187,7 +187,7 @@ def run_updates_aio(test=False):
     except Exception as e:
         msg = f"Could not run All-In-One Updates process - {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}"
         logger.error(msg)
-        stop(bulk_update_handler,mq_update_handler)
+        stop(logger,bulk_update_handler,mq_update_handler)
 
 def run_api_server():
     # Common
@@ -211,10 +211,11 @@ def load_config(config_file):
     return config
 
 # Setup a stop process for when the service is over
-def stop(*handlers):
+def stop(logger, *handlers):
     logger.info("STOPPING PROCESS")
     for handler in handlers:
-        handler.disconnect()
+        if handler:
+            handler.disconnect()
     logger.info("EXITING PROCESS")
     logger.info("------- END -------\n")
     raise SystemExit

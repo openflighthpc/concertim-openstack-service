@@ -46,9 +46,9 @@ class BulkUpdateHandler(UpdateHandler):
         in_openstack = []
         # Start new template creation
         for flavor_key in openstack_flavors:
-            os_flavor_id = openstack_flavors[flavor_key]['id']
+            os_flavor_id = openstack_flavors[flavor_key].id
             in_openstack.append(os_flavor_id)
-            os_flavor_name = openstack_flavors[flavor_key]['name']
+            os_flavor_name = openstack_flavors[flavor_key].name
             matching_templates = [con_temp for id_tup, con_temp in self.view.templates if id_tup[1] == os_flavor_id]
             if matching_templates:
                 continue
