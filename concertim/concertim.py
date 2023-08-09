@@ -176,20 +176,24 @@ class ConcertimService(object):
     # Uses recursion to traverse through the dict
     # If the endpoint name is an UPDATE_* call, remove empty key,val pairs before returning
     def __get_data(self, variables_dict, data_template, endpoint_name):
-        data_dict = {}
-        casting = {'value': float, 'ttl': int}
-        for key, value in data_template:
-            if isinstance(value, dict):
-                data_dict[key] = self.__get_data(variables_dict, value)
-            else:
-                if key in casting:
-                    data_dict[key] = casting[key](value.format(**variables_dict))
-                elif not value and endpoint_name in ['UPDATE_DEVICE','UPDATE_RACK','UPDATE_TEMPLATE']:
-                    continue
+        try:
+            data_dict = {}
+            casting = {'value': float, 'ttl': int}
+            for key, value in data_template.items():
+                if isinstance(value, dict):
+                    data_dict[key] = self.__get_data(variables_dict, value, endpoint_name)
                 else:
-                    data_dict[key] = value.format(**variables_dict)
-        return data_dict
-
+                    if key in casting:
+                        data_dict[key] = casting[key](value.format(**variables_dict))
+                    elif not value and endpoint_name in ['UPDATE_DEVICE','UPDATE_RACK','UPDATE_TEMPLATE']:
+                        continue
+                    else:
+                        data_dict[key] = value.format(**variables_dict)
+            return data_dict
+        except Exception as e:
+            self.__LOGGER.error(f"Failed to fill data template from ENDPOINTS {endpoint_name} - template:{data_template} - variables:{variables_dict}")
+            self.__LOGGER.error(f"{type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
+            raise e
     # Return Ture if all necessary vars are present, otherwise raise an err
     def __check_required_vars(self, variables_dict, endpoint):
         missing_vars = [var for var in endpoint['required_vars'] if var not in variables_dict]

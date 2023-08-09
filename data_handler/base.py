@@ -7,6 +7,7 @@ from openstack.exceptions import FailureToScrub, UnsupportedObject
 import sys
 
 class BaseHandler(object):
+    LOG_DIR = '/var/log/concertim-openstack-service/'
     def __init__(self, config_obj, log_file, openstack_client_list, enable_concertim=True):
         self._CONFIG = config_obj
         self._LOG_FILE = log_file

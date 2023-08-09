@@ -16,7 +16,7 @@ class ConcertimRack(ConcertimComponent):
         con_info = super().get_concertim_definition()
         return (f"ConcertimRack{{openstack_info:{repr(opsk_info)}, concertim_info:{repr(con_info)}, description:{repr(self.description)}, status:{repr(self.status)}, "
                 f"user_id:{repr(self.user_id)}, height:{repr(self.height)}, devices:{repr(self.devices)}, output:{repr(self.output)}, "
-                f"metadata:{repr(self.metadata)}}}")
+                f"metadata:{repr(self.metadata)}, occupied:{repr(self._occupied)}}}")
 
     def __eq__(self, other):
         if isinstance(other, ConcertimRack):

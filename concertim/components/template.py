@@ -12,7 +12,7 @@ class ConcertimTemplate(ConcertimComponent):
         opsk_info = super().get_openstack_definition()
         con_info = super().get_concertim_definition()
         return (f"ConcertimTemplate{{openstack_info:{repr(opsk_info)}, concertim_info:{repr(con_info)}, description:{repr(self.description)}, size:{repr(self.size)}, "
-                f"vcpus:{repr(self.vcpus)}, disk:{repr(self.disk)}, ram:{repr(self.ram)}, output:{repr(self.output)}}}")
+                f"vcpus:{repr(self.vcpus)}, disk:{repr(self.disk)}, ram:{repr(self.ram)}}}")
     
     def __eq__(self, other):
         if isinstance(other, ConcertimTemplate):
