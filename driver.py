@@ -57,7 +57,7 @@ def run_metrics(test=False):
                 logger.error(f"Unexpected exception has caused the metric process to terminate : {type(e).__name__} - {e}")
                 raise e
     except Exception as e:
-        msg = f"Could not run Metrics process - {type(e).__name__} - {e}"
+        msg = f"Could not run Metrics process - {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}"
         logger.error(msg)
         raise SystemExit(msg)
 
@@ -95,7 +95,7 @@ def run_bulk_updates(test=False):
                 try:
                     bulk_update_handler.full_update_sync()
                 except Exception as e:
-                    logger.error(f"Unexpected exception has caused the bulk update loop to terminate : {type(e).__name__} - {e}")
+                    logger.error(f"Unexpected exception has caused the bulk update loop to terminate : {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
                     logger.warning(f"Continuing loop at next interval.")
                     continue
                 finally:
@@ -103,7 +103,7 @@ def run_bulk_updates(test=False):
         else:
             stop(bulk_update_handler)
     except Exception as e:
-        msg = f"Could not run All-In-One Updates process - {type(e).__name__} - {e}"
+        msg = f"Could not run All-In-One Updates process - {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}"
         logger.error(msg)
         raise SystemExit(msg)
 
@@ -134,7 +134,7 @@ def run_mq_updates(test=False):
         logger.info("BEGINNING COMMUNICATION")
         mq_update_handler.start_listener()
     except Exception as e:
-        msg = f"Could not run MQ Listener Updates process - {type(e).__name__} - {e}"
+        msg = f"Could not run MQ Listener Updates process - {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}"
         logger.error(msg)
         raise SystemExit(msg)
 
@@ -177,7 +177,7 @@ def run_updates_aio(test=False):
                 try:
                     bulk_update_handler.full_update_sync()
                 except Exception as e:
-                    logger.error(f"Unexpected exception has caused the full sync loop to terminate : {type(e).__name__} - {e}")
+                    logger.error(f"Unexpected exception has caused the full sync loop to terminate : {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
                     logger.warning(f"Continuing loop at next interval.")
                     continue
                 finally:
@@ -185,7 +185,7 @@ def run_updates_aio(test=False):
         else:
             stop(bulk_update_handler, mq_update_handler)
     except Exception as e:
-        msg = f"Could not run All-In-One Updates process - {type(e).__name__} - {e}"
+        msg = f"Could not run All-In-One Updates process - {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}"
         logger.error(msg)
         raise SystemExit(msg)
 
