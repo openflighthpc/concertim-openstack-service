@@ -20,17 +20,13 @@ class BulkUpdateHandler(UpdateHandler):
         self.default_rack_height=self._CONFIG['concertim']['default_rack_height']
 
     def full_update_sync(self):
-        try:
-            self.__LOGGER.info(f"Starting - Full Openstack Concertim Sync")
-            self.__LOGGER.debug(f"Pulling View data directly from Concertim")
-            self.view = ConcertimOpenstackView()
-            self.populate_view()
-            self.update_concertim()
-            self.save_view()
-            self.__LOGGER.info(f"Finished - Full Openstack Concertim Sync")
-        except Exception as e:
-            self.__LOGGER.error(f"Full Sync failed to execute - {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
-            raise e
+        self.__LOGGER.info(f"Starting - Full Openstack Concertim Sync")
+        self.__LOGGER.debug(f"Pulling View data directly from Concertim")
+        self.view = ConcertimOpenstackView()
+        self.populate_view()
+        self.update_concertim()
+        self.save_view()
+        self.__LOGGER.info(f"Finished - Full Openstack Concertim Sync")
 
     def update_concertim(self):
         self.__LOGGER.info(f"Starting - Updating Concertim with new Openstack data")
@@ -40,135 +36,147 @@ class BulkUpdateHandler(UpdateHandler):
         self.__LOGGER.info(f"Finished - Updating Concertim with new Openstack data")
 
     def update_templates(self):
-        self.__LOGGER.debug(f"Starting - Updating templates in Concertim based on Flavors in Openstack")
-        openstack_flavors = self.openstack_service.get_flavors()
-        self.__LOGGER.debug(f"Checking for new Flavors not in Concertim")
-        in_openstack = []
-        # Start new template creation
-        for flavor_key in openstack_flavors:
-            os_flavor_id = openstack_flavors[flavor_key].id
-            in_openstack.append(os_flavor_id)
-            os_flavor_name = openstack_flavors[flavor_key].name
-            matching_templates = [con_temp for id_tup, con_temp in self.view.templates if id_tup[1] == os_flavor_id]
-            if matching_templates:
-                continue
-            self.__LOGGER.debug(f"No Template found for Openstack Flavor[Name:{os_flavor_name},ID:{os_flavor_id}] - Creating in Concertim")
-            self.create_template_in_concertim(openstack_flavors[flavor_key])
-        # End new template creation
-
-        self.__LOGGER.debug(f"Checking for stale Templates that are mapped to a non-existing Flavor in Openstack")
-        stale_templates_ids = [id_tup for id_tup, con_temp in self.view.templates if id_tup[1] not in in_openstack]
-        # Start stale template deletion
-        if stale_templates_ids:
-            self.__LOGGER.warning(f"Stale templates found - IDs:{stale_templates_ids} - Deleting from Concertim")
-            for stale_temp_id in stale_templates_ids:
-                try:
-                    self.concertim_service.delete_template(stale_temp_id[0])
-                    del self.view.templates[stale_temp_id]
-                except Exception as e:
-                    self.__LOGGER.warning(f"Unhandled Exception when deleting template {stale_temp_id[0]} - Skipping - {type(e).__name__} - {e}")
+        try:
+            self.__LOGGER.debug(f"Starting - Updating templates in Concertim based on Flavors in Openstack")
+            openstack_flavors = self.openstack_service.get_flavors()
+            self.__LOGGER.debug(f"Checking for new Flavors not in Concertim")
+            in_openstack = []
+            # Start new template creation
+            for flavor_key in openstack_flavors:
+                os_flavor_id = openstack_flavors[flavor_key]['id']
+                in_openstack.append(os_flavor_id)
+                os_flavor_name = openstack_flavors[flavor_key]['name']
+                matching_templates = [con_temp for id_tup, con_temp in self.view.templates if id_tup[1] == os_flavor_id]
+                if matching_templates:
                     continue
-        else:
-            self.__LOGGER.debug("No stale Templates found")
-        # End stale template deletion
-        self.__LOGGER.debug(f"Finished - Updating templates in Concertim based on Flavors in Openstack")
+                self.__LOGGER.debug(f"No Template found for Openstack Flavor[Name:{os_flavor_name},ID:{os_flavor_id}] - Creating in Concertim")
+                self.create_template_in_concertim(openstack_flavors[flavor_key])
+            # End new template creation
+
+            self.__LOGGER.debug(f"Checking for stale Templates that are mapped to a non-existing Flavor in Openstack")
+            stale_templates_ids = [id_tup for id_tup, con_temp in self.view.templates if id_tup[1] not in in_openstack]
+            # Start stale template deletion
+            if stale_templates_ids:
+                self.__LOGGER.warning(f"Stale templates found - IDs:{stale_templates_ids} - Deleting from Concertim")
+                for stale_temp_id in stale_templates_ids:
+                    try:
+                        self.concertim_service.delete_template(stale_temp_id[0])
+                        del self.view.templates[stale_temp_id]
+                    except Exception as e:
+                        self.__LOGGER.warning(f"Unhandled Exception when deleting template {stale_temp_id[0]} - Skipping - {type(e).__name__} - {e}")
+                        continue
+            else:
+                self.__LOGGER.debug("No stale Templates found")
+            # End stale template deletion
+            self.__LOGGER.debug(f"Finished - Updating templates in Concertim based on Flavors in Openstack")
+        except Exception as e:
+            self.__LOGGER.error(f"Failed to update Templates - {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
+            raise e
 
     def update_racks(self):
-        self.__LOGGER.debug(f"Starting - Updating racks in Concertim based on stacks in Openstack")
-        self.__LOGGER.debug(f"Checking for new Stacks not in Concertim")
-        in_openstack = []
-        # Start new rack creation
-        for user_id_tup in self.view.users:
-            self.__LOGGER.debug(f"Updating Racks for User[IDs:{user_id_tup},project_id{self.view.users[user_id_tup].project_id}]")
-            openstack_stacks = self.openstack_service.list_stacks(project_id=self.view.users[user_id_tup].project_id)
-            for heat_stack_obj in openstack_stacks:
-                in_openstack.append(heat_stack_obj.id)
-                matching_racks = [id_tup for id_tup, con_rack in self.view.racks if id_tup[1] == heat_stack_obj.id]
-                if matching_racks:
-                    self.__LOGGER.debug(f"Matching Rack found")
-                    # Existing device found, check if it needs to update
-                    if heat_stack_obj.stack_status not in UpdateHandler.CONCERTIM_STATE_MAP['RACK'][self.view.racks[matching_racks[0]].status]:
-                        self.__LOGGER.debug(f"Matching Rack needs updated status - Updating")
-                        self.update_rack_status(heat_stack_obj, matching_racks[0])
-                    # Check rack output
-                    if self.__empty_output_data(self.view.racks[matching_racks[0]]):
-                        self.__LOGGER.debug(f"Matching Rack has empty output values in ConcertimRack - Attempting to update")
-                        self.update_rack_output(heat_stack_obj, matching_racks[0])
-                    # Check rack metadata
-                    for m_key, m_val in self.view.racks[matching_racks[0]].metadata:
-                        if not m_val and m_key:
-                            self.__LOGGER.debug(f"Matching Rack has empty metadata in ConcertimRack - Attempting to update")
-                            self.update_rack_metadata(heat_stack_obj, matching_racks[0])
-                            break
-                    continue
-                self.__LOGGER.debug(f"No Rack found for Openstack Stack[ID:{heat_stack_obj.id},Name:{heat_stack_obj.stack_name}] - Creating in Concertim")
-                self.create_rack_in_concertim(heat_stack_obj, user_id_tup)
-        # End new rack creation
+        try:
+            self.__LOGGER.debug(f"Starting - Updating racks in Concertim based on stacks in Openstack")
+            self.__LOGGER.debug(f"Checking for new Stacks not in Concertim")
+            in_openstack = []
+            # Start new rack creation
+            for user_id_tup in self.view.users:
+                self.__LOGGER.debug(f"Updating Racks for User[IDs:{user_id_tup},project_id{self.view.users[user_id_tup].project_id}]")
+                openstack_stacks = self.openstack_service.list_stacks(project_id=self.view.users[user_id_tup].project_id)
+                for heat_stack_obj in openstack_stacks:
+                    in_openstack.append(heat_stack_obj.id)
+                    matching_racks = [id_tup for id_tup, con_rack in self.view.racks if id_tup[1] == heat_stack_obj.id]
+                    if matching_racks:
+                        self.__LOGGER.debug(f"Matching Rack found")
+                        # Existing device found, check if it needs to update
+                        if heat_stack_obj.stack_status not in UpdateHandler.CONCERTIM_STATE_MAP['RACK'][self.view.racks[matching_racks[0]].status]:
+                            self.__LOGGER.debug(f"Matching Rack needs updated status - Updating")
+                            self.update_rack_status(heat_stack_obj, matching_racks[0])
+                        # Check rack output
+                        if self.__empty_output_data(self.view.racks[matching_racks[0]]):
+                            self.__LOGGER.debug(f"Matching Rack has empty output values in ConcertimRack - Attempting to update")
+                            self.update_rack_output(heat_stack_obj, matching_racks[0])
+                        # Check rack metadata
+                        for m_key, m_val in self.view.racks[matching_racks[0]].metadata:
+                            if not m_val and m_key:
+                                self.__LOGGER.debug(f"Matching Rack has empty metadata in ConcertimRack - Attempting to update")
+                                self.update_rack_metadata(heat_stack_obj, matching_racks[0])
+                                break
+                        continue
+                    self.__LOGGER.debug(f"No Rack found for Openstack Stack[ID:{heat_stack_obj.id},Name:{heat_stack_obj.stack_name}] - Creating in Concertim")
+                    self.create_rack_in_concertim(heat_stack_obj, user_id_tup)
+            # End new rack creation
 
-        self.__LOGGER.debug(f"Checking for stale Racks that are mapped to a non-existing Stacks in Openstack")
-        stale_racks_ids = [id_tup for id_tup, con_rack in self.view.racks if id_tup[1] not in in_openstack]
-        # Start stale rack deletion
-        if stale_racks_ids:
-            self.__LOGGER.warning(f"Stale racks found - IDs:{stale_racks_ids} - Deleting from Concertim")
-            for stale_rack_id in stale_racks_ids:
-                try:
-                    self.concertim_service.delete_rack(stale_rack_id[0], recurse=True)
-                    stale_rack_user = [id_tup for id_tup, con_user in self.view.users if id_tup[0] == self.view.racks[stale_rack_id].user_id]
-                    if stale_rack_user:
-                        self.view.users[stale_rack_user[0]].remove_rack(stale_rack_id[0])
-                    del self.view.racks[stale_rack_id]
-                except Exception as e:
-                    self.__LOGGER.warning(f"Unhandled Exception when deleting rack {stale_rack_id[0]} - Skipping - {type(e).__name__} - {e}")
-                    continue
-        else:
-            self.__LOGGER.debug("No stale Racks found")
-        # End stale rack deletion
-        self.__LOGGER.debug(f"Finished - Updating racks in Concertim based on stacks in Openstack")
+            self.__LOGGER.debug(f"Checking for stale Racks that are mapped to a non-existing Stacks in Openstack")
+            stale_racks_ids = [id_tup for id_tup, con_rack in self.view.racks if id_tup[1] not in in_openstack]
+            # Start stale rack deletion
+            if stale_racks_ids:
+                self.__LOGGER.warning(f"Stale racks found - IDs:{stale_racks_ids} - Deleting from Concertim")
+                for stale_rack_id in stale_racks_ids:
+                    try:
+                        self.concertim_service.delete_rack(stale_rack_id[0], recurse=True)
+                        stale_rack_user = [id_tup for id_tup, con_user in self.view.users if id_tup[0] == self.view.racks[stale_rack_id].user_id]
+                        if stale_rack_user:
+                            self.view.users[stale_rack_user[0]].remove_rack(stale_rack_id[0])
+                        del self.view.racks[stale_rack_id]
+                    except Exception as e:
+                        self.__LOGGER.warning(f"Unhandled Exception when deleting rack {stale_rack_id[0]} - Skipping - {type(e).__name__} - {e}")
+                        continue
+            else:
+                self.__LOGGER.debug("No stale Racks found")
+            # End stale rack deletion
+            self.__LOGGER.debug(f"Finished - Updating racks in Concertim based on stacks in Openstack")
+        except Exception as e:
+            self.__LOGGER.error(f"Failed to update Racks - {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
+            raise e
 
     def update_devices(self):
-        self.__LOGGER.debug(f"Starting - Updating Devices in Concertim based on Instances in Openstack")
-        self.__LOGGER.debug(f"Checking for new Instances not in Concertim that belong to a Rack in Concertim")
-        in_openstack = []
-        # Start new device creation for each rack in view
-        for rack_id_tup in self.view.racks:
-            self.__LOGGER.debug(f"Updating Devices for Rack[IDs:{rack_id_tup}]")
-            nova_servers_list = self.openstack_service.get_stack_instances(rack_id_tup[1])
-            # Instance device creation
-            for nova_server in nova_servers_list:
-                in_openstack.append(nova_server.id)
-                matching_devices = [id_tup for id_tup, con_dev in self.view.devices if id_tup[1] == nova_server.id]
-                if matching_devices:
-                    # Existing device found, check if it needs to update
-                    if nova_server._info['OS-EXT-STS:vm_state'] not in UpdateHandler.CONCERTIM_STATE_MAP['DEVICE'][self.view.devices[matching_devices[0]].status]:
-                        self.__LOGGER.debug(f"Matching Device found - Needs updated status - Updating")
-                        self.update_device_status(nova_server, matching_devices[0])
-                    if not (self.view.devices[matching_devices[0]].ips and self.view.devices[matching_devices[0]].ssh_key and self.view.devices[matching_devices[0]].volumes_attached):
-                        self.__LOGGER.debug(f"Matching Device found - Empty metadata in ConcertimDevice - Attempting to update")
-                        self.update_device_metadata(nova_server, matching_devices[0])
-                    continue
-                self.__LOGGER.debug(f"No Device found for Openstack Server[ID:{nova_server.id},Name:{nova_server.name}] - Creating in Concertim")
-                self.create_device_in_concertim(nova_server, rack_id_tup)
-        # End new device creation
+        try:
+            self.__LOGGER.debug(f"Starting - Updating Devices in Concertim based on Instances in Openstack")
+            self.__LOGGER.debug(f"Checking for new Instances not in Concertim that belong to a Rack in Concertim")
+            in_openstack = []
+            # Start new device creation for each rack in view
+            for rack_id_tup in self.view.racks:
+                self.__LOGGER.debug(f"Updating Devices for Rack[IDs:{rack_id_tup}]")
+                nova_servers_list = self.openstack_service.get_stack_instances(rack_id_tup[1])
+                # Instance device creation
+                for nova_server in nova_servers_list:
+                    in_openstack.append(nova_server.id)
+                    matching_devices = [id_tup for id_tup, con_dev in self.view.devices if id_tup[1] == nova_server.id]
+                    if matching_devices:
+                        # Existing device found, check if it needs to update
+                        if nova_server._info['OS-EXT-STS:vm_state'] not in UpdateHandler.CONCERTIM_STATE_MAP['DEVICE'][self.view.devices[matching_devices[0]].status]:
+                            self.__LOGGER.debug(f"Matching Device found - Needs updated status - Updating")
+                            self.update_device_status(nova_server, matching_devices[0])
+                        if not (self.view.devices[matching_devices[0]].ips and self.view.devices[matching_devices[0]].ssh_key and self.view.devices[matching_devices[0]].volumes_attached):
+                            self.__LOGGER.debug(f"Matching Device found - Empty metadata in ConcertimDevice - Attempting to update")
+                            self.update_device_metadata(nova_server, matching_devices[0])
+                        continue
+                    self.__LOGGER.debug(f"No Device found for Openstack Server[ID:{nova_server.id},Name:{nova_server.name}] - Creating in Concertim")
+                    self.create_device_in_concertim(nova_server, rack_id_tup)
+            # End new device creation
 
-        self.__LOGGER.debug(f"Checking for stale Devices that are mapped to a non-existing Instances in Openstack")
-        stale_device_ids = [id_tup for id_tup, con_device in self.view.devices if id_tup[1] not in in_openstack]
-        # Start stale device deletion
-        if stale_device_ids:
-            self.__LOGGER.warning(f"Stale devices found - IDs:{stale_device_ids} - Deleting from Concertim")
-            for stale_device_id in stale_device_ids:
-                try:
-                    self.concertim_service.delete_device(stale_device_id[0])
-                    stale_device_rack = [id_tup for id_tup, con_rack in self.view.racks if id_tup[0] == self.view.devices[stale_device_id].rack_id]
-                    if stale_device_rack:
-                        self.view.racks[stale_device_rack[0]].remove_device(stale_device_id[0], self.view.devices[stale_device_id].location)
-                    del self.view.devices[stale_device_id]
-                except Exception as e:
-                    self.__LOGGER.warning(f"Unhandled Exception when deleting device {stale_device_id[0]} - Skipping - {type(e).__name__} - {e}")
-                    continue
-        else:
-            self.__LOGGER.debug("No stale Devices found")
-        # End stale device deletion
-        self.__LOGGER.debug(f"Finished - Updating Devices in Concertim based on Instances in Openstack")
+            self.__LOGGER.debug(f"Checking for stale Devices that are mapped to a non-existing Instances in Openstack")
+            stale_device_ids = [id_tup for id_tup, con_device in self.view.devices if id_tup[1] not in in_openstack]
+            # Start stale device deletion
+            if stale_device_ids:
+                self.__LOGGER.warning(f"Stale devices found - IDs:{stale_device_ids} - Deleting from Concertim")
+                for stale_device_id in stale_device_ids:
+                    try:
+                        self.concertim_service.delete_device(stale_device_id[0])
+                        stale_device_rack = [id_tup for id_tup, con_rack in self.view.racks if id_tup[0] == self.view.devices[stale_device_id].rack_id]
+                        if stale_device_rack:
+                            self.view.racks[stale_device_rack[0]].remove_device(stale_device_id[0], self.view.devices[stale_device_id].location)
+                        del self.view.devices[stale_device_id]
+                    except Exception as e:
+                        self.__LOGGER.warning(f"Unhandled Exception when deleting device {stale_device_id[0]} - Skipping - {type(e).__name__} - {e}")
+                        continue
+            else:
+                self.__LOGGER.debug("No stale Devices found")
+            # End stale device deletion
+            self.__LOGGER.debug(f"Finished - Updating Devices in Concertim based on Instances in Openstack")
+        except Exception as e:
+            self.__LOGGER.error(f"Failed to update Devices - {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
+            raise e
 
     def create_template_in_concertim(self, os_flavor):
         new_template = ConcertimTemplate(concertim_id=None, openstack_id=os_flavor['id'], 
@@ -409,28 +417,32 @@ class BulkUpdateHandler(UpdateHandler):
         return False
 
     def __find_empty_slot(self, rack_id_tup, size):
-        occupied_spots = self.view.racks[rack_id_tup]._occupied.sort()
-        height = self.view.racks[rack_id_tup].height
-        self.__LOGGER.debug(f"Finding spot in Rack[ID:{rack_id_tup[0]}] - Occupied Slots: {occupied_spots}")
-        spot_found = False
-        start_location = -1
-        for rack_row in range(height, 0, -1):
-            if (rack_row + size - 1) <= height and rack_row >= 1:
-                fits = True
-                for device_section in range(0, size):
-                    row = (rack_row + device_section)
-                    if row in occupied_spots:
-                        fits = False
-                if fits:
-                    start_location = rack_row
-                    spot_found = True
-                    break
-        if spot_found:
-            end_location = start_location + size - 1
-            self.__LOGGER.debug(f"Empty space found")
-            return Location(start_u=start_location, end_u=end_location, facing='f')
-        self.__LOGGER.debug(f"No empty rack space found - Resizing rack and trying again.")
-        self.concertim_service.update_rack(rack_id_tup[0], {'u_height': int(height + size)})
-        return self.__find_spot_in_rack(rack_id_tup, size)
+        try:
+            occupied_spots = self.view.racks[rack_id_tup]._occupied.sort()
+            height = self.view.racks[rack_id_tup].height
+            self.__LOGGER.debug(f"Finding spot in Rack[ID:{rack_id_tup[0]}] - Occupied Slots: {occupied_spots}")
+            spot_found = False
+            start_location = -1
+            for rack_row in range(height, 0, -1):
+                if (rack_row + size - 1) <= height and rack_row >= 1:
+                    fits = True
+                    for device_section in range(0, size):
+                        row = (rack_row + device_section)
+                        if row in occupied_spots:
+                            fits = False
+                    if fits:
+                        start_location = rack_row
+                        spot_found = True
+                        break
+            if spot_found:
+                end_location = start_location + size - 1
+                self.__LOGGER.debug(f"Empty space found")
+                return Location(start_u=start_location, end_u=end_location, facing='f')
+            self.__LOGGER.debug(f"No empty rack space found - Resizing rack and trying again.")
+            self.concertim_service.update_rack(rack_id_tup[0], {'u_height': int(height + size)})
+            return self.__find_spot_in_rack(rack_id_tup, size)
+        except Exception as e:
+            self.__LOGGER.error(f"Failed to find empty spot in Rack - {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
+            raise e
 
 
