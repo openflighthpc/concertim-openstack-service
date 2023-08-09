@@ -476,28 +476,22 @@ class DataHandler(object):
 
         self.__LOGGER.debug(f" *** Adding New Devices in Concertim ***")
         for stack_id in openstack_stack_set:
-            stack_resources = self.openstack_service.list_stack_resources(stack_id = stack_id, type = 'OS::Nova::Server' )
-            self.__LOGGER.debug(f"Stack resources : {stack_resources}")
+            stack_nova_servers = self.openstack_service.get_stack_instances(stack_id)
+            self.__LOGGER.debug(f"Stack Instances : {stack_nova_servers}")
             
             if stack_id not in self.__openstack_concertim_map.stack_to_rack:
                 continue
 
-
-            for instance in stack_resources:
+            
+            for instance in stack_nova_servers:
                 
-                if instance.resource_type != 'OS::Nova::Server':
-                    continue
                 
-                instance_id = instance.physical_resource_id
+                instance_id = instance.id
 
-
-                if not self.openstack_service.nova.server_exists(instance_id):
-                    continue
                 
-                instance_info = self.openstack_service.nova.get_server(instance_id)
-                self.__LOGGER.debug(f"Instance flavor ID : {instance_info.flavor['id']}")
+                self.__LOGGER.debug(f"Instance flavor ID : {instance.flavor['id']}")
 
-                instance_flavor_id = instance_info.flavor['id']
+                instance_flavor_id = instance.flavor['id']
 
                 template_id = self.__openstack_concertim_map.flavor_to_template[instance_flavor_id]
                 template = self.__concertim_data.templates[ template_id ]
@@ -515,7 +509,7 @@ class DataHandler(object):
 
                 start_u = self.__find_empty_slot(rack_id, template.device_size)
 
-                self.__create_new_device(rack_id, instance, instance_info, start_u, template.template_id)
+                self.__create_new_device(rack_id, instance, instance, start_u, template.template_id)
                 #self.__populate_concertim_racks_devices()
                 # Repopulate Concertim Cache
                 self.__populate_cache()
@@ -572,25 +566,26 @@ class DataHandler(object):
     def __create_new_device(self, rack_id, instance, instance_info, start_u, template_id):
 
         
-        self.__LOGGER.debug(f"Creating device for instance id : {instance.physical_resource_id}")
+        self.__LOGGER.debug(f"Creating device for instance id : {instance.id}")
 
-        status = instance.resource_status
+        status = instance.status
 
-        if status == 'CREATE_COMPLETE':
+        if status == 'ACTIVE':
             concertim_device_status = 'ACTIVE'
-        elif status == 'CREATE_IN_PROGRESS':
+        elif status == 'BUILD':
             concertim_device_status = 'IN_PROGRESS'
         else:
             concertim_device_status = 'FAILED'
+
         self.__LOGGER.debug(f"Creating device for instance  : {instance_info.__dict__}")
         try:
             device_in_con = self.concertim_service.create_device({'template_id': template_id, \
-                                                                'description': instance.physical_resource_id, \
-                                                                'name': instance.physical_resource_id, \
+                                                                'description': instance.id, \
+                                                                'name': instance.id, \
                                                                 'facing': 'f', \
                                                                 'rack_id': rack_id, \
                                                                 'start_u': start_u, \
-                                                                'openstack_instance_id' : instance.physical_resource_id,
+                                                                'openstack_instance_id' : instance.id,
                                                                 'status' : concertim_device_status, \
                                                                 'openstack_instance_info' : instance_info.__dict__['_info']['addresses']})
         except FileExistsError as e:

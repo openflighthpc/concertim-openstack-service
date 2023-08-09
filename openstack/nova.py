@@ -39,6 +39,13 @@ class NovaHandler:
     def get_server(self, instance_id):
         return self.client.servers.get(instance_id)
 
+    def get_server_group(self, group_id):
+        try:
+            return self.client.server_groups.get(group_id)
+        except Exception as e:
+            self.__LOGGER.error(f"An unexpected error : {type(e).__name__} - {e}")
+            raise e
+
     def server_exists(self, instance_id):
 
         try:

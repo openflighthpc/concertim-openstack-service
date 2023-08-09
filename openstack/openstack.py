@@ -178,6 +178,26 @@ class OpenstackService(object):
     def list_stack_resources(self, stack_id, **kwargs):
         return self.heat.list_stack_resources(stack_id, **kwargs)
 
+    def get_stack_instances(self, stack_id):
+        instance_ids = []
+        instances = []
+        stack_instance_resources = self.heat.list_stack_resources(stack_id=stack_id, type='OS::Nova::Server')
+        stack_server_group_resources = self.heat.list_stack_resources(stack_id=stack_id, type='OS::Nova::ServerGroup')
+        # server group parsing
+        if stack_server_group_resources:
+            for sg_r in stack_server_group_resources:
+                nova_sg = self.nova.get_server_group(sg_r.physical_resource_id)
+                instance_ids = instance_ids + nova_sg._info['members']
+        # instance parsing
+        if stack_instance_resources:
+            for inst_r in stack_instance_resources:
+                if inst_r.resource_type == 'OS::Nova::Server':
+                    instance_ids.append(inst_r.physical_resource_id)
+        # get nova server objs for all instance ids
+        for inst_id in instance_ids:
+            instances.append(self.nova.get_server(inst_id))
+        return instances
+
     def disconnect(self):
         self.__LOGGER.info("Disconnecting Openstack Services")
         self.__OPSTK_AUTH = None
