@@ -1,0 +1,25 @@
+version: '3'
+services:
+  con_opstk_api_server:
+    build: ./Dockerfiles/Dockerfile.api_server
+    ports:
+      - "42356:42356"
+    stop_signal: SIGINT
+    volumes:
+      - /var/log/COService:/var/log/COService
+      - /var/lib/COService:/var/lib/COService
+      - /etc/COService/config.yaml:/etc/COService/config.yaml
+
+  con_opstk_metrics:
+    build: ./Dockerfiles/Dockerfile.metrics
+    volumes:
+      - /var/log/COService:/var/log/COService
+      - /var/lib/COService:/var/lib/COService
+      - /etc/COService/config.yaml:/etc/COService/config.yaml
+
+  con_opstk_updates_aio:
+    build: ./Dockerfiles/Dockerfile.updates_aio
+    volumes:
+      - /var/log/COService:/var/log/COService
+      - /var/lib/COService:/var/lib/COService
+      - /etc/COService/config.yaml:/etc/COService/config.yaml

@@ -1,27 +1,32 @@
 # Local Imports
 from utils.service_logger import create_logger
+from openstack.client_handlers.client_base import ClientHandler
 # Py Packages
 import time
 # Openstack Packages
 import gnocchiclient.v1.client as g_client
+import gnocchiclient.exceptions
 
-class GnocchiHandler:
+class GnocchiHandler(ClientHandler):
     def __init__(self, sess, log_file, log_level):
-        self.__LOGGER = create_logger(__name__, log_file, log_level)
-        self.client = self.__get_client(sess)
+        super().__init__(sess, log_file, log_level)
+        self.__LOGGER = create_logger(__name__, self.__LOG_FILE, self.__LOG_LEVEL)
+        self.client = self.__get_client(self.__SESSION)
 
     def __get_client(self, sess):
         start_time = time.time()
+        error = None
         while time.time() - start_time < 30:  # Try for up to 30 seconds
             try:
                 client = g_client.Client(session=sess)
                 self.__LOGGER.debug("SUCCESS - Gnocchi client connected")
                 return client # Exit if client creation is successful
             except Exception as e:
-                self.__LOGGER.error(f"Failed to create Gnocchi client: {e}. Retrying...")
+                self.__LOGGER.warning(f"Failed to create Gnocchi client : {type(e).__name__} - {e} - Retrying...")
+                error = e
                 time.sleep(1)  # Wait for a second before retrying
-
-        raise Exception("Failed to create Gnocchi client after multiple attempts.")
+        self.__LOGGER.error(f"Failed to create Gnocchi client after multiple attempts : {type(error).__name__} - {error}")
+        raise error
 
     def search_resource(self, query, resource_type=None,details=True):
         if resource_type:
@@ -37,8 +42,8 @@ class GnocchiHandler:
             return aggregates
         except Exception as e:
             self.__LOGGER.error(f"FAILED - attempt : [{not_none_args}]")
-            self.__LOGGER.error(f"An unexpected error occured during the above metric call : {e}")
-            self.__LOGGER.warning(f"Returning empty list due to error")
+            self.__LOGGER.error(f"An unexpected error occured during the above metric call : {type(e).__name__} - {e}")
+            self.__LOGGER.warning(f"Returning empty list due to [{type(e).__name__}]")
             return []
 
     def get_metric_measure(self, metric, granularity=None, aggregation=None, refresh=True, start=None, stop=None, limit=None):
@@ -50,8 +55,8 @@ class GnocchiHandler:
             return measures
         except Exception as e:
             self.__LOGGER.error(f"FAILED - attempt : [{not_none_args}]")
-            self.__LOGGER.error(f"An unexpected error occured during the above metric call : {e}")
-            self.__LOGGER.warning(f"Returning empty list due to error")
+            self.__LOGGER.error(f"An unexpected error occured during the above metric call : {type(e).__name__} - {e}")
+            self.__LOGGER.warning(f"Returning empty list due to [{type(e).__name__}]")
             return []
 
     def get_metric_aggregate(self, metric, granularity=None, aggregation=None, refresh=True, start=None, stop=None, limit=None):
@@ -63,10 +68,11 @@ class GnocchiHandler:
             return measures
         except Exception as e:
             self.__LOGGER.error(f"FAILED - attempt : [{not_none_args}]")
-            self.__LOGGER.error(f"An unexpected error occured during the above metric call : {e}")
-            self.__LOGGER.warning(f"Returning empty list due to error")
+            self.__LOGGER.error(f"An unexpected error occured during the above metric call : {type(e).__name__} - {e}")
+            self.__LOGGER.warning(f"Returning empty list due to [{type(e).__name__}]")
             return []
 
     def close(self):
         self.__LOGGER.debug("Closing Gnocchi Client Connection")
         self.client = None
+        super().close()

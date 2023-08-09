@@ -17,7 +17,7 @@ def create_logger(name, log_file, level):
         if not os.path.exists(log_file):
             open(log_file, 'w').close()
     except Exception as e:
-        raise Exception(f"Could not create log file: {log_file}. Reason: {str(e)}")
+        raise Exception(f"Could not create log file: {log_file} - {type(e).__name__} - {e}")
 
     try:
         fh = logging.FileHandler(log_file)
@@ -31,6 +31,6 @@ def create_logger(name, log_file, level):
         logger.addHandler(fh)
         logger.addHandler(ch)
     except Exception as e:
-        raise Exception(f"Could not create FileHandler for log file: {log_file}. Reason: {str(e)}")
+        raise Exception(f"Could not create FileHandler for log file: {log_file} - {type(e).__name__} - {e}")
     
     return logger

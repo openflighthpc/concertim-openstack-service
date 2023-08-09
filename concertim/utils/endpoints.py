@@ -12,7 +12,7 @@ ENDPOINTS = {
                     },
                     'CREATE_DEVICE':{
                         'endpoint': '/api/v1/nodes',
-                        'required_vars': ['template_id', 'name', 'description', 'facing', 'rack_id', 'start_u'],
+                        'required_vars': ['template_id', 'name', 'description', 'facing', 'rack_id', 'start_u', 'status'],
                         'data': {"template_id": '{template_id}',
                                 "device": {
                                     "name": '{name}',
@@ -24,29 +24,34 @@ ENDPOINTS = {
                                         "start_u": '{start_u}'
                                     },
                                     "metadata" : {
-                                        "openstack_instance_id" : "{openstack_instance_id}",
-                                        "openstack_instance_info" : "{openstack_instance_info}"
+                                        "ips": "{openstack_ips}",
+                                        "ssh_key": "{openstack_ssh_key}",
+                                        "volumes": "{volumes_attached}",
+                                        "openstack_instance_id" : "{openstack_instance_id}"
                                     }
 
                                 }}
                     },
                     'CREATE_RACK':{
                         'endpoint': '/api/v1/racks',
-                        'required_vars': ['user_id','name','u_height'],
+                        'required_vars': ['user_id','name','u_height', 'status'],
                         'data': {"rack": {
                                     "user_id": '{user_id}',
                                     "name": '{name}',
                                     "u_height": '{u_height}',
                                     "status" : "{status}",
                                     "metadata" : {
+                                        "output": "{openstack_stack_output}",
                                         "openstack_stack_id" : "{openstack_stack_id}",
-                                        "openstack_stack_info" : "{openstack_stack_info}"
+                                        "openstack_stack_owner" : "{openstack_stack_owner}",
+                                        "openstack_stack_owner_id" : "{openstack_stack_owner_id}",
+                                        "stack_status_reason": "{openstack_stack_status_reason}"
                                     }
                                 }}
                     },
                     'CREATE_TEMPLATE':{
                         'endpoint': '/api/v1/templates',
-                        'required_vars': ['name','description','height'],
+                        'required_vars': ['name','description','height', 'ram', 'disk', 'vcpus', 'foreign_id'],
                         'data': {"template": {
                                     "name": '{name}',
                                     "description": '{description}',
@@ -116,25 +121,36 @@ ENDPOINTS = {
                     },
                     'UPDATE_DEVICE':{
                         'endpoint': '/api/v1/devices/{}',
-                        'required_vars': ['name','description'],
+                        'required_vars': ['name'],
                         'data': {"device": {
                                     "name": '{name}',
                                     "description": '{description}',
-                                    "status" : '{status}'
+                                    "status" : '{status}',
+                                    "metadata": {
+                                        "ips": "{openstack_ips}",
+                                        "ssh_key": "{openstack_ssh_key}",
+                                        "volumes": "{volumes_attached}",
+                                        'openstack_instance_id': '{openstack_instance_id}'
+                                    }
                                 }}
                     },
                     'UPDATE_RACK':{
                         'endpoint': '/api/v1/racks/{}',
-                        'required_vars': ['name','u_height'],
+                        'required_vars': ['name'],
                         'data': {"rack": {
                                     "name": '{name}',
                                     "u_height": '{u_height}',
-                                    "status" : '{status}'
+                                    "status" : '{status}',
+                                    "metadata": {
+                                        "output": "{openstack_stack_output}",
+                                        "openstack_stack_id" : "{openstack_stack_id}",
+                                        "openstack_stack_info" : "{openstack_stack_info}"
+                                    }
                                 }}
                     },
                     'UPDATE_TEMPLATE':{
                         'endpoint': '/api/v1/templates/{}',
-                        'required_vars': ['name','description'],
+                        'required_vars': ['name'],
                         'data': {"template": {
                                     "name": '{name}',
                                     "description": '{description}'

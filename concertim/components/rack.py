@@ -1,82 +1,44 @@
-from concertim.concertim import ConcertimData
+from concertim.components.component import ConcertimComponent
 
-class ConcertimRack():
-    #__slots__ = ('__rack_name','__owner','__devices','__rack_id','__rack_height', '__project_id', '__cluster','__occupied')
-    def __init__(self, rack_name, owner, rack_height, status, openstack_stack_id, rack_id='', devices=[]):
-        self.__rack_name = rack_name
-        self.__owner = owner
-        self.devices = set()
-        self.__rack_id = rack_id
-        self.__rack_height = rack_height
-        self.__openstack_stack_id = openstack_stack_id
-#        self.__project_id = project_id
-#        self.__cluster = cluster
-        self.__status = status
+class ConcertimRack(ConcertimComponent):
+    def __init__(self, concertim_id=None, openstack_id=None, concertim_name=None, openstack_name=None, user_id=None, height=42, desc='', status=None):
+        super().__init__(concertim_id=concertim_id, openstack_id=openstack_id, concertim_name=concertim_name, openstack_name=openstack_name, description=desc)
+        self.user_id = user_id
+        self.height = height
+        self.devices = []
+        self.status = status
         self.__occupied = []
+        self.output = []
+        self.metadata = {}
 
     def __repr__(self):
-        lines = ['\n' + self.__class__.__name__ + ':']
-        for key, val in vars(self).items():
-            lines += '{}: {}'.format(key, val.__repr__()).split('\n')
-        return '{' + '\n '.join(lines) + '}'
+        opsk_info = super().get_openstack_definition()
+        con_info = super().get_concertim_definition()
+        return (f"ConcertimRack{{openstack_info:{repr(opsk_info)}, concertim_info:{repr(con_info)}, description:{repr(self.description)}, status:{repr(self.status)}, "
+                f"user_id:{repr(self.user_id)}, height:{repr(self.height)}, devices:{repr(self.devices)}, output:{repr(self.output)}, "
+                f"metadata:{repr(self.metadata)}}}")
 
-    @property
-    def rack_name(self):
-        return self.__rack_name
+    def __eq__(self, other):
+        if isinstance(other, ConcertimRack):
+            return (self.concertim_id == other.concertim_id 
+                and self.openstack_id == other.openstack_id 
+                and self.height == other.height)
+        return NotImplemented
 
-    @rack_name.setter
-    def rack_name(self, new_rack_name):
-        self.__rack_name = new_rack_name
+    def __ne__(self, other):
+        temp = self.__eq__(other)
+        if temp is NotImplemented:
+            return NotImplemented
+        return not temp
 
-    @property
-    def owner(self):
-        return self.__owner
+    def add_metadata(self, **kwargs):
+        for k,v in kwargs:
+            self.metadata[k] = v
 
-    """ @property
-    def devices(self):
-        return self.__devices
+    def add_device(self, device_concertim_id, location):
+        self.devices.append(device_concertim_id)
+        self.__occupied.extend([x for x in range(location.start_u, location.end_u+1)])
 
-    @devices.setter
-    def devices(self, new_devices):
-        self.__devices = new_devices """
-
-    @property
-    def project_id(self):
-        return self.__project_id
-
-    @project_id.setter
-    def project_id(self, value):
-        self.__project_id = value
-
-    @property
-    def rack_id(self):
-        return self.__rack_id
-
-    @rack_id.setter
-    def rack_id(self, new_rack_id):
-        self.__rack_id = new_rack_id
-
-    @property
-    def rack_height(self):
-        return self.__rack_height
-
-    @rack_height.setter
-    def rack_height(self, new_rack_height):
-        self.__rack_height = new_rack_height
-
-    @property
-    def cluster(self):
-        return self.__cluster
-
-    @cluster.setter
-    def cluster(self, new_cluster):
-        self.__cluster = new_cluster
-
-    @property
-    def occupied(self):
-        return self.__occupied
-
-    @occupied.setter
-    def occupied(self, value):
-        self.__occupied = value
-    
+    def remove_device(self, device_concertim_id, location):
+        self.devices.remove(device_concertim_id)
+        self.__occupied.remove([x for x in range(location.start_u, location.end_u+1)])

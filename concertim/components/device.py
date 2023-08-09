@@ -1,109 +1,38 @@
-from concertim.concertim import ConcertimData
+from concertim.components.component import ConcertimComponent
 
-class ConcertimDevice:
-    def __init__(self, openstack_instance_id, openstack_instance_name, device_name, start_u, end_u, facing, depth, device_id, rack_id):
-        self.__openstack_instance_id = openstack_instance_id
-        self.__openstack_instance_name = openstack_instance_name
-        self.__device_name = device_name
-        self.__template_id = None
-        self.__device_id = device_id
-        self.__start_u = start_u
-        self.__end_u = end_u
-        self.__facing = facing
-        self.__depth = depth
-        self.__rack_id = rack_id
-        self.__status = None
+class ConcertimDevice(ConcertimComponent):
+    def __init__(self, concertim_id=None, openstack_id=None, concertim_name=None, openstack_name=None, rack_id=None, template=None, location=None, desc='', status=None):
+        super().__init__(concertim_id=concertim_id, openstack_id=openstack_id, concertim_name=concertim_name, openstack_name=openstack_name, description=desc)
+        self.rack_id = rack_id
+        self.template = template
+        self.location = location
+        self.status = status
+        self.ips = []
+        self.ssh_key = None
+        self.volumes_attached = None
 
     def __repr__(self):
-        lines = ['\n' + self.__class__.__name__ + ':']
-        for key, val in vars(self).items():
-            lines += '{}: {}'.format(key, val.__repr__()).split('\n')
-        return '{' + '\n '.join(lines) + '}'
+        opsk_info = super().get_openstack_definition()
+        con_info = super().get_concertim_definition()
+        return (f"ConcertimDevice{{openstack_info:{repr(opsk_info)}, concertim_info:{repr(con_info)}, description:{repr(self.description)}, status:{repr(self.status)}, "
+                f"rack_id:{repr(self.rack_id)}, template:{repr(self.template)}, location:{repr(self.location)}, IPs:{repr(self.ips)}, ssh_key:{repr(self.ssh_key)}, "
+                f"volumes_attached:{repr(self.volumes_attached)}}}")
+
+    def __eq__(self, other):
+        if isinstance(other, ConcertimDevice):
+            return (self.concertim_id == other.concertim_id 
+                and self.openstack_id == other.openstack_id 
+                and self.rack_id == other.rack_id)
+        return NotImplemented
+
+    def __ne__(self, other):
+        temp = self.__eq__(other)
+        if temp is NotImplemented:
+            return NotImplemented
+        return not temp
+
+    def add_metadata(self, **kwargs):
+        for k,v in kwargs:
+            self.metadata[str(k)] = v
+
     
-    @property
-    def instance_id(self):
-        return self.__instance_id
-
-    @property
-    def instance_name(self):
-        return self.__instance_name
-
-    @instance_name.setter
-    def instance_name(self, value):
-        self.__instance_name = value
-
-    @property
-    def status(self):
-        return self.__status
-
-    @instance_name.setter
-    def status(self, value):
-        self.__status = value
-
-    @property
-    def device_name(self):
-        return self.__device_name
-
-    @device_name.setter
-    def device_name(self, value):
-        self.__device_name = value
-
-    @property
-    def project_id(self):
-        return self.__project_id
-
-    @property
-    def flavor_id(self):
-        return self.__flavor_id
-
-    @flavor_id.setter
-    def flavor_id(self, value):
-        self.__flavor_id = value
-    
-    @property
-    def template_id(self):
-        return self.__template_id
-
-    @template_id.setter
-    def template_id(self, value):
-        self.__template_id = value
-
-    @property
-    def device_id(self):
-        return self.__device_id
-
-    @device_id.setter
-    def device_id(self, value):
-        self.__device_id = value
-
-    @property
-    def cluster_name(self):
-        return self.__cluster_name
-
-    @cluster_name.setter
-    def cluster_name(self, value):
-        self.__cluster_name = value
-
-    @property
-    def rack_id(self):
-        return self.__rack_id
-
-    @rack_id.setter
-    def rack_id(self, value):
-        self.__rack_id = value
-
-    @property
-    def start_u(self):
-        return self.__start_u
-
-    @start_u.setter
-    def start_u(self, value):
-        self.__start_u = value
-
-    @property
-    def depth(self):
-        return self.__depth
-
-    @depth.setter
-    def depth(self, value):
-        self.__depth = value

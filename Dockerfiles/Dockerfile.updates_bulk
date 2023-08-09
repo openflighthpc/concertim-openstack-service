@@ -10,7 +10,7 @@ COPY . /app
 # Install any needed packages specified in requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 # Install component specific packages
-RUN pip install --no-cache-dir -r data_handler/metric_handler/requirements-metrics.txt
+RUN pip install --no-cache-dir -r data_handler/update_handler/requirements-updates.txt
 
 # NEEDED INFRA
 # Create logging diretory
@@ -18,5 +18,5 @@ RUN mkdir -p /var/log/concertim-openstack-service
 # Create data diretory
 RUN mkdir -p /var/lib/concertim-openstack-service
 
-# Run driver for metrics process when the container launches
-CMD ["python", "driver.py", "run=metrics"]
+# Run driver for All-In-One updates process when the container launches
+CMD ["python", "driver.py", "run=updates_bulk"]

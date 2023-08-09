@@ -3,20 +3,21 @@ FROM python:3.8-slim-buster
 
 # Set the working directory in the container to /app
 WORKDIR /app
-
 # Copy the directory contents into the container at /app
 COPY . /app
 
-# Copy the config file into the container
-#COPY config.yaml /etc/concertim-openstack-service/config.yaml
-
+# REQUIREMENTS
 # Install any needed packages specified in requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 # Install component specific packages
-RUN pip install --no-cache-dir -r data_handler/requirements-updates.txt
+RUN pip install --no-cache-dir -r data_handler/update_handler/requirements-updates.txt
+RUN pip install --no-cache-dir -r data_handler/update_handler/requirements-mq.txt
 
+# NEEDED INFRA
 # Create logging diretory
 RUN mkdir -p /var/log/concertim-openstack-service
+# Create data diretory
+RUN mkdir -p /var/lib/concertim-openstack-service
 
-# Run user_handler when the container launches
-CMD ["python", "update_driver.py"]
+# Run driver for All-In-One updates process when the container launches
+CMD ["python", "driver.py", "run=updates_mq"]

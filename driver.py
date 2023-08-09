@@ -1,0 +1,242 @@
+# Local Imports
+from utils.service_logger import create_logger
+# Py Packages
+import signal
+import sys
+import yaml
+import time
+
+# GLOBAL VARS
+CONFIG_DIR = '/etc/concertim-openstack-service/'
+CONFIG_FILE = CONFIG_DIR + 'config.yaml'
+
+
+def run_metrics(test=False):
+    # Common
+    from data_handler.metric_handler.metric_handler import MetricHandler
+    log_file = MetricHandler.LOG_DIR + 'metrics.log'
+    config = load_config(CONFIG_FILE)
+    logger = create_logger(__name__, log_file, config['log_level'])
+    
+    # Handler specific
+    # granularity=60 to match IRV refresh rate
+    # interval=15 to match concertim MRD polling interval
+    metric_handler = None
+    interval = 15
+    granularity = 60
+
+    # Add signals
+    signal.signal(signal.SIGINT, signal_handler, metric_handler)
+    signal.signal(signal.SIGTERM, signal_handler, metric_handler)
+
+    '''
+    METRICS MAIN CODE BEGIN
+    '''
+    logger.info("------- START -------")
+    logger.info("CONNECTING SERVICES")
+    try:
+        metric_handler = MetricHandler(config, log_file, granularity=granularity, interval=interval)
+        logger.info("BEGINNING COMMUNICATION")
+        if not test:
+            while True:
+                try:
+                    metric_handler.run()
+                except Exception as e:
+                    logger.error(f"Unexpected exception has caused the metric loop to terminate : {type(e).__name__} - {e}")
+                    logger.warning(f"Continuing loop at next interval.")
+                    continue
+                finally:
+                    time.sleep(interval)
+        else:
+            try:
+                metric_handler.run()
+            except Exception as e:
+                logger.error(f"Unexpected exception has caused the metric process to terminate : {type(e).__name__} - {e}")
+                raise e
+    except Exception as e:
+        msg = f"Could not run Metrics process - {type(e).__name__} - {e}"
+        logger.error(msg)
+        raise SystemExit(msg)
+
+def run_bulk_updates(test=False):
+    # Common
+    log_file = LOG_DIR + 'updates_bulk.log'
+    config = load_config(CONFIG_FILE)
+    logger = create_logger(__name__, log_file, config['log_level'])
+    
+    # Handler specific
+    from data_handler.update_handler.state_compare import BulkUpdateHandler
+    bulk_update_handler = None
+
+    # Add signals
+    signal.signal(signal.SIGINT, signal_handler, bulk_update_handler)
+    signal.signal(signal.SIGTERM, signal_handler, bulk_update_handler)
+
+    '''
+    FULL UPDATES MAIN CODE BEGIN
+    '''
+    logger.info("------- START -------")
+    logger.info("CONNECTING SERVICES")
+    try:
+        bulk_update_handler = BulkUpdateHandler(config, log_file)
+        logger.info("BEGINNING COMMUNICATION")
+        ## FIRST RUN SETUP
+        bulk_update_handler.full_update_sync()
+        if not test:
+            time.sleep(300)
+            ## MAIN LOOP
+            while True:
+                try:
+                    bulk_update_handler.full_update_sync()
+                except Exception as e:
+                    logger.error(f"Unexpected exception has caused the bulk update loop to terminate : {type(e).__name__} - {e}")
+                    logger.warning(f"Continuing loop at next interval.")
+                    continue
+                finally:
+                    time.sleep(300) # Run full sync every 5 min
+        else:
+            stop(bulk_update_handler)
+    except Exception as e:
+        msg = f"Could not run All-In-One Updates process - {type(e).__name__} - {e}"
+        logger.error(msg)
+        raise SystemExit(msg)
+
+def run_mq_updates(test=False):
+    # Common
+    log_file = LOG_DIR + 'updates_mq.log'
+    config = load_config(CONFIG_FILE)
+    logger = create_logger(__name__, log_file, config['log_level'])
+    
+    # Handler specific
+    from data_handler.update_handler.mq_listener import MqUpdateHandler
+    mq_update_handler = None
+
+    # Add signals
+    signal.signal(signal.SIGINT, signal_handler, mq_update_handler)
+    signal.signal(signal.SIGTERM, signal_handler, mq_update_handler)
+
+    '''
+    MQ UPDATES MAIN CODE BEGIN
+    '''
+    logger.info("------- START -------")
+    logger.info("CONNECTING SERVICES")
+    try:
+        mq_update_handler = MqUpdateHandler(config, log_file)
+        logger.info("BEGINNING COMMUNICATION")
+        mq_update_handler.start_listener()
+    except Exception as e:
+        msg = f"Could not run MQ Listener Updates process - {type(e).__name__} - {e}"
+        logger.error(msg)
+        raise SystemExit(msg)
+
+def run_updates_aio(test=False):
+    # Common
+    log_file = LOG_DIR + 'updates_aio.log'
+    config = load_config(CONFIG_FILE)
+    logger = create_logger(__name__, log_file, config['log_level'])
+    
+    # Handler specific
+    from data_handler.update_handler.mq_listener import MqUpdateHandler
+    from data_handler.update_handler.state_compare import BulkUpdateHandler
+    bulk_update_handler = None
+    mq_update_handler = None
+
+    # Add signals
+    signal.signal(signal.SIGINT, signal_handler, bulk_update_handler, mq_update_handler)
+    signal.signal(signal.SIGTERM, signal_handler, bulk_update_handler, mq_update_handler)
+
+    '''
+    FULL UPDATES MAIN CODE BEGIN
+    '''
+    logger.info("------- START -------")
+    logger.info("CONNECTING SERVICES")
+    try:
+        bulk_update_handler = BulkUpdateHandler(config, log_file)
+        mq_update_handler = MqUpdateHandler(config, log_file)
+        logger.info("BEGINNING COMMUNICATION")
+        ## FIRST RUN SETUP
+        bulk_update_handler.full_update_sync()
+        mq_update_handler.load_view()
+        mq_update_handler.start_listener()
+        if not test:
+            time.sleep(300)
+            ## MAIN LOOP
+            while True:
+                try:
+                    bulk_update_handler.full_update_sync()
+                except Exception as e:
+                    logger.error(f"Unexpected exception has caused the full sync loop to terminate : {type(e).__name__} - {e}")
+                    logger.warning(f"Continuing loop at next interval.")
+                    continue
+                finally:
+                    time.sleep(300) # Run full sync every 5 min
+        else:
+            stop(bulk_update_handler, mq_update_handler)
+    except Exception as e:
+        msg = f"Could not run All-In-One Updates process - {type(e).__name__} - {e}"
+        logger.error(msg)
+        raise SystemExit(msg)
+
+def run_api_server():
+    # Common
+    from data_handler.api_server import run_app
+    log_file = LOG_DIR + 'api_server.log'
+    config = load_config(CONFIG_FILE)
+    logger = create_logger(__name__, log_file, config['log_level'])
+    logger.info("------- START -------")
+    logger.info("STARTING API SERVER")
+    run_app()
+
+
+
+
+
+### COMMON METHODS ###
+
+def load_config(config_file):
+    with open(config_file, 'r') as f:
+        config = yaml.safe_load(f)
+    return config
+
+# Setup a local stop process for when the service is over
+def stop(*handlers):
+    logger.info("STOPPING PROCESS")
+    for handler in handlers:
+        handler.disconnect()
+    logger.info("EXITING PROCESS")
+    logger.info("------- END -------\n")
+    raise SystemExit
+
+# Setup a signal handler to stop the service gracefully
+def signal_handler(sig, frame, *handlers):
+    stop(*handlers)
+
+# Main method to call runners and pars args
+def main(args):
+    args_dict = {}
+    valid = {
+        'metrics': run_metrics,
+        'updates_bulk': run_bulk_updates,
+        'updates_mq': run_mq_updates,
+        'updates_aio': run_updates_aio,
+        'api': run_api_server
+    }
+    for arg in args:
+        comm, value = arg.split('=')
+        args_dict[comm] = value
+    if not args_dict.has_key('run') or not args_dict['run']:
+        raise SystemExit("No 'run' command found")
+    if args_dict.has_key('test') and eval(args_dict['test']) == True and args_dict['run'] != 'api':
+        if args_dict['run'] in valid:
+            valid[args_dict['run']](test=True)
+        else:
+            raise SystemExit(f"'run' command set to invalid arg - valid run commands: {valid.keys()}")
+
+    if args_dict['run'] in valid:
+        valid[args_dict['run']]()
+    else:
+        raise SystemExit(f"'run' command set to invalid arg - valid run commands: {valid.keys()}")
+
+# The main entry point of the package
+if __name__ == "__main__":
+    main(sys.argv[1:])

@@ -1,7 +1,8 @@
 # Local Imports
 from utils.service_logger import create_logger
 # endpoints file containing info on all concertim endpoints
-from concertim.components.endpoints import ENDPOINTS
+from concertim.utils.endpoints import ENDPOINTS
+from concertim.exceptions import ConcertimItemConflict, MissingRequiredArgs
 
 # Py Packages
 import json
@@ -12,7 +13,8 @@ requests.packages.urllib3.disable_warnings()
 class ConcertimService(object):
     def __init__(self, config_obj, log_file):
         self.__CONFIG = config_obj
-        self.__LOGGER = create_logger(__name__, log_file, self.__CONFIG['log_level'])
+        self.__LOG_FILE = log_file
+        self.__LOGGER = create_logger(__name__, self.__LOG_FILE, self.__CONFIG['log_level'])
         self.__URL = self.__CONFIG['concertim']['concertim_url']
         self.__AUTH_TOKEN = self.__get_auth_token()
     
@@ -32,7 +34,6 @@ class ConcertimService(object):
         return response
     
     def create_rack(self, variables_dict):
-        self.__LOGGER.debug(f"{variables_dict}")
         response = self.__api_call('post', 'CREATE_RACK', variables_dict=variables_dict)
         return response
     
@@ -103,8 +104,7 @@ class ConcertimService(object):
             response = self.__api_call('put', 'METRIC', variables_dict=variables_dict, endpoint_var=str(ID))
             return response
         except ValueError as e:
-            self.__LOGGER.error(f"{e}")
-            self.__LOGGER.warning(f"FAILED - Could not send metric for {variables_dict['name']}")
+            self.__LOGGER.error(f"FAILED - Could not send metric for {variables_dict['name']} - {type(e).__name__} - {e}")
             raise e
 
     # Generic method for handling Concertim API calls.
@@ -136,14 +136,14 @@ class ConcertimService(object):
         elif endpoint_name == 'LOGIN_AUTH':
             self.__LOGGER.debug("Getting Concertim Auth Token")
         elif self.__AUTH_TOKEN is None:
-            e = Exception("No Authentication Token provided")
-            self.__LOGGER.exception(str(e))
+            e = MissingRequiredArgs("No Authentication Token provided")
+            self.__LOGGER.error(f"{type(e).__name__} - {e}")
             raise e
 
         # Handle if there is a 'data' dump needed
         if variables_dict:
             self.__check_required_vars(variables_dict, endpoint)
-            data_dict = self.__get_data(variables_dict, endpoint['data'])
+            data_dict = self.__get_data(variables_dict, endpoint['data'], endpoint_name)
             data = json.dumps(data_dict)
 
             # Don't log user/pass in plain text
@@ -163,41 +163,28 @@ class ConcertimService(object):
             if endpoint_name == 'LOGIN_AUTH':
                 return response.headers.get("Authorization")
             return response.json()
-        elif response.status_code == 400:
-            e = ValueError(f"Bad request, please check your data: {response.json()}")
-            self.__LOGGER.exception(str(e))
-            raise e
-        elif response.status_code == 401:
-            e = ValueError(f"Unauthorized, please check your credentials: {response.json()}")
-            self.__LOGGER.exception(str(e))
-            raise e
-        elif response.status_code == 404:
-            e = ValueError(f"No path found, please check your endpoint: {response.json()}")
-            self.__LOGGER.exception(str(e))
-            raise e
-        elif response.status_code == 500:
-            e = ValueError(f"Server error, please check the Concertim host server or try again later: {response.json()}")
-            self.__LOGGER.exception(str(e))
-            raise e
         elif response.status_code == 422:
-            e = FileExistsError(f"Cannot process: {response.json()}")
-            self.__LOGGER.warning("The item you are trying to add already exists")
+            e = ConcertimItemConflict(f"The item you are trying to add already exists - {response.json()}")
+            self.__LOGGER.warning(f"{type(e).__name__} - {e}")
             raise e
         else:
-            self.__LOGGER.exception('Unhandled REST request error.')
+            self.__LOGGER.error('Unhandled REST request error.')
             response.raise_for_status()
 
     # Return the given data template from ENDPOINTS with all var filled in from variables_dict
     # Uses recursion to traverse through the dict
-    def __get_data(self, variables_dict, template):
+    # If the endpoint name is an UPDATE_* call, remove empty key,val pairs before returning
+    def __get_data(self, variables_dict, data_template, endpoint_name):
         data_dict = {}
         casting = {'value': float, 'ttl': int}
-        for key, value in template.items():
+        for key, value in data_template:
             if isinstance(value, dict):
                 data_dict[key] = self.__get_data(variables_dict, value)
             else:
                 if key in casting:
                     data_dict[key] = casting[key](value.format(**variables_dict))
+                elif not value and endpoint_name in ['UPDATE_DEVICE','UPDATE_RACK','UPDATE_TEMPLATE']:
+                    continue
                 else:
                     data_dict[key] = value.format(**variables_dict)
         return data_dict
@@ -206,33 +193,13 @@ class ConcertimService(object):
     def __check_required_vars(self, variables_dict, endpoint):
         missing_vars = [var for var in endpoint['required_vars'] if var not in variables_dict]
         if missing_vars:
-            e = ValueError(f'Missing required variables: {", ".join(missing_vars)}')
-            self.__LOGGER.error(str(e))
+            e = MissingRequiredArgs(missing_vars)
+            self.__LOGGER.error(f"{type(e).__name__} - {e}")
             raise e
         return True
 
     def disconnect(self):
         self.__LOGGER.info("Disconnecting Concertim Services")
-        return
+        self.__AUTH_TOKEN = None
+        self.__URL = None
 
-
-class ConcertimData:
-    def __init__(self):
-        self.racks = {}
-        self.devices = {}
-        self.users = {}
-        self.templates = {}
-
-    def __repr__(self):
-        return f"{self.racks.__repr__()} \n \
-            {self.devices.__repr__()} \n \
-            {self.users.__repr__()} \n  \
-            {self.templates.__repr__()} \n"
-
-class OpenstackConcertimMap:
-    def __init__(self):
-        self.stack_to_rack = {}
-        self.instance_to_device = {}
-        self.flavor_to_template = {}
-        self.os_user_to_concertim_user = {}
-        self.os_project_to_concertim_user = {}

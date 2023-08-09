@@ -1,64 +1,27 @@
-from concertim.concertim import ConcertimData
+from concertim.components.component import ConcertimComponent
 
-class ConcertimTemplate:
-    #__slots__ = ('__flavor_id', '__name', '__ram', '__disk', '__vcpus', '__template_id', '__device_size')
-    def __init__(self, template_id, flavor_id, flavor_name, ram, disk, vcpus, device_size=''):
-        
-        self.__template_id = template_id
-        self.__flavor_id = flavor_id
-        self.__name = flavor_name
-        self.__ram = ram
-        self.__disk = disk
-        self.__vcpus = vcpus
-        self.__device_size = device_size
+class ConcertimTemplate(ConcertimComponent):
+    def __init__(self, concertim_id=None, openstack_id=None, concertim_name=None, openstack_name=None, ram=None, disk=None, vcpus=None, size=None, desc=''):
+        super().__init__(concertim_id=concertim_id, openstack_id=openstack_id, concertim_name=concertim_name, openstack_name=openstack_name, description=desc)
+        self.ram = ram
+        self.disk = disk
+        self.vcpus = vcpus
+        self.size = size
 
     def __repr__(self):
-        lines = ['\n' + self.__class__.__name__ + ':']
-        for key, val in vars(self).items():
-            lines += '{}: {}'.format(key, val.__repr__()).split('\n')
-        return '{' + '\n '.join(lines) + '}'
+        opsk_info = super().get_openstack_definition()
+        con_info = super().get_concertim_definition()
+        return (f"ConcertimTemplate{{openstack_info:{repr(opsk_info)}, concertim_info:{repr(con_info)}, description:{repr(self.description)}, size:{repr(self.size)}, "
+                f"vcpus:{repr(self.vcpus)}, disk:{repr(self.disk)}, ram:{repr(self.ram)}, output:{repr(self.output)}}}")
     
-    @property
-    def flavor_id(self):
-        return self.__flavor_id
+    def __eq__(self, other):
+        if isinstance(other, ConcertimTemplate):
+            return (self.concertim_id == other.concertim_id 
+                and self.openstack_id == other.openstack_id)
+        return NotImplemented
 
-    @property
-    def name(self):
-        return self.__name
-
-    @name.setter
-    def name(self, new_template_name):
-        self.__name = new_template_name
-
-    @property
-    def ram(self):
-        return self.__ram
-
-    @property
-    def disk(self):
-        return self.__disk
-
-    @property
-    def vcpus(self):
-        return self.__vcpus
-
-    @property
-    def template_id(self):
-        return self.__template_id
-
-    @property
-    def device_size(self):
-        return self.__device_size
-
-    @device_size.setter
-    def device_size(self, new_device_size):
-        self.__device_size = new_device_size
-
-    @property
-    def template_id(self):
-        return self.__template_id
-
-    @template_id.setter
-    def template_id(self, new_template_id):
-        self.__template_id = new_template_id
-
+    def __ne__(self, other):
+        temp = self.__eq__(other)
+        if temp is NotImplemented:
+            return NotImplemented
+        return not temp

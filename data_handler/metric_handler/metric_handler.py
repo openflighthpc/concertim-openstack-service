@@ -1,28 +1,29 @@
 # Local Imports
 from utils.service_logger import create_logger
-from data_handler.handler import DataHandler
-from openstack.openstack import MissingOpenstackObject
+from data_handler.base import BaseHandler
 # Py Packages
 import time
 from datetime import datetime, timedelta
-import sys
 
-class MetricHandler(DataHandler):
-    def __init__(self, openstack, concertim, config_obj, log_file, interval=5):
-        self.__LOGGER = create_logger(__name__, log_file, config_obj['log_level'])
-        self.interval = interval
-        # Granularity currently set to match concertim visu app IRV refresh rate 
-        self.granularity = 60
-        #
-        super().__init__(openstack, concertim, config_obj, log_file)
+class MetricHandler(BaseHandler):
+    DEFAULT_CLIENTS = ['keystone','gnocchi']
+    DEFAULT_INTERVAL = 5
+    DEFAULT_GRANULARITY = 5
+    def __init__(self, config_obj, log_file, granularity=None, interval=None, clients=None):
+        self.clients = clients if clients else DEFAULT_CLIENTS
+        super().__init__(config_obj, log_file, self.clients)
+        self.__LOGGER = create_logger(__name__, self.__LOG_FILE, self.__CONFIG['log_level'])
+        self.interval = interval if interval else DEFAULT_INTERVAL
+        self.granularity = granularity if granularity else DEFAULT_GRANULARITY
 
-    def send_metrics(self):
+    def run(self):
         self.__LOGGER.info('METRICS - BEGIN SENDING METRICS')
         try:
             self.__LOGGER.debug(f"Getting concertim:watcher project_ids list")
             concertim_projects_list = self.openstack_service.get_concertim_projects()
             self.__LOGGER.debug(f"Getting all current devices in Concertim")
             concertim_device_list = self.concertim_service.list_devices()
+
             for project_id in concertim_projects_list:
                 self.__LOGGER.debug(f"Getting resource list for {project_id}")
                 temp_recs = self.openstack_service.get_project_resources(project_id)
@@ -31,24 +32,30 @@ class MetricHandler(DataHandler):
 
                 # Handle instance resource group
                 self.__LOGGER.debug(f"Starting - instance-based metric sending")
-                for instance_id in (not_vol for not_vol in resources if not_vol not in ['volumes']):
+                for instance_id in resources if instance_id not in ['volumes']:
                     if resources[instance_id]['concertim_id']:
                         # Handle instance / nova based metrics for instance resource group with a device present
                         self.__LOGGER.debug(f"Handling metrics for instance : {instance_id}, device : {resources[instance_id]['concertim_id']}")
                         self.handle_metrics(resources[instance_id])
                 self.__LOGGER.debug(f"Finished - Instance-based metric sending for project {project_id}")
 
-                # Handle other resource groups
-                self.__LOGGER.debug(f"Starting - volume-based metric sending")
+                #### Handle other resource groups ####
+
                 # Handle metrics for volume resource type
-                self.__LOGGER.debug(f"Finished - Volume-based metric sending for project {project_id}")
+                #self.__LOGGER.debug(f"Starting - Volume-based metric sending")
+                # TODO: calc volume metrics
+                #self.__LOGGER.debug(f"Finished - Volume-based metric sending for project {project_id}")
+
+                # Handle metrics for ....
+
+            # End of loop
             self.__LOGGER.info(f"METRICS - METRIC SENDING COMPLETE")
-        except MissingOpenstackObject as e:
-            logger.error(f"Missing Openstack Component: {e}")
+
+        except Exception as e:
+            self.__LOGGER.error(f"{type(e).__name__} - {e}")
             raise e
 
-
-    # Send all metrics for a given instance's resources
+    # Calculate and post all metrics for a given instance's supported resources
     def handle_metrics(self, instance_resource_dict):
         self.__LOGGER.debug(f"Starting - Processing metrics for instance:{instance_resource_dict['display_name']}")
         # 'interval' seconds window (range from now-interval to now)
