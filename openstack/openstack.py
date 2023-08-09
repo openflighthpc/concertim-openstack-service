@@ -349,7 +349,8 @@ class OpenstackService(object):
         # instance parsing
         if stack_instance_resources:
             for inst_r in stack_instance_resources:
-                instance_ids.append(inst_r.physical_resource_id)
+                if inst_r.resource_type == 'OS::Nova::Server':
+                    instance_ids.append(inst_r.physical_resource_id)
         # get nova server objs for all instance ids
         for inst_id in instance_ids:
             instances.append(nova.get_server(inst_id))

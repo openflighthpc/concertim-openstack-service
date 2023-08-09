@@ -217,7 +217,7 @@ class BulkUpdateHandler(UpdateHandler):
 
     def create_rack_in_concertim(self, os_stack, user_id_tup):
         try:
-            con_state_list = [c_state for c_state, os_state_list in UpdateHandler.CONCERTIM_STATE_MAP['RACK'] if os_stack.stack_status in os_state_list]
+            con_state_list = [c_state for c_state, os_state_list in UpdateHandler.CONCERTIM_STATE_MAP['RACK'].items() if os_stack.stack_status in os_state_list]
             if con_state_list:
                 con_state = con_state_list[0]
             else:
@@ -263,12 +263,12 @@ class BulkUpdateHandler(UpdateHandler):
 
     def create_device_in_concertim(self, os_instance, rack_id_tup):
         try:
-            con_state_list = [c_state for c_state, os_state_list in UpdateHandler.CONCERTIM_STATE_MAP['DEVICE'] if os_instance._info['OS-EXT-STS:vm_state'] in os_state_list]
+            con_state_list = [c_state for c_state, os_state_list in UpdateHandler.CONCERTIM_STATE_MAP['DEVICE'].items() if os_instance._info['OS-EXT-STS:vm_state'] in os_state_list]
             if con_state_list:
                 con_state = con_state_list[0]
             else:
                 con_state = 'FAILED'
-            matching_template_id_tup = [id_tup for id_tup, con_temp in self.view.templates if id_tup[1] == os_instance.flavor['id']]
+            matching_template_id_tup = [id_tup for id_tup, con_temp in self.view.templates.items() if id_tup[1] == os_instance.flavor['id']]
             if not matching_template_id_tup:
                 self.__LOGGER.error(f"Cannot create device for Instance[ID:{os_instance.id},Name:{os_instance.name}] - No ConcertimTemplate matching Flavor[ID:{os_instance.flavor['id']}] found")
                 return
@@ -318,7 +318,7 @@ class BulkUpdateHandler(UpdateHandler):
 
     def update_rack_status(self, os_stack, rack_id_tup):
         try:
-            con_state_list = [c_state for c_state, os_state_list in UpdateHandler.CONCERTIM_STATE_MAP['RACK'] if os_stack.stack_status in os_state_list]
+            con_state_list = [c_state for c_state, os_state_list in UpdateHandler.CONCERTIM_STATE_MAP['RACK'].items() if os_stack.stack_status in os_state_list]
             if con_state_list:
                 con_state = con_state_list[0]
             else:
@@ -360,9 +360,9 @@ class BulkUpdateHandler(UpdateHandler):
             curr_output = self.view.racks[rack_id_tup].output
             self.view.racks[rack_id_tup].metadata = {}
             ###
-            os_stk_owner = None
-            os_stk_owner_id = None
-            os_stk_status_reas = None
+            os_stk_owner = ''
+            os_stk_owner_id = ''
+            os_stk_status_reas = ''
             if hasattr(os_stack, 'stack_status_reason') and os_stack.stack_status_reason:
                 os_stk_status_reas = os_stack.stack_status_reason
             if hasattr(os_stack, 'stack_owner') and os_stack.stack_owner:
@@ -391,7 +391,7 @@ class BulkUpdateHandler(UpdateHandler):
 
     def update_device_status(self, os_instance, device_id_tup):
         try:
-            con_state_list = [c_state for c_state, os_state_list in UpdateHandler.CONCERTIM_STATE_MAP['DEVICE'] if os_instance._info['OS-EXT-STS:vm_state'] in os_state_list]
+            con_state_list = [c_state for c_state, os_state_list in UpdateHandler.CONCERTIM_STATE_MAP['DEVICE'].items() if os_instance._info['OS-EXT-STS:vm_state'] in os_state_list]
             if con_state_list:
                 con_state = con_state_list[0]
             else:
@@ -410,8 +410,8 @@ class BulkUpdateHandler(UpdateHandler):
     def update_device_metadata(self, os_instance, device_id_tup):
         try:
             os_ips = []
-            os_ssh_key = None
-            os_vols_att = None
+            os_ssh_key = ''
+            os_vols_att = []
             if hasattr(os_instance, 'accessIPv4') and os_instance.accessIPv4:
                 os_ips.append(os_instance.accessIPv4)
             if hasattr(os_instance, 'accessIPv6') and os_instance.accessIPv6:
@@ -450,7 +450,7 @@ class BulkUpdateHandler(UpdateHandler):
 
     def __find_empty_slot(self, rack_id_tup, size):
         try:
-            occupied_spots = self.view.racks[rack_id_tup]._occupied.sort()
+            occupied_spots = self.view.racks[rack_id_tup]._occupied
             height = self.view.racks[rack_id_tup].height
             self.__LOGGER.debug(f"Finding spot in Rack[ID:{rack_id_tup[0]}] - Occupied Slots: {occupied_spots}")
             spot_found = False

@@ -8,8 +8,8 @@ class ConcertimDevice(ConcertimComponent):
         self.location = location
         self.status = status
         self.ips = []
-        self.ssh_key = None
-        self.volumes_attached = None
+        self.ssh_key = ''
+        self.volumes_attached = []
 
     def __repr__(self):
         opsk_info = super().get_openstack_definition()
@@ -32,7 +32,7 @@ class ConcertimDevice(ConcertimComponent):
         return not temp
 
     def add_metadata(self, **kwargs):
-        for k,v in kwargs:
+        for k,v in kwargs.items():
             self.metadata[str(k)] = v
 
     

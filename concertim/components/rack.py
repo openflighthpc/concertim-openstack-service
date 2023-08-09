@@ -32,7 +32,7 @@ class ConcertimRack(ConcertimComponent):
         return not temp
 
     def add_metadata(self, **kwargs):
-        for k,v in kwargs:
+        for k,v in kwargs.items():
             self.metadata[k] = v
 
     def add_device(self, device_concertim_id, location):

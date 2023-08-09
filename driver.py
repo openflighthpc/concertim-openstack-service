@@ -101,7 +101,7 @@ def run_bulk_updates(test=False):
                 finally:
                     time.sleep(300) # Run full sync every 5 min
         else:
-            stop(bulk_update_handler)
+            stop(logger,bulk_update_handler)
     except Exception as e:
         msg = f"Could not run All-In-One Updates process - {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}"
         logger.error(msg)
@@ -183,7 +183,7 @@ def run_updates_aio(test=False):
                 finally:
                     time.sleep(300) # Run full sync every 5 min
         else:
-            stop(bulk_update_handler, mq_update_handler)
+            stop(logger,bulk_update_handler, mq_update_handler)
     except Exception as e:
         msg = f"Could not run All-In-One Updates process - {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}"
         logger.error(msg)
