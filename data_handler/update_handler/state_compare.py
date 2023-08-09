@@ -179,235 +179,267 @@ class BulkUpdateHandler(UpdateHandler):
             raise e
 
     def create_template_in_concertim(self, os_flavor):
-        new_template = ConcertimTemplate(concertim_id=None, openstack_id=os_flavor['id'], 
-                                            concertim_name=os_flavor['name'], openstack_name=os_flavor['name'], 
-                                            ram=os_flavor['ram'], disk=os_flavor['disk'], 
-                                            vcpus=os_flavor['vcpus'], size=None, description='Flavor from Openstack')
-        if new_template.vcpus <= 1:
-            new_template.size = 1
-        elif new_template.vcpus <= 2:
-            new_template.size = 2
-        elif new_template.vcpus <= 4:
-            new_template.size = 3
-        else:
-            new_template.size = 4
-        concertim_response_template = None
         try:
-            concertim_response_template = self.concertim_service.create_template({'name': new_template.name[1], 
-                                                                            'description': new_template.description, 
-                                                                            'height': new_template.size, 
-                                                                            'ram' : new_template.ram, 
-                                                                            'disk' : new_template.disk, 
-                                                                            'vcpus' : new_template.vcpus, 
-                                                                            'foreign_id' : new_template.id[1]})
-            new_template.id = tuple((concertim_response_template['id'], new_template.id[1]))
-            self.__LOGGER.debug(f"Successfully created new Template: {new_template}")
-            self.view.add_template(new_template)
-            return True
-        except ConcertimItemConflict as e:
-            self.__LOGGER.warning(f"The template {new_template.name[1]} already exists - Skipping - {type(e).__name__} - {e}")
-            return False
+            new_template = ConcertimTemplate(concertim_id=None, openstack_id=os_flavor['id'], 
+                                                concertim_name=os_flavor['name'], openstack_name=os_flavor['name'], 
+                                                ram=os_flavor['ram'], disk=os_flavor['disk'], 
+                                                vcpus=os_flavor['vcpus'], size=None, description='Flavor from Openstack')
+            if new_template.vcpus <= 1:
+                new_template.size = 1
+            elif new_template.vcpus <= 2:
+                new_template.size = 2
+            elif new_template.vcpus <= 4:
+                new_template.size = 3
+            else:
+                new_template.size = 4
+            concertim_response_template = None
+            try:
+                concertim_response_template = self.concertim_service.create_template({'name': new_template.name[1], 
+                                                                                'description': new_template.description, 
+                                                                                'height': new_template.size, 
+                                                                                'ram' : new_template.ram, 
+                                                                                'disk' : new_template.disk, 
+                                                                                'vcpus' : new_template.vcpus, 
+                                                                                'foreign_id' : new_template.id[1]})
+                new_template.id = (concertim_response_template['id'], new_template.id[1])
+                self.__LOGGER.debug(f"Successfully created new Template: {new_template}")
+                self.view.add_template(new_template)
+                return True
+            except ConcertimItemConflict as e:
+                self.__LOGGER.warning(f"The template {new_template.name[1]} already exists - Skipping - {type(e).__name__} - {e}")
+                return False
+            except Exception as e:
+                self.__LOGGER.error(f"Unhandled Exception when creating template {new_template.name[1]} - Skipping - {type(e).__name__} - {e}")
+                return False
         except Exception as e:
-            self.__LOGGER.error(f"Unhandled Exception when creating template {new_template.name[1]} - Skipping - {type(e).__name__} - {e}")
-            return False
+            self.__LOGGER.error(f"Failed to create Template - {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
+            raise e
 
     def create_rack_in_concertim(self, os_stack, user_id_tup):
-        con_state_list = [c_state for c_state, os_state_list in UpdateHandler.CONCERTIM_STATE_MAP['RACK'].items() if os_stack.stack_status in os_state_list]
-        if con_state_list:
-            con_state = con_state_list[0]
-        else:
-            con_state = 'FAILED'
-        # BASE RACK CREATION
-        new_rack = ConcertimRack(concertim_id=None, openstack_id=os_stack.id, 
-                                concertim_name=os_stack.stack_name, openstack_name=os_stack.stack_name, 
-                                user_id=user_id_tup[0], height=self.default_rack_height, 
-                                description='Heat Stack in Openstack', status=con_state)
-        new_rack.output = self.openstack_service.get_stack_output(os_stack.id)
-        # ADD EXISTING METADATA
-        if hasattr(os_stack, 'stack_status_reason') and os_stack.stack_status_reason:
-            new_rack.add_metadata(openstack_stack_status_reason=os_stack.stack_status_reason)
-        if hasattr(os_stack, 'stack_owner') and os_stack.stack_owner:
-            new_rack.add_metadata(openstack_stack_owner=os_stack.stack_owner)
-        if hasattr(os_stack, 'stack_user_project_id') and os_stack.stack_user_project_id:
-            new_rack.add_metadata(openstack_stack_owner_id=os_stack.stack_user_project_id)
-        concertim_response_rack = None
         try:
-            concertim_response_rack = self.concertim_service.create_rack({'name': new_rack.name[1],
-                                                            'user_id' : new_rack.user_id,
-                                                            'u_height': new_rack.height,
-                                                            'openstack_stack_id' : new_rack.id[1],
-                                                            'status' : new_rack.status,
-                                                            'openstack_stack_output': new_rack.output,
-                                                            'openstack_stack_status_reason':os_stack.stack_status_reason,
-                                                            'openstack_stack_owner':os_stack.stack_owner,
-                                                            'openstack_stack_owner_id' : os_stack.stack_user_project_id})
-            new_rack.id = tuple((concertim_response_rack['id'],new_rack.id[1]))
-            self.__LOGGER.debug(f"Successfully created new Rack: {new_rack}")
-            self.view.add_rack(new_rack)
-            self.view.users[user_id_tup].add_rack(new_rack.id[0])
-            return True
-        except ConcertimItemConflict as e:
-            self.__LOGGER.warning(f"The rack {new_rack.name[1]} already exists - Skipping - {type(e).__name__} - {e}")
-            return False
+            con_state_list = [c_state for c_state, os_state_list in UpdateHandler.CONCERTIM_STATE_MAP['RACK'] if os_stack.stack_status in os_state_list]
+            if con_state_list:
+                con_state = con_state_list[0]
+            else:
+                con_state = 'FAILED'
+            # BASE RACK CREATION
+            new_rack = ConcertimRack(concertim_id=None, openstack_id=os_stack.id, 
+                                    concertim_name=os_stack.stack_name, openstack_name=os_stack.stack_name, 
+                                    user_id=user_id_tup[0], height=self.default_rack_height, 
+                                    description='Heat Stack in Openstack', status=con_state)
+            new_rack.output = self.openstack_service.get_stack_output(os_stack.id)
+            # ADD EXISTING METADATA
+            if hasattr(os_stack, 'stack_status_reason') and os_stack.stack_status_reason:
+                new_rack.add_metadata(openstack_stack_status_reason=os_stack.stack_status_reason)
+            if hasattr(os_stack, 'stack_owner') and os_stack.stack_owner:
+                new_rack.add_metadata(openstack_stack_owner=os_stack.stack_owner)
+            if hasattr(os_stack, 'stack_user_project_id') and os_stack.stack_user_project_id:
+                new_rack.add_metadata(openstack_stack_owner_id=os_stack.stack_user_project_id)
+            concertim_response_rack = None
+            try:
+                concertim_response_rack = self.concertim_service.create_rack({'name': new_rack.name[1],
+                                                                'user_id' : new_rack.user_id,
+                                                                'u_height': new_rack.height,
+                                                                'openstack_stack_id' : new_rack.id[1],
+                                                                'status' : new_rack.status,
+                                                                'openstack_stack_output': new_rack.output,
+                                                                'openstack_stack_status_reason':os_stack.stack_status_reason,
+                                                                'openstack_stack_owner':os_stack.stack_owner,
+                                                                'openstack_stack_owner_id' : os_stack.stack_user_project_id})
+                new_rack.id = (concertim_response_rack['id'],new_rack.id[1])
+                self.__LOGGER.debug(f"Successfully created new Rack: {new_rack}")
+                self.view.add_rack(new_rack)
+                self.view.users[user_id_tup].add_rack(new_rack.id[0])
+                return True
+            except ConcertimItemConflict as e:
+                self.__LOGGER.warning(f"The rack {new_rack.name[1]} already exists - Skipping - {type(e).__name__} - {e}")
+                return False
+            except Exception as e:
+                self.__LOGGER.error(f"Unhandled Exception when creating rack {new_rack.name[1]} - Skipping - {type(e).__name__} - {e}")
+                return False
         except Exception as e:
-            self.__LOGGER.error(f"Unhandled Exception when creating rack {new_rack.name[1]} - Skipping - {type(e).__name__} - {e}")
-            return False
+            self.__LOGGER.error(f"Failed to create Rack - {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
+            raise e
 
     def create_device_in_concertim(self, os_instance, rack_id_tup):
-        con_state_list = [c_state for c_state, os_state_list in UpdateHandler.CONCERTIM_STATE_MAP['DEVICE'].items() if os_instance._info['OS-EXT-STS:vm_state'] in os_state_list]
-        if con_state_list:
-            con_state = con_state_list[0]
-        else:
-            con_state = 'FAILED'
-        matching_template_id_tup = [id_tup for id_tup, con_temp in self.view.templates.items() if id_tup[1] == os_instance.flavor['id']]
-        if not matching_template_id_tup:
-            self.__LOGGER.error(f"Cannot create device for Instance[ID:{os_instance.id},Name:{os_instance.name}] - No ConcertimTemplate matching Flavor[ID:{os_instance.flavor['id']}] found")
-            return
-        # BASE ConcertimDevice CREATION
-        template_for_inst = self.view.templates[matching_template_id_tup[0]]
-        loc_for_inst = self.__find_empty_slot(rack_id_tup, template_for_inst.size)
-        new_device = ConcertimDevice(concertim_id=None, openstack_id=os_instance.id, 
-                                    concertim_name=os_instance.name, openstack_name=os_instance.name, 
-                                    rack_id=rack_id_tup[0], template=template_for_inst, 
-                                    location=loc_for_inst, description='Nova Server in Openstack', status=con_state)
-        # ADD EXISTING METADATA
-        if hasattr(os_instance, 'accessIPv4') and os_instance.accessIPv4:
-            new_device.ips.append(os_instance.accessIPv4)
-        if hasattr(os_instance, 'accessIPv6') and os_instance.accessIPv6:
-            new_device.ips.append(os_instance.accessIPv6)
-        if hasattr(os_instance, 'key_name') and os_instance.key_name:
-            new_device.ssh_key = os_instance.key_name
-        if hasattr(os_instance, 'os-extended-volumes:volumes_attached') and os_instance._info['os-extended-volumes:volumes_attached']:
-            new_device.volumes_attached = os_instance._info['os-extended-volumes:volumes_attached']
-        # CREATE DEVICE IN CONCERTIM
-        concertim_response_device = None
         try:
-            concertim_response_device = self.concertim_service.create_device({'template_id': new_device.template.id[0], 
-                                                                'description': new_device.description, 
-                                                                'name': new_device.name[1], 
-                                                                'facing': new_device.location.facing, 
-                                                                'rack_id': new_device.rack_id, 
-                                                                'start_u': new_device.location.start_u, 
-                                                                'openstack_instance_id' : new_device.id[1],
-                                                                'status' : con_state, 
-                                                                'openstack_ips' : new_device.ips,
-                                                                'openstack_ssh_key': new_device.ssh_key,
-                                                                'volumes_attached': new_device.volumes_attached})
-            new_device.id = tuple((concertim_response_device['id'], new_device.id[1]))
-            self.__LOGGER.debug(f"Successfully created new Device: {new_device}")
-            self.view.add_device(new_device)
-            self.view.racks[rack_id_tup].add_device(new_device.id[0], new_device.location)
-        except ConcertimItemConflict as e:
-            self.__LOGGER.warning(f"The device {new_device.name[1]} already exists - Skipping - {type(e).__name__} - {e}")
-            return False
+            con_state_list = [c_state for c_state, os_state_list in UpdateHandler.CONCERTIM_STATE_MAP['DEVICE'] if os_instance._info['OS-EXT-STS:vm_state'] in os_state_list]
+            if con_state_list:
+                con_state = con_state_list[0]
+            else:
+                con_state = 'FAILED'
+            matching_template_id_tup = [id_tup for id_tup, con_temp in self.view.templates if id_tup[1] == os_instance.flavor['id']]
+            if not matching_template_id_tup:
+                self.__LOGGER.error(f"Cannot create device for Instance[ID:{os_instance.id},Name:{os_instance.name}] - No ConcertimTemplate matching Flavor[ID:{os_instance.flavor['id']}] found")
+                return
+            # BASE ConcertimDevice CREATION
+            template_for_inst = self.view.templates[matching_template_id_tup[0]]
+            loc_for_inst = self.__find_empty_slot(rack_id_tup, template_for_inst.size)
+            new_device = ConcertimDevice(concertim_id=None, openstack_id=os_instance.id, 
+                                        concertim_name=os_instance.name, openstack_name=os_instance.name, 
+                                        rack_id=rack_id_tup[0], template=template_for_inst, 
+                                        location=loc_for_inst, description='Nova Server in Openstack', status=con_state)
+            # ADD EXISTING METADATA
+            if hasattr(os_instance, 'accessIPv4') and os_instance.accessIPv4:
+                new_device.ips.append(os_instance.accessIPv4)
+            if hasattr(os_instance, 'accessIPv6') and os_instance.accessIPv6:
+                new_device.ips.append(os_instance.accessIPv6)
+            if hasattr(os_instance, 'key_name') and os_instance.key_name:
+                new_device.ssh_key = os_instance.key_name
+            if hasattr(os_instance, 'os-extended-volumes:volumes_attached') and os_instance._info['os-extended-volumes:volumes_attached']:
+                new_device.volumes_attached = os_instance._info['os-extended-volumes:volumes_attached']
+            # CREATE DEVICE IN CONCERTIM
+            concertim_response_device = None
+            try:
+                concertim_response_device = self.concertim_service.create_device({'template_id': new_device.template.id[0], 
+                                                                    'description': new_device.description, 
+                                                                    'name': new_device.name[1], 
+                                                                    'facing': new_device.location.facing, 
+                                                                    'rack_id': new_device.rack_id, 
+                                                                    'start_u': new_device.location.start_u, 
+                                                                    'openstack_instance_id' : new_device.id[1],
+                                                                    'status' : con_state, 
+                                                                    'openstack_ips' : new_device.ips,
+                                                                    'openstack_ssh_key': new_device.ssh_key,
+                                                                    'volumes_attached': new_device.volumes_attached})
+                new_device.id = (concertim_response_device['id'], new_device.id[1])
+                self.__LOGGER.debug(f"Successfully created new Device: {new_device}")
+                self.view.add_device(new_device)
+                self.view.racks[rack_id_tup].add_device(new_device.id[0], new_device.location)
+            except ConcertimItemConflict as e:
+                self.__LOGGER.warning(f"The device {new_device.name[1]} already exists - Skipping - {type(e).__name__} - {e}")
+                return False
+            except Exception as e:
+                self.__LOGGER.error(f"Unhandled Exception when creating device {new_device.name[1]} - Skipping - {type(e).__name__} - {e}")
+                return False
         except Exception as e:
-            self.__LOGGER.error(f"Unhandled Exception when creating device {new_device.name[1]} - Skipping - {type(e).__name__} - {e}")
-            return False
+            self.__LOGGER.error(f"Failed to create Device - {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
+            raise e
 
     def update_rack_status(self, os_stack, rack_id_tup):
-        con_state_list = [c_state for c_state, os_state_list in UpdateHandler.CONCERTIM_STATE_MAP['RACK'].items() if os_stack.stack_status in os_state_list]
-        if con_state_list:
-            con_state = con_state_list[0]
-        else:
-            con_state = 'FAILED'
         try:
-            self.concertim_service.update_rack(rack_id_tup[0], {'name':os_stack.stack_name,'status':con_state})
-            self.view.racks[rack_id_tup].status = con_state
-            self.__LOGGER.debug(f"Status updated to {con_state}")
+            con_state_list = [c_state for c_state, os_state_list in UpdateHandler.CONCERTIM_STATE_MAP['RACK'] if os_stack.stack_status in os_state_list]
+            if con_state_list:
+                con_state = con_state_list[0]
+            else:
+                con_state = 'FAILED'
+            try:
+                self.concertim_service.update_rack(rack_id_tup[0], {'name':os_stack.stack_name,'status':con_state})
+                self.view.racks[rack_id_tup].status = con_state
+                self.__LOGGER.debug(f"Status updated to {con_state}")
+            except Exception as e:
+                self.__LOGGER.error(f"Unhandled Exception when updating status for Rack {rack_id_tup[0]} - Skipping - {type(e).__name__} - {e}")
+                return 
         except Exception as e:
-            self.__LOGGER.error(f"Unhandled Exception when updating status for Rack {rack_id_tup[0]} - Skipping - {type(e).__name__} - {e}")
-            return 
+            self.__LOGGER.error(f"Failed to update Rack status - {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
+            raise e
 
     def update_rack_output(self, os_stack, rack_id_tup):
-        # Store other rack metadata
-        curr_md = self.view.racks[rack_id_tup].metadata
-        vars_dict_to_send = {'name':os_stack.stack_name, 
-                            'openstack_stack_id': os_stack.id, 
-                            **curr_md}
-        new_output = self.openstack_service.get_stack_output(os_stack.id)
-        vars_dict_to_send['openstack_stack_output'] = new_output
         try:
-            self.concertim_service.update_rack(rack_id_tup[0], vars_dict_to_send)
-            self.view.racks[rack_id_tup].output = new_output
-            self.__LOGGER.debug(f"Output Updated")
+            # Store other rack metadata
+            curr_md = self.view.racks[rack_id_tup].metadata
+            vars_dict_to_send = {'name':os_stack.stack_name, 
+                                'openstack_stack_id': os_stack.id, 
+                                **curr_md}
+            new_output = self.openstack_service.get_stack_output(os_stack.id)
+            vars_dict_to_send['openstack_stack_output'] = new_output
+            try:
+                self.concertim_service.update_rack(rack_id_tup[0], vars_dict_to_send)
+                self.view.racks[rack_id_tup].output = new_output
+                self.__LOGGER.debug(f"Output Updated")
+            except Exception as e:
+                self.__LOGGER.error(f"Unhandled Exception when output metadata for Rack {rack_id_tup[0]} - Skipping - {type(e).__name__} - {e}")
+                return 
         except Exception as e:
-            self.__LOGGER.error(f"Unhandled Exception when output metadata for Rack {rack_id_tup[0]} - Skipping - {type(e).__name__} - {e}")
-            return 
+            self.__LOGGER.error(f"Failed to update Rack output - {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
+            raise e
 
     def update_rack_metadata(self, os_stack, rack_id_tup):
-        # Clear currnet metadata for rack
-        curr_output = self.view.racks[rack_id_tup].output
-        self.view.racks[rack_id_tup].metadata = {}
-        ###
-        os_stk_owner = None
-        os_stk_owner_id = None
-        os_stk_status_reas = None
-        if hasattr(os_stack, 'stack_status_reason') and os_stack.stack_status_reason:
-            os_stk_status_reas = os_stack.stack_status_reason
-        if hasattr(os_stack, 'stack_owner') and os_stack.stack_owner:
-            os_stk_owner = os_stack.stack_owner
-        if hasattr(os_stack, 'stack_user_project_id') and os_stack.stack_user_project_id:
-            os_stk_owner_id = os_stack.stack_user_project_id
-        if not (os_stk_owner or os_stk_owner_id or os_stk_status_reas):
-            try:
-                self.concertim_service.update_rack(rack_id_tup[0], {'name':os_stack.stack_name,
-                                                                    'openstack_stack_output': curr_output,
-                                                                    'openstack_stack_status_reason': os_stk_status_reas,
-                                                                    'openstack_stack_owner': os_stk_owner,
-                                                                    'openstack_stack_owner_id': os_stk_owner_id,
-                                                                    'openstack_stack_id': os_stack.id})
-                self.view.racks[rack_id_tup].add_metadata(openstack_stack_status_reason=os_stk_status_reas,openstack_stack_owner=os_stk_owner,openstack_stack_owner_id=os_stk_owner_id)
-                self.__LOGGER.debug(f"Metadata Updated")
-            except Exception as e:
-                self.__LOGGER.error(f"Unhandled Exception when updating metadata for Rack {rack_id_tup[0]} - Skipping - {type(e).__name__} - {e}")
-                return 
-        else:
-            self.__LOGGER.debug(f"Rack Metadata fields are empty - Skipping update")
-            return
+        try:
+            # Clear currnet metadata for rack
+            curr_output = self.view.racks[rack_id_tup].output
+            self.view.racks[rack_id_tup].metadata = {}
+            ###
+            os_stk_owner = None
+            os_stk_owner_id = None
+            os_stk_status_reas = None
+            if hasattr(os_stack, 'stack_status_reason') and os_stack.stack_status_reason:
+                os_stk_status_reas = os_stack.stack_status_reason
+            if hasattr(os_stack, 'stack_owner') and os_stack.stack_owner:
+                os_stk_owner = os_stack.stack_owner
+            if hasattr(os_stack, 'stack_user_project_id') and os_stack.stack_user_project_id:
+                os_stk_owner_id = os_stack.stack_user_project_id
+            if not (os_stk_owner or os_stk_owner_id or os_stk_status_reas):
+                try:
+                    self.concertim_service.update_rack(rack_id_tup[0], {'name':os_stack.stack_name,
+                                                                        'openstack_stack_output': curr_output,
+                                                                        'openstack_stack_status_reason': os_stk_status_reas,
+                                                                        'openstack_stack_owner': os_stk_owner,
+                                                                        'openstack_stack_owner_id': os_stk_owner_id,
+                                                                        'openstack_stack_id': os_stack.id})
+                    self.view.racks[rack_id_tup].add_metadata(openstack_stack_status_reason=os_stk_status_reas,openstack_stack_owner=os_stk_owner,openstack_stack_owner_id=os_stk_owner_id)
+                    self.__LOGGER.debug(f"Metadata Updated")
+                except Exception as e:
+                    self.__LOGGER.error(f"Unhandled Exception when updating metadata for Rack {rack_id_tup[0]} - Skipping - {type(e).__name__} - {e}")
+                    return 
+            else:
+                self.__LOGGER.debug(f"Rack Metadata fields are empty - Skipping update")
+                return
+        except Exception as e:
+            self.__LOGGER.error(f"Failed to update Rack metadata - {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
+            raise e
 
     def update_device_status(self, os_instance, device_id_tup):
-        con_state_list = [c_state for c_state, os_state_list in UpdateHandler.CONCERTIM_STATE_MAP['DEVICE'].items() if os_instance._info['OS-EXT-STS:vm_state'] in os_state_list]
-        if con_state_list:
-            con_state = con_state_list[0]
-        else:
-            con_state = 'FAILED'
         try:
-            self.concertim_service.update_device(device_id_tup[0], {'name':os_instance.name,'status':con_state})
-            self.view.devices[device_id_tup].status = con_state
-            self.__LOGGER.debug(f"Status updated to {con_state}")
+            con_state_list = [c_state for c_state, os_state_list in UpdateHandler.CONCERTIM_STATE_MAP['DEVICE'] if os_instance._info['OS-EXT-STS:vm_state'] in os_state_list]
+            if con_state_list:
+                con_state = con_state_list[0]
+            else:
+                con_state = 'FAILED'
+            try:
+                self.concertim_service.update_device(device_id_tup[0], {'name':os_instance.name,'status':con_state})
+                self.view.devices[device_id_tup].status = con_state
+                self.__LOGGER.debug(f"Status updated to {con_state}")
+            except Exception as e:
+                self.__LOGGER.error(f"Unhandled Exception when updating status for Device {device_id_tup[0]} - Skipping - {type(e).__name__} - {e}")
+                return 
         except Exception as e:
-            self.__LOGGER.error(f"Unhandled Exception when updating status for Device {device_id_tup[0]} - Skipping - {type(e).__name__} - {e}")
-            return 
+            self.__LOGGER.error(f"Failed to update Device status - {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
+            raise e
 
     def update_device_metadata(self, os_instance, device_id_tup):
-        os_ips = []
-        os_ssh_key = None
-        os_vols_att = None
-        if hasattr(os_instance, 'accessIPv4') and os_instance.accessIPv4:
-            os_ips.append(os_instance.accessIPv4)
-        if hasattr(os_instance, 'accessIPv6') and os_instance.accessIPv6:
-            os_ips.append(os_instance.accessIPv6)
-        if hasattr(os_instance, 'key_name') and os_instance.key_name:
-            os_ssh_key = os_instance.key_name
-        if hasattr(os_instance, 'os-extended-volumes:volumes_attached') and os_instance._info['os-extended-volumes:volumes_attached']:
-            os_vols_att = os_instance._info['os-extended-volumes:volumes_attached']
-        if not (os_ips or os_ssh_key or os_vols_att):
-            try:
-                self.concertim_service.update_device(device_id_tup[0], {'name':os_instance.name, 
-                                                                        'openstack_ips': os_ips,
-                                                                        'openstack_ssh_key': os_ssh_key,
-                                                                        'volumes_attached': os_vols_att,
-                                                                        'openstack_instance_id': os_instance.id})
-                self.view.devices[device_id_tup].ips = os_ips
-                self.view.devices[device_id_tup].ssh_key = os_ssh_key
-                self.view.devices[device_id_tup].volumes_attached = os_vols_att
-                self.__LOGGER.debug(f"Metadata Updated")
-            except Exception as e:
-                self.__LOGGER.error(f"Unhandled Exception when updating metadata for Device {device_id_tup[0]} - Skipping - {type(e).__name__} - {e}")
-                return 
-        else:
-            self.__LOGGER.debug(f"Instance Metadata fields are empty - Skipping update")
-            return
+        try:
+            os_ips = []
+            os_ssh_key = None
+            os_vols_att = None
+            if hasattr(os_instance, 'accessIPv4') and os_instance.accessIPv4:
+                os_ips.append(os_instance.accessIPv4)
+            if hasattr(os_instance, 'accessIPv6') and os_instance.accessIPv6:
+                os_ips.append(os_instance.accessIPv6)
+            if hasattr(os_instance, 'key_name') and os_instance.key_name:
+                os_ssh_key = os_instance.key_name
+            if hasattr(os_instance, 'os-extended-volumes:volumes_attached') and os_instance._info['os-extended-volumes:volumes_attached']:
+                os_vols_att = os_instance._info['os-extended-volumes:volumes_attached']
+            if not (os_ips or os_ssh_key or os_vols_att):
+                try:
+                    self.concertim_service.update_device(device_id_tup[0], {'name':os_instance.name, 
+                                                                            'openstack_ips': os_ips,
+                                                                            'openstack_ssh_key': os_ssh_key,
+                                                                            'volumes_attached': os_vols_att,
+                                                                            'openstack_instance_id': os_instance.id})
+                    self.view.devices[device_id_tup].ips = os_ips
+                    self.view.devices[device_id_tup].ssh_key = os_ssh_key
+                    self.view.devices[device_id_tup].volumes_attached = os_vols_att
+                    self.__LOGGER.debug(f"Metadata Updated")
+                except Exception as e:
+                    self.__LOGGER.error(f"Unhandled Exception when updating metadata for Device {device_id_tup[0]} - Skipping - {type(e).__name__} - {e}")
+                    return 
+            else:
+                self.__LOGGER.debug(f"Instance Metadata fields are empty - Skipping update")
+                return
+        except Exception as e:
+            self.__LOGGER.error(f"Failed to update Device metadata - {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
+            raise e
 
     def __empty_output_data(self, con_rack):
         for output_tup in con_rack.output:
