@@ -3,6 +3,8 @@ from utils.service_logger import create_logger
 from openstack.openstack import OpenstackService
 from concertim.concertim import ConcertimService
 from openstack.exceptions import FailureToScrub, UnsupportedObject
+# Py Packages
+import sys
 
 class BaseHandler(object):
     LOG_DIR = '/var/log/concertim-openstack-service/'
@@ -16,52 +18,56 @@ class BaseHandler(object):
     # Delete objects that were created before encountering an error ('orphans')
     # 'orphans' - Openstack objects to remove
     def __scrub(self, *orphans):
-        self.__LOGGER.debug(f"Scrubbing orphaned objects")
-        failed = []
-        grouped_orphans = {'errors1':[],'errors2':[]}
+        try:
+            self.__LOGGER.debug(f"Scrubbing orphaned objects")
+            failed = []
+            grouped_orphans = {'errors1':[],'errors2':[]}
 
-        self.__LOGGER.debug(f"Grouping orphans by handler")
-        for orphan in orphans:
-            orphan_tree = getattr(orphan, '__module__', None)
-            orphan_root = orphan_tree.split('.')[0] if orphan_tree else None
-            if not orphan_root:
-                self.__LOGGER.warning(f"Failed to get root module for '{orphan}' - adding to errors list")
-                grouped_orphans['errors1'].append(f"[Orphan:{orphan}, Error: Root Module is None]")
-                continue
-            orphan_client_name = orphan_root.replace("client","")
-            if orphan_client_name in self.openstack_service._handlers_key_map:
-                if orphan_client_name in grouped_orphans:
-                    grouped_orphans[orphan_client_name].append(orphan)
+            self.__LOGGER.debug(f"Grouping orphans by handler")
+            for orphan in orphans:
+                orphan_tree = getattr(orphan, '__module__', None)
+                orphan_root = orphan_tree.split('.')[0] if orphan_tree else None
+                if not orphan_root:
+                    self.__LOGGER.warning(f"Failed to get root module for '{orphan}' - adding to errors list")
+                    grouped_orphans['errors1'].append(f"[Orphan:{orphan}, Error: Root Module is None]")
+                    continue
+                orphan_client_name = orphan_root.replace("client","")
+                if orphan_client_name in self.openstack_service._handlers_key_map:
+                    if orphan_client_name in grouped_orphans:
+                        grouped_orphans[orphan_client_name].append(orphan)
+                    else:
+                        grouped_orphans[orphan_client_name] = [].append(orphan)
                 else:
-                    grouped_orphans[orphan_client_name] = [].append(orphan)
-            else:
-                self.__LOGGER.warning(f"Failed to locate handler for '{orphan}' - adding to errors list")
-                grouped_orphans['errors2'].append(f"[Orphan:{orphan}, Error: Handler not found, Details: Module={orphan_tree},ClientType={orphan_client_name}]")
-        if grouped_orphans['errors1'] or grouped_orphans['errors2']:
-            err_list = grouped_orphans['errors1'] + grouped_orphans['errors2']
-            err_msg = f"Some orphans could not be grouped : {err_list}"
-            if grouped_orphans['errors2']:
-                err_msg += f" - Available handlers at runtime : {self.openstack_service._handlers_key_map}"
-            self.__LOGGER.error(err_msg)
-            raise FailureToScrub(f"Grouping Failed - {err_list}")
+                    self.__LOGGER.warning(f"Failed to locate handler for '{orphan}' - adding to errors list")
+                    grouped_orphans['errors2'].append(f"[Orphan:{orphan}, Error: Handler not found, Details: Module={orphan_tree},ClientType={orphan_client_name}]")
+            if grouped_orphans['errors1'] or grouped_orphans['errors2']:
+                err_list = grouped_orphans['errors1'] + grouped_orphans['errors2']
+                err_msg = f"Some orphans could not be grouped : {err_list}"
+                if grouped_orphans['errors2']:
+                    err_msg += f" - Available handlers at runtime : {self.openstack_service._handlers_key_map}"
+                self.__LOGGER.error(err_msg)
+                raise FailureToScrub(f"Grouping Failed - {err_list}")
 
-        self.__LOGGER.debug(f"Deleting groupped orphans")
-        for client_name in (x for x in grouped_orphans if x not in ['errors1','errors2']):
-            handler = self.openstack_service.handlers[self.openstack_service._handlers_key_map[client_name]]
-            try:
-                successful = handler.delete(*grouped_orphans[client_name])
-                if not successful:
-                    failed.append(f"[Handler:{client_name}, Reason:General - check warnings for details]")
-            except UnsupportedObject as e:
-                failed.append(f"[Handler:{client_name}, Reason:UnsupportedObject - {e}]")
-                continue
-        
-        if failed:
-            self.__LOGGER.error(f"Some handlers failed to delete all objects - {failed}")
-            raise FailureToScrub(f"Deleting failed - {failed}")
-        else:
-            self.__LOGGER.debug(f"Successfully Scrubbed orphaned objects")
-            return True
+            self.__LOGGER.debug(f"Deleting groupped orphans")
+            for client_name in (x for x in grouped_orphans if x not in ['errors1','errors2']):
+                handler = self.openstack_service.handlers[self.openstack_service._handlers_key_map[client_name]]
+                try:
+                    successful = handler.delete(*grouped_orphans[client_name])
+                    if not successful:
+                        failed.append(f"[Handler:{client_name}, Reason:General - check warnings for details]")
+                except UnsupportedObject as e:
+                    failed.append(f"[Handler:{client_name}, Reason:UnsupportedObject - {e}]")
+                    continue
+            
+            if failed:
+                self.__LOGGER.error(f"Some handlers failed to delete all objects - {failed}")
+                raise FailureToScrub(f"Deleting failed - {failed}")
+            else:
+                self.__LOGGER.debug(f"Successfully Scrubbed orphaned objects")
+                return True
+        except Exception as e:
+            self.__LOGGER.error(f"{type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
+            raise e
 
     def disconnect(self):
         self.__LOGGER.info("Disconnecting and destroying all base services")

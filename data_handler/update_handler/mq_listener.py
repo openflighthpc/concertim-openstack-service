@@ -2,6 +2,7 @@
 from utils.service_logger import create_logger
 from data_handler.update_handler.update_base import UpdateHandler
 # Py Packages
+import sys
 import json
 import pika
 
@@ -63,29 +64,33 @@ class MqUpdateHandler(UpdateHandler):
             raise e
 
     def handle_rmq_message(self, ch, method, properties, body):
-        message = None
-        response = json.loads(body)
         try:
-            message = json.loads(response['oslo.message'])
-        except KeyError as e:
-            self.__LOGGER.debug(f"Message did not contain 'oslo.message' key - Ignoring")
-            return
+            message = None
+            response = json.loads(body)
+            try:
+                message = json.loads(response['oslo.message'])
+            except KeyError as e:
+                self.__LOGGER.debug(f"Message did not contain 'oslo.message' key - Ignoring")
+                return
+            except Exception as e:
+                self.__LOGGER.error(f"Failed to load message - {type(e).__name__} - {e} - Skipping")
+                return
+            self.__LOGGER.info(f"MQ message caught - Checking if supported - '{message['event_type']}'")
+            #self.__LOGGER.debug(f"Message '{message['event_type']}' payload: {message['payload']}")
+            function_list = [func for evnt_t, func in self.event_types if message['event_type'].startswith(evnt_t)]
+            if function_list:
+                if len(function_list) > 1:
+                    self.__LOGGER.warning(f"Multiple functions found for '{message['event_type']}' - Using first function found - Functions:{function_list}")
+                function = function_list[0]
+                self.__LOGGER.debug(f"Loading latest View data")
+                self.load_view()
+                self.__LOGGER.info(f"Sending message to function:'{function}'")
+                function(message)
+            else:
+                self.__LOGGER.info(f"Message event type '{message['event_type']}' not found in supported event types - Ignoring")
         except Exception as e:
-            self.__LOGGER.error(f"Failed to load message - {type(e).__name__} - {e} - Skipping")
-            return
-        self.__LOGGER.info(f"MQ message caught - Checking if supported - '{message['event_type']}'")
-        #self.__LOGGER.debug(f"Message '{message['event_type']}' payload: {message['payload']}")
-        function_list = [func for evnt_t, func in self.event_types if message['event_type'].startswith(evnt_t)]
-        if function_list:
-            if len(function_list) > 1:
-                self.__LOGGER.warning(f"Multiple functions found for '{message['event_type']}' - Using first function found - Functions:{function_list}")
-            function = function_list[0]
-            self.__LOGGER.debug(f"Loading latest View data")
-            self.load_view()
-            self.__LOGGER.info(f"Sending message to function:'{function}'")
-            function(message)
-        else:
-            self.__LOGGER.info(f"Message event type '{message['event_type']}' not found in supported event types - Ignoring")
+            self.__LOGGER.error(f"Failed to handle message - {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
+            raise e
 
     def handle_instance_message(self, msg):
         self.__LOGGER.debug(f"Starting - Handling instance message")

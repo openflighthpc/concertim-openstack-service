@@ -5,6 +5,7 @@ from concertim.utils.endpoints import ENDPOINTS
 from concertim.exceptions import ConcertimItemConflict, MissingRequiredArgs
 
 # Py Packages
+import sys
 import json
 # Disable insecure warnings  
 import requests
@@ -103,8 +104,8 @@ class ConcertimService(object):
         try:
             response = self.__api_call('put', 'METRIC', variables_dict=variables_dict, endpoint_var=str(ID))
             return response
-        except ValueError as e:
-            self.__LOGGER.error(f"FAILED - Could not send metric for {variables_dict['name']} - {type(e).__name__} - {e}")
+        except Exception as e:
+            self.__LOGGER.error(f"FAILED - Could not send metric for {variables_dict['name']} - {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
             raise e
 
     # Generic method for handling Concertim API calls.

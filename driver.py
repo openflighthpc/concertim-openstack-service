@@ -59,7 +59,7 @@ def run_metrics(test=False):
     except Exception as e:
         msg = f"Could not run Metrics process - {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}"
         logger.error(msg)
-        raise SystemExit(msg)
+        stop(metric_handler)
 
 def run_bulk_updates(test=False):
     # Common
@@ -105,7 +105,7 @@ def run_bulk_updates(test=False):
     except Exception as e:
         msg = f"Could not run All-In-One Updates process - {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}"
         logger.error(msg)
-        raise SystemExit(msg)
+        stop(bulk_update_handler)
 
 def run_mq_updates(test=False):
     # Common
@@ -136,7 +136,7 @@ def run_mq_updates(test=False):
     except Exception as e:
         msg = f"Could not run MQ Listener Updates process - {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}"
         logger.error(msg)
-        raise SystemExit(msg)
+        stop(mq_update_handler)
 
 def run_updates_aio(test=False):
     # Common
@@ -187,7 +187,7 @@ def run_updates_aio(test=False):
     except Exception as e:
         msg = f"Could not run All-In-One Updates process - {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}"
         logger.error(msg)
-        raise SystemExit(msg)
+        stop(bulk_update_handler,mq_update_handler)
 
 def run_api_server():
     # Common

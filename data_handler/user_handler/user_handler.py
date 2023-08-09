@@ -2,6 +2,7 @@
 from utils.service_logger import create_logger
 from data_handler.base import BaseHandler
 # Py Packages
+import sys
 
 
 class UserHandler(BaseHandler):
@@ -34,7 +35,7 @@ class UserHandler(BaseHandler):
         except Exception as e:
             self.__LOGGER.error(f"Encountered ERROR - Aborting")
             super().__scrub(*children)
-            self.__LOGGER.error(f"Encountered ERROR while creating Concertim-managed user/project - {type(e).__name__} - {e}")
+            self.__LOGGER.error(f"Encountered error when creating new Concertim Managed User/Project {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
             raise e
 
 

@@ -9,7 +9,7 @@ from concertim.components.user import ConcertimUser
 from concertim.components.location import Location
 from concertim.exceptions import ConcertimItemConflict, MissingRequiredArgs
 # Py Packages
-
+import sys
 
 
 class BulkUpdateHandler(UpdateHandler):
@@ -20,13 +20,17 @@ class BulkUpdateHandler(UpdateHandler):
         self.default_rack_height=self._CONFIG['concertim']['default_rack_height']
 
     def full_update_sync(self):
-        self.__LOGGER.info(f"Starting - Full Openstack Concertim Sync")
-        self.__LOGGER.debug(f"Pulling View data directly from Concertim")
-        self.view = ConcertimOpenstackView()
-        self.populate_view()
-        self.update_concertim()
-        self.save_view()
-        self.__LOGGER.info(f"Finished - Full Openstack Concertim Sync")
+        try:
+            self.__LOGGER.info(f"Starting - Full Openstack Concertim Sync")
+            self.__LOGGER.debug(f"Pulling View data directly from Concertim")
+            self.view = ConcertimOpenstackView()
+            self.populate_view()
+            self.update_concertim()
+            self.save_view()
+            self.__LOGGER.info(f"Finished - Full Openstack Concertim Sync")
+        except Exception as e:
+            self.__LOGGER.error(f"Full Sync failed to execute - {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
+            raise e
 
     def update_concertim(self):
         self.__LOGGER.info(f"Starting - Updating Concertim with new Openstack data")

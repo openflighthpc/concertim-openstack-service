@@ -8,6 +8,7 @@ from concertim.components.template import ConcertimTemplate
 from concertim.components.user import ConcertimUser
 from concertim.components.location import Location
 # Py Packages
+import sys
 import pickle
 import os
 
@@ -40,13 +41,17 @@ class UpdateHandler(BaseHandler):
 
     # Controller method for populating self.view with data from concertim app
     def populate_view(self):
-        self.__LOGGER.info(f"Starting - Populating Concertim View")
-        self.fetch_concertim_users()
-        self.fetch_concertim_templates()
-        self.fetch_concertim_racks()
-        self.fetch_concertim_devices()
-        self.map_view_components()
-        self.__LOGGER.info(f"Finished - Populating Concertim View")
+        try:
+            self.__LOGGER.info(f"Starting - Populating Concertim View")
+            self.fetch_concertim_users()
+            self.fetch_concertim_templates()
+            self.fetch_concertim_racks()
+            self.fetch_concertim_devices()
+            self.map_view_components()
+            self.__LOGGER.info(f"Finished - Populating Concertim View")
+        except Exception as e:
+            self.__LOGGER.error(f"Could not Populate View - {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
+            raise e
 
     # Map related View component objects
     def map_view_components(self):

@@ -2,6 +2,7 @@
 from utils.service_logger import create_logger
 from data_handler.base import BaseHandler
 # Py Packages
+import sys
 import time
 from datetime import datetime, timedelta
 
@@ -52,7 +53,7 @@ class MetricHandler(BaseHandler):
             self.__LOGGER.info(f"METRICS - METRIC SENDING COMPLETE")
 
         except Exception as e:
-            self.__LOGGER.error(f"{type(e).__name__} - {e}")
+            self.__LOGGER.error(f"Failed to run MetricHandler.run() - {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
             raise e
 
     # Calculate and post all metrics for a given instance's supported resources

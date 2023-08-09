@@ -2,6 +2,8 @@
 from utils.service_logger import create_logger
 from openstack.opstk_auth import OpenStackAuth
 from openstack.exceptions import UnknownOpenstackHandler, NoHandlerFound, MissingOpenstackObject
+# Py Packages
+import sys
 
 class OpenstackService(object):
     _REQUIRED_KS_OBJS = {
@@ -25,34 +27,38 @@ class OpenstackService(object):
     # Private method to return correct ClientHandler object with instance's openstack auth data
     def __create_handler(self, client_name, auth=None):
         self.__LOGGER.debug(f"Creating '{client_name}' handler for corresponding Openstack Client")
-        sess = auth.get_session() if auth is not None else self.__OPSTK_AUTH.get_session()
-        if client_name.lower() in ["keystone", "keystoneclient", "keystone_client", "keystonehandler", "keystone_handler"]:
-            from openstack.client_handlers.keystone import KeystoneHandler
-            kh = KeystoneHandler(sess, self._LOG_FILE, self._CONFIG['log_level'])
-            self.__LOGGER.debug(f"Successfully added KeystoneHandler to OpenstackService")
-            self._handlers_key_map['keystone'] = client_name
-            return kh
-        elif client_name.lower() in ["nova", "novaclient", "nova_client", "novahandler", "nova_handler"]:
-            from openstack.client_handlers.nova import NovaHandler
-            nh = NovaHandler(sess, self._LOG_FILE, self._CONFIG['log_level'])
-            self.__LOGGER.debug(f"Successfully added NovaHandler to OpenstackService")
-            self._handlers_key_map['nova'] = client_name
-            return nh
-        elif client_name.lower() in ["heat", "heatclient", "heat_client", "heathandler", "heat_handler"]:
-            from openstack.client_handlers.heat import HeatHandler
-            hh = HeatHandler(sess, self._LOG_FILE, self._CONFIG['log_level'])
-            self.__LOGGER.debug(f"Successfully added HeatHandler to OpenstackService")
-            self._handlers_key_map['heat'] = client_name
-            return hh
-        elif client_name.lower() in ["gnocchi", "gnocchiclient", "gnocchi_client", "gnocchihandler", "gnocchi_handler"]:
-            from openstack.client_handlers.gnocchi import GnocchiHandler
-            gh = GnocchiHandler(sess, self._LOG_FILE, self._CONFIG['log_level'])
-            self.__LOGGER.debug(f"Successfully added GnocchiHandler to OpenstackService")
-            self._handlers_key_map['gnocchi'] = client_name
-            return gh
-        else:
-            self.__LOGGER.error(f"Attempted to add an unknown handler : '{client_name}'")
-            raise UnknownOpenstackHandler(f"Unknown Handler : {client_name}")
+        try:
+            sess = auth.get_session() if auth is not None else self.__OPSTK_AUTH.get_session()
+            if client_name.lower() in ["keystone", "keystoneclient", "keystone_client", "keystonehandler", "keystone_handler"]:
+                from openstack.client_handlers.keystone import KeystoneHandler
+                kh = KeystoneHandler(sess, self._LOG_FILE, self._CONFIG['log_level'])
+                self.__LOGGER.debug(f"Successfully added KeystoneHandler to OpenstackService")
+                self._handlers_key_map['keystone'] = client_name
+                return kh
+            elif client_name.lower() in ["nova", "novaclient", "nova_client", "novahandler", "nova_handler"]:
+                from openstack.client_handlers.nova import NovaHandler
+                nh = NovaHandler(sess, self._LOG_FILE, self._CONFIG['log_level'])
+                self.__LOGGER.debug(f"Successfully added NovaHandler to OpenstackService")
+                self._handlers_key_map['nova'] = client_name
+                return nh
+            elif client_name.lower() in ["heat", "heatclient", "heat_client", "heathandler", "heat_handler"]:
+                from openstack.client_handlers.heat import HeatHandler
+                hh = HeatHandler(sess, self._LOG_FILE, self._CONFIG['log_level'])
+                self.__LOGGER.debug(f"Successfully added HeatHandler to OpenstackService")
+                self._handlers_key_map['heat'] = client_name
+                return hh
+            elif client_name.lower() in ["gnocchi", "gnocchiclient", "gnocchi_client", "gnocchihandler", "gnocchi_handler"]:
+                from openstack.client_handlers.gnocchi import GnocchiHandler
+                gh = GnocchiHandler(sess, self._LOG_FILE, self._CONFIG['log_level'])
+                self.__LOGGER.debug(f"Successfully added GnocchiHandler to OpenstackService")
+                self._handlers_key_map['gnocchi'] = client_name
+                return gh
+            else:
+                self.__LOGGER.error(f"Attempted to add an unknown handler : '{client_name}'")
+                raise UnknownOpenstackHandler(f"Unknown Handler : {client_name}")
+        except Exception as e:
+            self.__LOGGER.error(f"{type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
+            raise e
 
     # Method for adding new handlers to existing OpenstackService - returns client handler if successful
     # OPTIONAL : pass a different OpenStackAuth object, otherwise instance native auth is used
@@ -65,7 +71,7 @@ class OpenstackService(object):
             self.__LOGGER.error(f"{type(e).__name__} - Please create missing objects - {e}")
             raise SystemExit(e)
         except Exception as e:
-            self.__LOGGER.error(f"Unhandled Exception - {type(e).__name__} : {e}")
+            self.__LOGGER.error(f"Unhandled Exception - {type(e).__name__} : {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
             raise e
 
     # Method for deleting handlers from an existing OpenstackService
@@ -75,7 +81,7 @@ class OpenstackService(object):
             del self.handlers[handler_name]
             return True
         except Exception as e:
-            self.__LOGGER.error(f"Unhandled Exception - {type(e).__name__} : {e}")
+            self.__LOGGER.error(f"Unhandled Exception - {type(e).__name__} : {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
             raise e
 
     # Private method for checking if a handler exists in the object, if not raise exception
