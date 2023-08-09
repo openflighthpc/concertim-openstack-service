@@ -8,16 +8,16 @@ import pika
 
 class MqUpdateHandler(UpdateHandler):
     DEFAULT_QUEUE = 'notifications.info'
-    DEFAULT_EVENT_TYPES = {
-        'compute.instance': self.handle_instance_message, 
-        'orchestration.stack': self.handle_stack_message
-        }
     def __init__(self, config_obj, log_file, clients=None, queue=None, event_types=None):
+        DEFAULT_EVENT_TYPES = {
+            'compute.instance': self.handle_instance_message,
+            'orchestration.stack': self.handle_stack_message
+        }
         self.clients = clients if clients else UpdateHandler.DEFAULT_CLIENTS
         super().__init__(config_obj, log_file, self.clients)
         self.__LOGGER = create_logger(__name__, self._LOG_FILE, self._CONFIG['log_level'])
         self.queue = queue if queue else MqUpdateHandler.DEFAULT_QUEUE
-        self.event_types = event_types if event_types else MqUpdateHandler.DEFAULT_EVENT_TYPES
+        self.event_types = event_types if event_types else DEFAULT_EVENT_TYPES
         self.channel = self.__get_mq_channel()
 
     def __get_mq_channel(self):

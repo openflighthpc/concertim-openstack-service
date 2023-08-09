@@ -146,7 +146,7 @@ class ConcertimService(object):
             self.__check_required_vars(variables_dict, endpoint)
             data_dict = self.__get_data(variables_dict, endpoint['data'], endpoint_name)
             data = json.dumps(data_dict)
-
+            self.__LOGGER.debug(f"Data to send: {data}")
             # Don't log user/pass in plain text
             if endpoint_name == 'LOGIN_AUTH':
                 self.__LOGGER.debug(f"API CALL ({method}) - {url}")
@@ -185,7 +185,7 @@ class ConcertimService(object):
                 else:
                     if key in casting:
                         data_dict[key] = casting[key](value.format(**variables_dict))
-                    elif not value and endpoint_name in ['UPDATE_DEVICE','UPDATE_RACK','UPDATE_TEMPLATE']:
+                    elif value not in variables_dict and endpoint_name in ['UPDATE_DEVICE','UPDATE_RACK','UPDATE_TEMPLATE']:
                         continue
                     else:
                         data_dict[key] = value.format(**variables_dict)

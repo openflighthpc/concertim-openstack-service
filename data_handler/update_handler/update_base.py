@@ -123,14 +123,14 @@ class UpdateHandler(BaseHandler):
                 if rack['id'] in [id_tup[0] for id_tup in self.view.racks]:
                     continue
                 self.__LOGGER.debug(f"Rack '{rack['id']}' not found in View - creating new ConcertimRack")
-                opsk_stack_id = rack['metadata']['openstack_stack_id'] if 'openstack_stack_id' in rack['metadata'] else None
+                opsk_stack_id = rack['metadata']['openstack_stack_id'] if 'openstack_stack_id' in rack['metadata'] else ''
                 new_rack = ConcertimRack(concertim_id=rack['id'], 
                                         openstack_id=opsk_stack_id, 
                                         concertim_name=rack['name'], 
                                         openstack_name=rack['name'], 
                                         user_id=rack['owner']['id'], 
                                         height=rack['u_height'], 
-                                        description='',
+                                        description=rack['description'],
                                         status=rack['status'])
                 self.view.add_rack(new_rack)
                 self.__LOGGER.debug(f"New ConcertimRack created in View : {new_rack}")                
