@@ -200,7 +200,7 @@ class BulkUpdateHandler(UpdateHandler):
                                                                             'disk' : new_template.disk, 
                                                                             'vcpus' : new_template.vcpus, 
                                                                             'foreign_id' : new_template.id[1]})
-            new_template.id[0] = concertim_response_template['id']
+            new_template.id = (concertim_response_template['id'], new_template.id[1])
             self.__LOGGER.debug(f"Successfully created new Template: {new_template}")
             self.view.add_template(new_template)
             return True
@@ -241,7 +241,7 @@ class BulkUpdateHandler(UpdateHandler):
                                                             'openstack_stack_status_reason':os_stack.stack_status_reason,
                                                             'openstack_stack_owner':os_stack.stack_owner,
                                                             'openstack_stack_owner_id' : os_stack.stack_user_project_id})
-            new_rack.id[0] = concertim_response_rack['id']
+            new_rack.id = (concertim_response_rack['id'],new_rack.id[1])
             self.__LOGGER.debug(f"Successfully created new Rack: {new_rack}")
             self.view.add_rack(new_rack)
             self.view.users[user_id_tup].add_rack(new_rack.id[0])
@@ -293,7 +293,7 @@ class BulkUpdateHandler(UpdateHandler):
                                                                 'openstack_ips' : new_device.ips,
                                                                 'openstack_ssh_key': new_device.ssh_key,
                                                                 'volumes_attached': new_device.volumes_attached})
-            new_device.id[0] = concertim_response_device['id']
+            new_device.id = (concertim_response_device['id'], new_device.id[1])
             self.__LOGGER.debug(f"Successfully created new Device: {new_device}")
             self.view.add_device(new_device)
             self.view.racks[rack_id_tup].add_device(new_device.id[0], new_device.location)
