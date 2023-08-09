@@ -1,8 +1,8 @@
 from concertim.components.component import ConcertimComponent
 
 class ConcertimTemplate(ConcertimComponent):
-    def __init__(self, concertim_id=None, openstack_id=None, concertim_name=None, openstack_name=None, ram=None, disk=None, vcpus=None, size=None, desc=''):
-        super().__init__(concertim_id=concertim_id, openstack_id=openstack_id, concertim_name=concertim_name, openstack_name=openstack_name, description=desc)
+    def __init__(self, concertim_id=None, openstack_id=None, concertim_name=None, openstack_name=None, ram=None, disk=None, vcpus=None, size=None, description=''):
+        super().__init__(concertim_id=concertim_id, openstack_id=openstack_id, concertim_name=concertim_name, openstack_name=openstack_name, description=description)
         self.ram = ram
         self.disk = disk
         self.vcpus = vcpus

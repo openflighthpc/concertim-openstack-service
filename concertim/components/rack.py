@@ -1,8 +1,8 @@
 from concertim.components.component import ConcertimComponent
 
 class ConcertimRack(ConcertimComponent):
-    def __init__(self, concertim_id=None, openstack_id=None, concertim_name=None, openstack_name=None, user_id=None, height=42, desc='', status=None):
-        super().__init__(concertim_id=concertim_id, openstack_id=openstack_id, concertim_name=concertim_name, openstack_name=openstack_name, description=desc)
+    def __init__(self, concertim_id=None, openstack_id=None, concertim_name=None, openstack_name=None, user_id=None, height=42, description='', status=None):
+        super().__init__(concertim_id=concertim_id, openstack_id=openstack_id, concertim_name=concertim_name, openstack_name=openstack_name, description=description)
         self.user_id = user_id
         self.height = height
         self.devices = []

@@ -1,7 +1,7 @@
 from concertim.components.component import ConcertimComponent
 
 class ConcertimDevice(ConcertimComponent):
-    def __init__(self, concertim_id=None, openstack_id=None, concertim_name=None, openstack_name=None, rack_id=None, template=None, location=None, desc='', status=None):
+    def __init__(self, concertim_id=None, openstack_id=None, concertim_name=None, openstack_name=None, rack_id=None, template=None, location=None, description='', status=None):
         super().__init__(concertim_id=concertim_id, openstack_id=openstack_id, concertim_name=concertim_name, openstack_name=openstack_name, description=desc)
         self.rack_id = rack_id
         self.template = template

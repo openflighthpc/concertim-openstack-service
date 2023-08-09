@@ -1,8 +1,8 @@
 class ConcertimComponent(object):
-    def __init__(self, concertim_id=None, openstack_id=None, concertim_name=None, openstack_name=None, desc=''):
+    def __init__(self, concertim_id=None, openstack_id=None, concertim_name=None, openstack_name=None, description=''):
         self.id = (concertim_id,openstack_id)
         self.name = (concertim_name,openstack_name)
-        self.description = desc
+        self.description = description
 
     def __repr__(self):
         opsk_info = self.get_openstack_definition()
