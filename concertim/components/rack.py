@@ -7,7 +7,7 @@ class ConcertimRack(ConcertimComponent):
         self.height = height
         self.devices = []
         self.status = status
-        self.__occupied = []
+        self._occupied = []
         self.output = []
         self.metadata = {}
 
@@ -37,8 +37,8 @@ class ConcertimRack(ConcertimComponent):
 
     def add_device(self, device_concertim_id, location):
         self.devices.append(device_concertim_id)
-        self.__occupied.extend([x for x in range(location.start_u, location.end_u+1)])
+        self._occupied.extend([x for x in range(location.start_u, location.end_u+1)])
 
     def remove_device(self, device_concertim_id, location):
         self.devices.remove(device_concertim_id)
-        self.__occupied.remove([x for x in range(location.start_u, location.end_u+1)])
+        self._occupied.remove([x for x in range(location.start_u, location.end_u+1)])

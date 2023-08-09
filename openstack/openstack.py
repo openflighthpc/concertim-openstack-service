@@ -12,14 +12,14 @@ class OpenstackService(object):
         }
 
     def __init__(self, config_obj, log_file, client_list=[], required_ks_objs={}):
-        self.__CONFIG = config_obj
-        self.__LOG_FILE = log_file
-        self.__LOGGER = create_logger(__name__, self.__LOG_FILE, self.__CONFIG['log_level'])
+        self._CONFIG = config_obj
+        self._LOG_FILE = log_file
+        self.__LOGGER = create_logger(__name__, self._LOG_FILE, self._CONFIG['log_level'])
         self.__OPSTK_AUTH = OpenStackAuth(self.__CONFIG['openstack'])
-        self.__handlers_key_map = {}
+        self._handlers_key_map = {}
         self.handlers = {client:self.__create_handler(client) for client in client_list}
-        self.req_keystone_objs = {}
-        if 'keystone' in self.__handlers_key_map:
+        self.req_keystone_objs = required_ks_objs
+        if 'keystone' in self._handlers_key_map:
             self.req_keystone_objs = self.__populate_required_objs('keystone', required_ks_objs) if required_ks_objs else self.__populate_required_objs('keystone', __REQUIRED_KS_OBJS)
     
     # Private method to return correct ClientHandler object with instance's openstack auth data
@@ -28,27 +28,27 @@ class OpenstackService(object):
         sess = auth.get_session() if auth is not None else self.__OPSTK_AUTH.get_session()
         if client_name.lower() in ["keystone", "keystoneclient", "keystone_client", "keystonehandler", "keystone_handler"]:
             from openstack.client_handlers.keystone import KeystoneHandler
-            kh = KeystoneHandler(sess, self.__LOG_FILE, self.__CONFIG['log_level'])
+            kh = KeystoneHandler(sess, self._LOG_FILE, self._CONFIG['log_level'])
             self.__LOGGER.debug(f"Successfully added KeystoneHandler to OpenstackService")
-            self.__handlers_key_map['keystone'] = client_name
+            self._handlers_key_map['keystone'] = client_name
             return kh
         elif client_name.lower() in ["nova", "novaclient", "nova_client", "novahandler", "nova_handler"]:
             from openstack.client_handlers.nova import NovaHandler
-            nh = NovaHandler(sess, self.__LOG_FILE, self.__CONFIG['log_level'])
+            nh = NovaHandler(sess, self._LOG_FILE, self._CONFIG['log_level'])
             self.__LOGGER.debug(f"Successfully added NovaHandler to OpenstackService")
-            self.__handlers_key_map['nova'] = client_name
+            self._handlers_key_map['nova'] = client_name
             return nh
         elif client_name.lower() in ["heat", "heatclient", "heat_client", "heathandler", "heat_handler"]:
             from openstack.client_handlers.heat import HeatHandler
-            hh = HeatHandler(sess, self.__LOG_FILE, self.__CONFIG['log_level'])
+            hh = HeatHandler(sess, self._LOG_FILE, self._CONFIG['log_level'])
             self.__LOGGER.debug(f"Successfully added HeatHandler to OpenstackService")
-            self.__handlers_key_map['heat'] = client_name
+            self._handlers_key_map['heat'] = client_name
             return hh
         elif client_name.lower() in ["gnocchi", "gnocchiclient", "gnocchi_client", "gnocchihandler", "gnocchi_handler"]:
             from openstack.client_handlers.gnocchi import GnocchiHandler
-            gh = GnocchiHandler(sess, self.__LOG_FILE, self.__CONFIG['log_level'])
+            gh = GnocchiHandler(sess, self._LOG_FILE, self._CONFIG['log_level'])
             self.__LOGGER.debug(f"Successfully added GnocchiHandler to OpenstackService")
-            self.__handlers_key_map['gnocchi'] = client_name
+            self._handlers_key_map['gnocchi'] = client_name
             return gh
         else:
             self.__LOGGER.error(f"Attempted to add an unknown handler : '{client_name}'")
@@ -80,7 +80,7 @@ class OpenstackService(object):
 
     # Private method for checking if a handler exists in the object, if not raise exception
     def __check_handlers(self, *args):
-        missing = [ client for client in args if client not in self.__handlers_key_map ]
+        missing = [ client for client in args if client not in self._handlers_key_map ]
         if missing:
             self.__LOGGER.error(f"Required handler(s) missing for most recent operation : {missing}")
             raise NoHandlerFound(missing)
@@ -93,7 +93,7 @@ class OpenstackService(object):
     def __populate_required_objs(self, client_type, obj_names):
         self.__LOGGER.debug(f"Fetching required Openstack Objects for {client_type}")
         self.__check_handlers(client_type)
-        handler = self.handlers[self.__handlers_key_map[client_type]]
+        handler = self.handlers[self._handlers_key_map[client_type]]
 
         found_objs = {}
         missing_objs = []
@@ -118,7 +118,7 @@ class OpenstackService(object):
     def get_concertim_projects(self):
         self.__LOGGER.debug(f"Getting 'concertim' user role assignments for 'watcher' role.")
         self.__check_handlers('keystone')
-        keystone = self.handlers[self.__handlers_key_map['keystone']]
+        keystone = self.handlers[self._handlers_key_map['keystone']]
 
         proj_id_list=[]
         watcher_role = self.req_keystone_objs['role']['watcher']
@@ -134,7 +134,7 @@ class OpenstackService(object):
     def get_instances(self, project_id):
         self.__LOGGER.debug(f"Getting Openstack instances for project '{project_id}'")
         self.__check_handlers('nova')
-        nova = self.handlers[self.__handlers_key_map['nova']]
+        nova = self.handlers[self._handlers_key_map['nova']]
 
         instances = nova.list_servers(project_id)
         return instances
@@ -142,7 +142,7 @@ class OpenstackService(object):
     def get_flavors(self):
         self.__LOGGER.debug("Getting Openstack flavors with full details")
         self.__check_handlers('nova')
-        nova = self.handlers[self.__handlers_key_map['nova']]
+        nova = self.handlers[self._handlers_key_map['nova']]
 
         flavor_details = {}
         os_flavors = nova.list_flavors()
@@ -153,7 +153,7 @@ class OpenstackService(object):
     def get_project_resources(self, project_id):
         self.__LOGGER.debug(f"Searching Gnocchi for resources in project:{project_id}")
         self.__check_handlers('gnocchi')
-        gnocchi = self.handlers[self.__handlers_key_map['gnocchi']]
+        gnocchi = self.handlers[self._handlers_key_map['gnocchi']]
 
         project_id_query = {"and": [{"=":{"project_id":project_id}}, {"=":{"ended_at":None}}]}
         results = gnocchi.search_resource(project_id_query)
@@ -163,7 +163,7 @@ class OpenstackService(object):
     def create_new_cm_project(self, name, domain='default'):
         self.__LOGGER.debug(f"Creating new Concertim-managed project '{name}' in domain '{domain}'")
         self.__check_handlers('keystone')
-        keystone = self.handlers[self.__handlers_key_map['keystone']]
+        keystone = self.handlers[self._handlers_key_map['keystone']]
 
         if domain != 'default':
             domain_ref = keystone.get_domain(domain)
@@ -187,7 +187,7 @@ class OpenstackService(object):
     def create_new_cm_user(self, name, password, email, project, domain='default'):
         self.__LOGGER.debug(f"Creating new Concertim-managed User '{name}' in domain '{domain}'")
         self.__check_handlers('keystone')
-        keystone = self.handlers[self.__handlers_key_map['keystone']]
+        keystone = self.handlers[self._handlers_key_map['keystone']]
 
         domain_ref = ''
         if domain != 'default':
@@ -202,7 +202,7 @@ class OpenstackService(object):
     def get_cpu_load(self, resource, start, stop, granularity=5):
         self.__LOGGER.debug(f"Getting CPU Load % for {resource['id']}")
         self.__check_handlers('gnocchi')
-        gnocchi = self.handlers[self.__handlers_key_map['gnocchi']]
+        gnocchi = self.handlers[self._handlers_key_map['gnocchi']]
         try:
             cpu_metric_id = resource['metrics']['cpu']
             ns_gran_prod = 1000000000.0 * granularity
@@ -218,7 +218,7 @@ class OpenstackService(object):
     def get_ram_usage(self, resource, start, stop, granularity=5):
         self.__LOGGER.debug(f"Getting RAM Usage % for {resource['id']}")
         self.__check_handlers('gnocchi')
-        gnocchi = self.handlers[self.__handlers_key_map['gnocchi']]
+        gnocchi = self.handlers[self._handlers_key_map['gnocchi']]
         try:
             memory_metric_id = resource['metrics']['memory']
             memory_usage_metric_id = resource['metrics']['memory.usage']
@@ -234,7 +234,7 @@ class OpenstackService(object):
     def get_network_usage(self, resource, start, stop, granularity=5):
         self.__LOGGER.debug(f"Getting Network Usage for {resource['id']}")
         self.__check_handlers('gnocchi')
-        gnocchi = self.handlers[self.__handlers_key_map['gnocchi']]
+        gnocchi = self.handlers[self._handlers_key_map['gnocchi']]
         try:
             net_in_metric = resource['metrics']['network.incoming.bytes']
             net_out_metric = resource['metrics']['network.outgoing.bytes']
@@ -250,7 +250,7 @@ class OpenstackService(object):
     def get_throughput(self, resource, start, stop, granularity=5):
         self.__LOGGER.debug(f"Getting Disk Throughput for {resource['id']}")
         self.__check_handlers('gnocchi')
-        gnocchi = self.handlers[self.__handlers_key_map['gnocchi']]
+        gnocchi = self.handlers[self._handlers_key_map['gnocchi']]
         try:
             disk_read_metric = resource['metrics']['disk.device.read.bytes']
             disk_write_metric = resource['metrics']['disk.device.write.bytes']
@@ -266,7 +266,7 @@ class OpenstackService(object):
     def get_iops(self, resource, start, stop, granularity=5):
         self.__LOGGER.debug(f"Getting Disk IOPs for {resource['id']}")
         self.__check_handlers('gnocchi')
-        gnocchi = self.handlers[self.__handlers_key_map['gnocchi']]
+        gnocchi = self.handlers[self._handlers_key_map['gnocchi']]
         try:
             disk_read_metric = resource['metrics']['disk.device.read.requests']
             disk_write_metric = resource['metrics']['disk.device.write.requests']
@@ -305,7 +305,7 @@ class OpenstackService(object):
     def list_stacks(self, project_id=None):
         self.__LOGGER.debug("Getting Openstack Heat Stacks")
         self.__check_handlers('heat')
-        heat = self.handlers[self.__handlers_key_map['heat']]
+        heat = self.handlers[self._handlers_key_map['heat']]
 
         if project_id:
             return heat.list_stacks(filters={'project':project_id})
@@ -314,22 +314,22 @@ class OpenstackService(object):
     def get_stack(self, stack_id):
         self.__LOGGER.debug(f"Getting Openstack Heat Stack {stack_id}")
         self.__check_handlers('heat')
-        heat = self.handlers[self.__handlers_key_map['heat']]
+        heat = self.handlers[self._handlers_key_map['heat']]
 
         return heat.get_stack(stack_id)
 
     def list_stack_resources(self, stack_id, **kwargs):
         self.__LOGGER.debug(f"Getting Openstack Resources for Heat Stack {stack_id}")
         self.__check_handlers('heat')
-        heat = self.handlers[self.__handlers_key_map['heat']]
+        heat = self.handlers[self._handlers_key_map['heat']]
 
         return heat.list_stack_resources(stack_id, **kwargs)
 
     def get_stack_instances(self, stack_id):
         self.__LOGGER.debug(f"Getting Openstack Instance Ids for Instances belonging to Heat Stack {stack_id}")
         self.__check_handlers('heat', 'nova')
-        heat = self.handlers[self.__handlers_key_map['heat']]
-        nova = self.handlers[self.__handlers_key_map['nova']]
+        heat = self.handlers[self._handlers_key_map['heat']]
+        nova = self.handlers[self._handlers_key_map['nova']]
 
         instance_ids = []
         instances = []
@@ -352,7 +352,7 @@ class OpenstackService(object):
     def get_stack_output(self, stack_id):
         self.__LOGGER.debug(f"Getting output from Heat Stack {stack_id}")
         self.__check_handlers('heat')
-        heat = self.handlers[self.__handlers_key_map['heat']]
+        heat = self.handlers[self._handlers_key_map['heat']]
         
         return_output = []
         output_list = heat.list_stack_output(stack_id)
@@ -366,5 +366,5 @@ class OpenstackService(object):
         self.__OPSTK_AUTH = None
         for handler in self.handlers.values():
             handler.close()
-        self.__handlers_key_map = None
+        self._handlers_key_map = None
         self.handlers = None

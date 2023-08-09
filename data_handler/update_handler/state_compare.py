@@ -16,8 +16,8 @@ class BulkUpdateHandler(UpdateHandler):
     def __init__(self, config_obj, log_file, clients=None):
         self.clients = clients if clients else UpdateHandler.DEFAULT_CLIENTS
         super().__init__(config_obj, log_file, self.clients)
-        self.__LOGGER = create_logger(__name__, self.__LOG_FILE, self.__CONFIG['log_level'])
-        self.default_rack_height=self.__CONFIG['concertim']['default_rack_height']
+        self.__LOGGER = create_logger(__name__, self._LOG_FILE, self._CONFIG['log_level'])
+        self.default_rack_height=self._CONFIG['concertim']['default_rack_height']
 
     def full_update_sync(self):
         self.__LOGGER.info(f"Starting - Full Openstack Concertim Sync")
@@ -405,7 +405,7 @@ class BulkUpdateHandler(UpdateHandler):
         return False
 
     def __find_empty_slot(self, rack_id_tup, size):
-        occupied_spots = self.view.racks[rack_id_tup].__occupied.sort()
+        occupied_spots = self.view.racks[rack_id_tup]._occupied.sort()
         height = self.view.racks[rack_id_tup].height
         self.__LOGGER.debug(f"Finding spot in Rack[ID:{rack_id_tup[0]}] - Occupied Slots: {occupied_spots}")
         spot_found = False

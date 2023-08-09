@@ -14,7 +14,7 @@ class MqUpdateHandler(UpdateHandler):
     def __init__(self, config_obj, log_file, clients=None, queue=None, event_types=None):
         self.clients = clients if clients else UpdateHandler.DEFAULT_CLIENTS
         super().__init__(config_obj, log_file, self.clients)
-        self.__LOGGER = create_logger(__name__, self.__LOG_FILE, self.__CONFIG['log_level'])
+        self.__LOGGER = create_logger(__name__, self._LOG_FILE, self._CONFIG['log_level'])
         self.queue = queue if queue else DEFAULT_QUEUE
         self.event_types = event_types if event_types else DEFAULT_EVENT_TYPES
         self.channel = self.__get_mq_channel()
@@ -35,8 +35,8 @@ class MqUpdateHandler(UpdateHandler):
 
     def __get_mq_creds(self):
         try:
-            mq_username = self.__CONFIG['rmq']['rmq_username']
-            mq_password = self.__CONFIG['rmq']['rmq_password']
+            mq_username = self._CONFIG['rmq']['rmq_username']
+            mq_password = self._CONFIG['rmq']['rmq_password']
             return pika.PlainCredentials(mq_username,mq_password)
         except Exception as e:
             self.__LOGGER.error(f"Cound not create MQ Credentials - {type(e).__name__} - {e}")
@@ -44,9 +44,9 @@ class MqUpdateHandler(UpdateHandler):
     
     def __get_mq_parameters(self, credentials):
         try:
-            mq_address = self.__CONFIG['rmq']['rmq_address']
-            mq_port = self.__CONFIG['rmq']['rmq_port']
-            mq_path = self.__CONFIG['rmq']['rmq_path']
+            mq_address = self._CONFIG['rmq']['rmq_address']
+            mq_port = self._CONFIG['rmq']['rmq_port']
+            mq_path = self._CONFIG['rmq']['rmq_path']
             return pika.ConnectionParameters(mq_address, mq_port, mq_path, credentials)
         except Exception as e:
             self.__LOGGER.error(f"Cound not create MQ Parameters - {type(e).__name__} - {e}")

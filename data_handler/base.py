@@ -7,11 +7,11 @@ from openstack.exceptions import FailureToScrub, UnsupportedObject
 class BaseHandler(object):
     LOG_DIR = '/var/log/concertim-openstack-service/'
     def __init__(self, config_obj, log_file, openstack_client_list, enable_concertim=True):
-        self.__CONFIG = config_obj
-        self.__LOG_FILE = log_file
-        self.__LOGGER = create_logger(__name__, self.__LOG_FILE, self.__CONFIG['log_level'])
-        self.openstack_service = OpenstackService(self.__CONFIG, self.__LOG_FILE, client_list=openstack_client_list)
-        self.concertim_service = ConcertimService(self.__CONFIG, self.__LOG_FILE) if enable_concertim else None
+        self._CONFIG = config_obj
+        self._LOG_FILE = log_file
+        self.__LOGGER = create_logger(__name__, self._LOG_FILE, self._CONFIG['log_level'])
+        self.openstack_service = OpenstackService(self._CONFIG, self._LOG_FILE, client_list=openstack_client_list)
+        self.concertim_service = ConcertimService(self._CONFIG, self._LOG_FILE) if enable_concertim else None
 
     # Delete objects that were created before encountering an error ('orphans')
     # 'orphans' - Openstack objects to remove
@@ -29,7 +29,7 @@ class BaseHandler(object):
                 grouped_orphans['errors1'].append(f"[Orphan:{orphan}, Error: Root Module is None]")
                 continue
             orphan_client_name = orphan_root.replace("client","")
-            if orphan_client_name in self.openstack_service.__handlers_key_map:
+            if orphan_client_name in self.openstack_service._handlers_key_map:
                 if orphan_client_name in grouped_orphans:
                     grouped_orphans[orphan_client_name].append(orphan)
                 else:
@@ -41,13 +41,13 @@ class BaseHandler(object):
             err_list = grouped_orphans['errors1'] + grouped_orphans['errors2']
             err_msg = f"Some orphans could not be grouped : {err_list}"
             if grouped_orphans['errors2']:
-                err_msg += f" - Available handlers at runtime : {self.openstack_service.__handlers_key_map}"
+                err_msg += f" - Available handlers at runtime : {self.openstack_service._handlers_key_map}"
             self.__LOGGER.error(err_msg)
             raise FailureToScrub(f"Grouping Failed - {err_list}")
 
         self.__LOGGER.debug(f"Deleting groupped orphans")
         for client_name in (x for x in grouped_orphans if x not in ['errors1','errors2']):
-            handler = self.openstack_service.handlers[self.openstack_service.__handlers_key_map[client_name]]
+            handler = self.openstack_service.handlers[self.openstack_service._handlers_key_map[client_name]]
             try:
                 successful = handler.delete(*grouped_orphans[client_name])
                 if not successful:

@@ -12,7 +12,7 @@ class MetricHandler(BaseHandler):
     def __init__(self, config_obj, log_file, granularity=None, interval=None, clients=None):
         self.clients = clients if clients else DEFAULT_CLIENTS
         super().__init__(config_obj, log_file, self.clients)
-        self.__LOGGER = create_logger(__name__, self.__LOG_FILE, self.__CONFIG['log_level'])
+        self.__LOGGER = create_logger(__name__, self._LOG_FILE, self._CONFIG['log_level'])
         self.interval = interval if interval else DEFAULT_INTERVAL
         self.granularity = granularity if granularity else DEFAULT_GRANULARITY
 

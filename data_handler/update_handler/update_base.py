@@ -33,9 +33,9 @@ class UpdateHandler(BaseHandler):
     def __init__(self, config_obj, log_file, clients=None):
         self.clients = clients if clients else DEFAULT_CLIENTS
         super().__init__(config_obj, log_file, self.clients)
-        self.__LOGGER = create_logger(__name__, self.__LOG_FILE, self.__CONFIG['log_level'])
+        self.__LOGGER = create_logger(__name__, self._LOG_FILE, self._CONFIG['log_level'])
         self.view = ConcertimOpenstackView()
-        self.__default_rack_height = int(self.__CONFIG['concertim']['default_rack_height']) if 'default_rack_height' in self.__CONFIG['concertim'] else 42
+        self._default_rack_height = int(self._CONFIG['concertim']['default_rack_height']) if 'default_rack_height' in self._CONFIG['concertim'] else 42
         self.load_view()
 
     # Controller method for populating self.view with data from concertim app
