@@ -32,7 +32,7 @@ class UpdateHandler(BaseHandler):
         }
     }
     def __init__(self, config_obj, log_file, clients=None):
-        self.clients = clients if clients else DEFAULT_CLIENTS
+        self.clients = clients if clients else UpdateHandler.DEFAULT_CLIENTS
         super().__init__(config_obj, log_file, self.clients)
         self.__LOGGER = create_logger(__name__, self._LOG_FILE, self._CONFIG['log_level'])
         self.view = ConcertimOpenstackView()
@@ -220,35 +220,35 @@ class UpdateHandler(BaseHandler):
         self.__LOGGER.debug(f"Finished - Mapping Devices in View to their Racks's device list")
 
     def save_view(self):
-        self.__LOGGER.info(f"Saving View to '{VIEW_PICKLE_FILE}'")
+        self.__LOGGER.info(f"Saving View to '{UpdateHandler.VIEW_PICKLE_FILE}'")
         try:
-            with open(VIEW_PICKLE_FILE, 'wb') as pkl_file:
+            with open(UpdateHandler.VIEW_PICKLE_FILE, 'wb') as pkl_file:
                 pickle.dump(self.view, pkl_file, protocol=pickle.HIGHEST_PROTOCOL)
-            self.__LOGGER.info(f"Success - View saved to '{VIEW_PICKLE_FILE}'")
+            self.__LOGGER.info(f"Success - View saved to '{UpdateHandler.VIEW_PICKLE_FILE}'")
         except Exception as e:
-            self.__LOGGER.error(f"Could not save View to '{VIEW_PICKLE_FILE}' - {type(e).__name__} - {e}")
+            self.__LOGGER.error(f"Could not save View to '{UpdateHandler.VIEW_PICKLE_FILE}' - {type(e).__name__} - {e}")
             raise e
 
     def load_view(self):
-        self.__LOGGER.info(f"Loading View from '{VIEW_PICKLE_FILE}'")
+        self.__LOGGER.info(f"Loading View from '{UpdateHandler.VIEW_PICKLE_FILE}'")
         try:
-            with open(VIEW_PICKLE_FILE, 'rb') as pkl_file:
+            with open(UpdateHandler.VIEW_PICKLE_FILE, 'rb') as pkl_file:
                 self.view = pickle.load(pkl_file)
-            self.__LOGGER.info(f"Success - View loaded from '{VIEW_PICKLE_FILE}' and set to self.view")
+            self.__LOGGER.info(f"Success - View loaded from '{UpdateHandler.VIEW_PICKLE_FILE}' and set to self.view")
             return True
         except FileNotFoundError as e:
-            self.__LOGGER.warning(f"No pickle file '{VIEW_PICKLE_FILE}' found - populating View directly")
+            self.__LOGGER.warning(f"No pickle file '{UpdateHandler.VIEW_PICKLE_FILE}' found - populating View directly")
             self.populate_view()
             self.save_view()
             return False
         except Exception as e:
-            self.__LOGGER.error(f"Could not load View from '{VIEW_PICKLE_FILE}' - {type(e).__name__} - {e}")
+            self.__LOGGER.error(f"Could not load View from '{UpdateHandler.VIEW_PICKLE_FILE}' - {type(e).__name__} - {e}")
             raise e
 
     def disconnect(self):
-        self.__LOGGER.info(f"Destroying Updater data - {__DATA}")
+        self.__LOGGER.info(f"Destroying Updater data - {UpdateHandler.__DATA}")
         fails = []
-        for f in __DATA:
+        for f in UpdateHandler.__DATA:
             try:
                 os.remove(f)
             except Exception as e:

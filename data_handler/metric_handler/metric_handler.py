@@ -11,11 +11,11 @@ class MetricHandler(BaseHandler):
     DEFAULT_INTERVAL = 5
     DEFAULT_GRANULARITY = 5
     def __init__(self, config_obj, log_file, granularity=None, interval=None, clients=None):
-        self.clients = clients if clients else DEFAULT_CLIENTS
+        self.clients = clients if clients else MetricHandler.DEFAULT_CLIENTS
         super().__init__(config_obj, log_file, self.clients)
         self.__LOGGER = create_logger(__name__, self._LOG_FILE, self._CONFIG['log_level'])
-        self.interval = interval if interval else DEFAULT_INTERVAL
-        self.granularity = granularity if granularity else DEFAULT_GRANULARITY
+        self.interval = interval if interval else MetricHandler.DEFAULT_INTERVAL
+        self.granularity = granularity if granularity else MetricHandler.DEFAULT_GRANULARITY
 
     def run(self):
         self.__LOGGER.info('METRICS - BEGIN SENDING METRICS')
