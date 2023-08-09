@@ -56,6 +56,7 @@ def run_metrics(test=False):
             except Exception as e:
                 logger.error(f"Unexpected exception has caused the metric process to terminate : {type(e).__name__} - {e}")
                 raise e
+            stop(logger,metric_handler)
     except Exception as e:
         msg = f"Could not run Metrics process - {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}"
         logger.error(msg)

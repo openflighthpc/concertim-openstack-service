@@ -96,7 +96,7 @@ class BulkUpdateHandler(UpdateHandler):
                             self.__LOGGER.debug(f"Matching Rack has empty output values in ConcertimRack - Attempting to update")
                             self.update_rack_output(heat_stack_obj, matching_racks[0])
                         # Check rack metadata
-                        for m_key, m_val in self.view.racks[matching_racks[0]].metadata:
+                        for m_key, m_val in self.view.racks[matching_racks[0]].metadata.items():
                             if not m_val and m_key:
                                 self.__LOGGER.debug(f"Matching Rack has empty metadata in ConcertimRack - Attempting to update")
                                 self.update_rack_metadata(heat_stack_obj, matching_racks[0])
@@ -284,6 +284,8 @@ class BulkUpdateHandler(UpdateHandler):
                 new_device.ips.append(os_instance.accessIPv4)
             if hasattr(os_instance, 'accessIPv6') and os_instance.accessIPv6:
                 new_device.ips.append(os_instance.accessIPv6)
+            if hasattr(os_instance, 'addresses') and os_instance.addresses:
+                new_device.ips.append(os_instance.addresses)
             if hasattr(os_instance, 'key_name') and os_instance.key_name:
                 new_device.ssh_key = os_instance.key_name
             if hasattr(os_instance, 'os-extended-volumes:volumes_attached') and os_instance._info['os-extended-volumes:volumes_attached']:

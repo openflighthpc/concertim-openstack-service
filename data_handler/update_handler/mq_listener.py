@@ -19,6 +19,7 @@ class MqUpdateHandler(UpdateHandler):
         self.queue = queue if queue else MqUpdateHandler.DEFAULT_QUEUE
         self.event_types = event_types if event_types else DEFAULT_EVENT_TYPES
         self.channel = self.__get_mq_channel()
+        self.load_view()
 
     def __get_mq_channel(self):
         try:
@@ -77,7 +78,7 @@ class MqUpdateHandler(UpdateHandler):
                 return
             self.__LOGGER.info(f"MQ message caught - Checking if supported - '{message['event_type']}'")
             #self.__LOGGER.debug(f"Message '{message['event_type']}' payload: {message['payload']}")
-            function_list = [func for evnt_t, func in self.event_types if message['event_type'].startswith(evnt_t)]
+            function_list = [func for evnt_t, func in self.event_types.items() if message['event_type'].startswith(evnt_t)]
             if function_list:
                 if len(function_list) > 1:
                     self.__LOGGER.warning(f"Multiple functions found for '{message['event_type']}' - Using first function found - Functions:{function_list}")
@@ -111,7 +112,7 @@ class MqUpdateHandler(UpdateHandler):
             return
         # Get state to send concertim
         what_to_check = inst_state_desc if inst_state_desc else inst_state
-        con_state_list = [c_state for c_state, os_state_list in UpdateHandler.CONCERTIM_STATE_MAP['DEVICE'] if what_to_check in os_state_list]
+        con_state_list = [c_state for c_state, os_state_list in UpdateHandler.CONCERTIM_STATE_MAP['DEVICE'].items() if what_to_check in os_state_list]
         if con_state_list:
             con_state = con_state_list[0]
         else:
@@ -151,7 +152,7 @@ class MqUpdateHandler(UpdateHandler):
             self.__LOGGER.warning(f"No matching ConcertimRack found in View for stack: {stack_id} - Skipping update")
             return
         # Get state to send concertim
-        con_state_list = [c_state for c_state, os_state_list in UpdateHandler.CONCERTIM_STATE_MAP['RACK'] if stack_state in os_state_list]
+        con_state_list = [c_state for c_state, os_state_list in UpdateHandler.CONCERTIM_STATE_MAP['RACK'].items() if stack_state in os_state_list]
         if con_state_list:
             con_state = con_state_list[0]
         else:
