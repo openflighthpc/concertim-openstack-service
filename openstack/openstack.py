@@ -4,7 +4,7 @@ from openstack.opstk_auth import OpenStackAuth
 from openstack.exceptions import UnknownOpenstackHandler, NoHandlerFound, MissingOpenstackObject
 
 class OpenstackService(object):
-    __REQUIRED_KS_OBJS = {
+    _REQUIRED_KS_OBJS = {
             'domain': [],
             'role': ['admin', 'member', 'watcher'],
             'user': ['admin', 'concertim'],
@@ -15,12 +15,12 @@ class OpenstackService(object):
         self._CONFIG = config_obj
         self._LOG_FILE = log_file
         self.__LOGGER = create_logger(__name__, self._LOG_FILE, self._CONFIG['log_level'])
-        self.__OPSTK_AUTH = OpenStackAuth(self.__CONFIG['openstack'])
+        self.__OPSTK_AUTH = OpenStackAuth(self._CONFIG['openstack'])
         self._handlers_key_map = {}
         self.handlers = {client:self.__create_handler(client) for client in client_list}
         self.req_keystone_objs = required_ks_objs
         if 'keystone' in self._handlers_key_map:
-            self.req_keystone_objs = self.__populate_required_objs('keystone', required_ks_objs) if required_ks_objs else self.__populate_required_objs('keystone', __REQUIRED_KS_OBJS)
+            self.req_keystone_objs = self.__populate_required_objs('keystone', required_ks_objs) if required_ks_objs else self.__populate_required_objs('keystone', OpenstackService._REQUIRED_KS_OBJS)
     
     # Private method to return correct ClientHandler object with instance's openstack auth data
     def __create_handler(self, client_name, auth=None):

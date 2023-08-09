@@ -4,8 +4,8 @@ from openstack.client_handlers.client_base import ClientHandler
 # Py Packages
 import time
 # Openstack Packages
-from heatclient import client as  h_client
-import heatclient.exceptions
+from heatclient import client as h_client
+#import heatclient.exceptions
 
 class HeatHandler(ClientHandler):
     def __init__(self, sess, log_file, log_level):

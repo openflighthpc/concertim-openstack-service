@@ -5,7 +5,7 @@ from openstack.client_handlers.client_base import ClientHandler
 import time
 # Openstack Packages
 import keystoneclient.v3.client as ks_client
-import keystoneclient.exceptions
+#import keystoneclient.exceptions
 
 class KeystoneHandler(ClientHandler):
     def __init__(self, sess, log_file, log_level):

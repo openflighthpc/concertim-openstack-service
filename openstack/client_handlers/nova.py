@@ -5,7 +5,7 @@ from openstack.client_handlers.client_base import ClientHandler
 import time
 # Openstack Packages
 import novaclient.client as n_client
-import novaclient.exceptions
+#import novaclient.exceptions
 
 class NovaHandler(ClientHandler):
     def __init__(self, sess, log_file, log_level):
@@ -25,8 +25,8 @@ class NovaHandler(ClientHandler):
                 self.__LOGGER.warning(f"Failed to create Nova client: {type(e).__name__} - {e} - Retrying...")
                 error = e
                 time.sleep(1)  # Wait for a second before retrying
-       self.__LOGGER.error(f"Failed to create Nova client after multiple attempts : {type(error).__name__} - {error}")
-       raise error
+        self.__LOGGER.error(f"Failed to create Nova client after multiple attempts : {type(error).__name__} - {error}")
+        raise error
 
     def list_flavors(self):
         try:
