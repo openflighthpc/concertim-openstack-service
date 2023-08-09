@@ -225,7 +225,7 @@ class BulkUpdateHandler(UpdateHandler):
                                                             'u_height': new_rack.height,
                                                             'openstack_stack_id' : new_rack.id[1],
                                                             'status' : new_rack.status,
-                                                            'openstack_stack_output': new_rack.output
+                                                            'openstack_stack_output': new_rack.output,
                                                             'openstack_stack_status_reason':os_stack.stack_status_reason,
                                                             'openstack_stack_owner':os_stack.stack_owner,
                                                             'openstack_stack_owner_id' : os_stack.stack_user_project_id})

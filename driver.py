@@ -9,7 +9,7 @@ import time
 # GLOBAL VARS
 CONFIG_DIR = '/etc/concertim-openstack-service/'
 CONFIG_FILE = CONFIG_DIR + 'config.yaml'
-
+LOG_DIR = '/var/log//concertim-openstack-service/'
 
 def run_metrics(test=False):
     # Common
@@ -26,8 +26,11 @@ def run_metrics(test=False):
     granularity = 60
 
     # Add signals
-    signal.signal(signal.SIGINT, signal_handler, metric_handler)
-    signal.signal(signal.SIGTERM, signal_handler, metric_handler)
+    # Setup a signal handler to stop the service gracefully
+    def signal_handler(sig, frame):
+        stop(metric_handler)
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
 
     '''
     METRICS MAIN CODE BEGIN
@@ -60,17 +63,20 @@ def run_metrics(test=False):
 
 def run_bulk_updates(test=False):
     # Common
-    log_file = LOG_DIR + 'updates_bulk.log'
+    from data_handler.update_handler.state_compare import BulkUpdateHandler
+    log_file = BulkUpdateHandler.LOG_DIR + 'updates_bulk.log'
     config = load_config(CONFIG_FILE)
     logger = create_logger(__name__, log_file, config['log_level'])
     
     # Handler specific
-    from data_handler.update_handler.state_compare import BulkUpdateHandler
     bulk_update_handler = None
 
     # Add signals
-    signal.signal(signal.SIGINT, signal_handler, bulk_update_handler)
-    signal.signal(signal.SIGTERM, signal_handler, bulk_update_handler)
+    # Setup a signal handler to stop the service gracefully
+    def signal_handler(sig, frame):
+        stop(bulk_update_handler)
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
 
     '''
     FULL UPDATES MAIN CODE BEGIN
@@ -103,17 +109,20 @@ def run_bulk_updates(test=False):
 
 def run_mq_updates(test=False):
     # Common
-    log_file = LOG_DIR + 'updates_mq.log'
+    from data_handler.update_handler.mq_listener import MqUpdateHandler
+    log_file = MqUpdateHandler.LOG_DIR + 'updates_mq.log'
     config = load_config(CONFIG_FILE)
     logger = create_logger(__name__, log_file, config['log_level'])
     
     # Handler specific
-    from data_handler.update_handler.mq_listener import MqUpdateHandler
     mq_update_handler = None
 
     # Add signals
-    signal.signal(signal.SIGINT, signal_handler, mq_update_handler)
-    signal.signal(signal.SIGTERM, signal_handler, mq_update_handler)
+    # Setup a signal handler to stop the service gracefully
+    def signal_handler(sig, frame):
+        stop(mq_update_handler)
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
 
     '''
     MQ UPDATES MAIN CODE BEGIN
@@ -131,19 +140,22 @@ def run_mq_updates(test=False):
 
 def run_updates_aio(test=False):
     # Common
-    log_file = LOG_DIR + 'updates_aio.log'
+    from data_handler.update_handler.mq_listener import MqUpdateHandler
+    from data_handler.update_handler.state_compare import BulkUpdateHandler
+    log_file = BulkUpdateHandler.LOG_DIR + 'updates_aio.log'
     config = load_config(CONFIG_FILE)
     logger = create_logger(__name__, log_file, config['log_level'])
     
     # Handler specific
-    from data_handler.update_handler.mq_listener import MqUpdateHandler
-    from data_handler.update_handler.state_compare import BulkUpdateHandler
     bulk_update_handler = None
     mq_update_handler = None
 
     # Add signals
-    signal.signal(signal.SIGINT, signal_handler, bulk_update_handler, mq_update_handler)
-    signal.signal(signal.SIGTERM, signal_handler, bulk_update_handler, mq_update_handler)
+    # Setup a signal handler to stop the service gracefully
+    def signal_handler(sig, frame):
+        stop(bulk_update_handler,mq_update_handler)
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
 
     '''
     FULL UPDATES MAIN CODE BEGIN
@@ -198,7 +210,7 @@ def load_config(config_file):
         config = yaml.safe_load(f)
     return config
 
-# Setup a local stop process for when the service is over
+# Setup a stop process for when the service is over
 def stop(*handlers):
     logger.info("STOPPING PROCESS")
     for handler in handlers:
@@ -206,10 +218,6 @@ def stop(*handlers):
     logger.info("EXITING PROCESS")
     logger.info("------- END -------\n")
     raise SystemExit
-
-# Setup a signal handler to stop the service gracefully
-def signal_handler(sig, frame, *handlers):
-    stop(*handlers)
 
 # Main method to call runners and pars args
 def main(args):
@@ -224,9 +232,9 @@ def main(args):
     for arg in args:
         comm, value = arg.split('=')
         args_dict[comm] = value
-    if not args_dict.has_key('run') or not args_dict['run']:
+    if not 'run' in args_dict or not args_dict['run']:
         raise SystemExit("No 'run' command found")
-    if args_dict.has_key('test') and eval(args_dict['test']) == True and args_dict['run'] != 'api':
+    if 'test' in args_dict and eval(args_dict['test']) == True and args_dict['run'] != 'api':
         if args_dict['run'] in valid:
             valid[args_dict['run']](test=True)
         else:

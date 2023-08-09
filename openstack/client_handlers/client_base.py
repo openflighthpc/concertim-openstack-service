@@ -4,10 +4,10 @@ from openstack.exceptions import UnsupportedObject
 
 class ClientHandler(object):
     def __init__(self, sess, log_file, log_level):
-        self.__LOG_FILE = log_file
-        self.__LOG_LEVEL = log_level
-        self.__LOGGER = create_logger(__name__, self.__LOG_FILE, self.__LOG_LEVEL)
-        self.__SESSION = sess
+        self._LOG_FILE = log_file
+        self._LOG_LEVEL = log_level
+        self.__LOGGER = create_logger(__name__, self._LOG_FILE, self._LOG_LEVEL)
+        self._SESSION = sess
         self.client = None
 
     # Delete object(s) from Openstack
@@ -47,4 +47,4 @@ class ClientHandler(object):
 
 
     def close(self):
-        self.__SESSION = None
+        self._SESSION = None

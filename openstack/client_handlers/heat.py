@@ -10,8 +10,8 @@ import heatclient.exceptions
 class HeatHandler(ClientHandler):
     def __init__(self, sess, log_file, log_level):
         super().__init__(sess, log_file, log_level)
-        self.__LOGGER = create_logger(__name__, self.__LOG_FILE, self.__LOG_LEVEL)
-        self.client = self.__get_client(self.__SESSION)
+        self.__LOGGER = create_logger(__name__, self._LOG_FILE, self._LOG_LEVEL)
+        self.client = self.__get_client(self._SESSION)
 
     def __get_client(self, sess):
         start_time = time.time()

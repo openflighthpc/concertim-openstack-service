@@ -46,7 +46,7 @@ class BaseHandler(object):
             raise FailureToScrub(f"Grouping Failed - {err_list}")
 
         self.__LOGGER.debug(f"Deleting groupped orphans")
-        for client_name in grouped_orphans if client_name not in ['errors1','errors2']:
+        for client_name in (x for x in grouped_orphans if x not in ['errors1','errors2']):
             handler = self.openstack_service.handlers[self.openstack_service.__handlers_key_map[client_name]]
             try:
                 successful = handler.delete(*grouped_orphans[client_name])
