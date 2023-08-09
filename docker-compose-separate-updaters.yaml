@@ -1,10 +1,10 @@
 version: '3'
 services:
+  network_mode: "host"
   con_opstk_api_server:
     build: 
       context: .
       dockerfile: ./Dockerfiles/Dockerfile.api_server
-    network_mode: "host"
     ports:
       - "42356:42356"
     stop_signal: SIGINT
@@ -17,7 +17,6 @@ services:
     build: 
       context: .
       dockerfile: ./Dockerfiles/Dockerfile.metrics
-    network_mode: "host"
     volumes:
       - /var/log/COService:/var/log/COService
       - /var/lib/COService:/var/lib/COService
@@ -27,7 +26,6 @@ services:
     build: 
       context: .
       dockerfile: ./Dockerfiles/Dockerfile.updates_bulk
-    network_mode: "host"
     volumes:
       - /var/log/COService:/var/log/COService
       - /var/lib/COService:/var/lib/COService
@@ -37,7 +35,6 @@ services:
     build: 
       context: .
       dockerfile: ./Dockerfiles/Dockerfile.updates_mq
-    network_mode: "host"
     volumes:
       - /var/log/COService:/var/log/COService
       - /var/lib/COService:/var/lib/COService
