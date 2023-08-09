@@ -132,6 +132,9 @@ class UpdateHandler(BaseHandler):
                                         height=rack['u_height'], 
                                         description=rack['description'],
                                         status=rack['status'])
+                for k,v in rack['metadata']:
+                    if k != 'openstack_stack_id':
+                        new_rack.metadata[k] = v
                 self.view.add_rack(new_rack)
                 self.__LOGGER.debug(f"New ConcertimRack created in View : {new_rack}")                
             self.__LOGGER.debug(f"Finished - Fetching Concertim Racks")
@@ -152,8 +155,7 @@ class UpdateHandler(BaseHandler):
                     continue
                 self.__LOGGER.debug(f"Device '{device['id']}' not found in View - creating new ConcertimDevice")
                 device_info = self.concertim_service.show_device(ID=device['id'])
-                opsk_instance_id = device_info['metadata']['openstack_instance_id'] if 'openstack_instance_id' in device_info['metadata'] else None
-                opsk_instance_nm = device_info['metadata']['openstack_instance_name'] if 'openstack_instance_name' in device_info['metadata'] else None
+                opsk_instance_id = device_info['metadata']['openstack_instance_id'] if 'openstack_instance_id' in device_info['metadata'] else ''
                 device_location = Location(device_info['location']['start_u'], device_info['location']['end_u'], device_info['location']['facing'])
                 device_template = None
                 for template_id_tup in self.view.templates:
@@ -162,12 +164,15 @@ class UpdateHandler(BaseHandler):
                 new_device = ConcertimDevice(concertim_id=device_info['id'], 
                                         openstack_id=opsk_instance_id, 
                                         concertim_name=device_info['name'], 
-                                        openstack_name=opsk_instance_nm, 
+                                        openstack_name=device_info['name'], 
                                         rack_id=device_info['location']['rack_id'], 
                                         template=device_template, 
                                         location=device_location, 
                                         description=device_info['description'], 
                                         status=device_info['status'])
+                new_device.ips = device_info['metadata']['ips'] if 'ips' in device_info['metadata'] else []
+                new_device.ssh_key = device_info['metadata']['ssh_key'] if 'ssh_key' in device_info['metadata'] else ''
+                new_device.volumes_attached = device_info['metadata']['volumes'] if 'volumes' in device_info['metadata'] else []
                 self.view.add_device(new_device)
                 self.__LOGGER.debug(f"New ConcertimDevice created in View : {new_device}")  
             self.__LOGGER.debug(f"Finished - Fetching Concertim Devices")
