@@ -1,7 +1,7 @@
 class ConcertimComponent(object):
     def __init__(self, concertim_id=None, openstack_id=None, concertim_name=None, openstack_name=None, description=''):
-        self.id = (concertim_id,openstack_id)
-        self.name = (concertim_name,openstack_name)
+        self.id = tuple((concertim_id,openstack_id))
+        self.name = tuple((concertim_name,openstack_name))
         self.description = description
 
     def __repr__(self):

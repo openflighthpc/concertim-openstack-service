@@ -46,7 +46,7 @@ class BulkUpdateHandler(UpdateHandler):
                 os_flavor_id = openstack_flavors[flavor_key]['id']
                 in_openstack.append(os_flavor_id)
                 os_flavor_name = openstack_flavors[flavor_key]['name']
-                matching_templates = [con_temp for id_tup, con_temp in self.view.templates if id_tup[1] == os_flavor_id]
+                matching_templates = [con_temp for id_tup, con_temp in self.view.templates.items() if id_tup[1] == os_flavor_id]
                 if matching_templates:
                     continue
                 self.__LOGGER.debug(f"No Template found for Openstack Flavor[Name:{os_flavor_name},ID:{os_flavor_id}] - Creating in Concertim")
@@ -54,7 +54,7 @@ class BulkUpdateHandler(UpdateHandler):
             # End new template creation
 
             self.__LOGGER.debug(f"Checking for stale Templates that are mapped to a non-existing Flavor in Openstack")
-            stale_templates_ids = [id_tup for id_tup, con_temp in self.view.templates if id_tup[1] not in in_openstack]
+            stale_templates_ids = [id_tup for id_tup, con_temp in self.view.templates.items() if id_tup[1] not in in_openstack]
             # Start stale template deletion
             if stale_templates_ids:
                 self.__LOGGER.warning(f"Stale templates found - IDs:{stale_templates_ids} - Deleting from Concertim")
@@ -80,11 +80,11 @@ class BulkUpdateHandler(UpdateHandler):
             in_openstack = []
             # Start new rack creation
             for user_id_tup in self.view.users:
-                self.__LOGGER.debug(f"Updating Racks for User[IDs:{user_id_tup},project_id{self.view.users[user_id_tup].project_id}]")
-                openstack_stacks = self.openstack_service.list_stacks(project_id=self.view.users[user_id_tup].project_id)
+                self.__LOGGER.debug(f"Updating Racks for User[IDs:{user_id_tup},project_id{self.view.users[user_id_tup].openstack_project_id}]")
+                openstack_stacks = self.openstack_service.list_stacks(project_id=self.view.users[user_id_tup].openstack_project_id)
                 for heat_stack_obj in openstack_stacks:
                     in_openstack.append(heat_stack_obj.id)
-                    matching_racks = [id_tup for id_tup, con_rack in self.view.racks if id_tup[1] == heat_stack_obj.id]
+                    matching_racks = [id_tup for id_tup, con_rack in self.view.racks.items() if id_tup[1] == heat_stack_obj.id]
                     if matching_racks:
                         self.__LOGGER.debug(f"Matching Rack found")
                         # Existing device found, check if it needs to update
@@ -107,14 +107,14 @@ class BulkUpdateHandler(UpdateHandler):
             # End new rack creation
 
             self.__LOGGER.debug(f"Checking for stale Racks that are mapped to a non-existing Stacks in Openstack")
-            stale_racks_ids = [id_tup for id_tup, con_rack in self.view.racks if id_tup[1] not in in_openstack]
+            stale_racks_ids = [id_tup for id_tup, con_rack in self.view.racks.items() if id_tup[1] not in in_openstack]
             # Start stale rack deletion
             if stale_racks_ids:
                 self.__LOGGER.warning(f"Stale racks found - IDs:{stale_racks_ids} - Deleting from Concertim")
                 for stale_rack_id in stale_racks_ids:
                     try:
                         self.concertim_service.delete_rack(stale_rack_id[0], recurse=True)
-                        stale_rack_user = [id_tup for id_tup, con_user in self.view.users if id_tup[0] == self.view.racks[stale_rack_id].user_id]
+                        stale_rack_user = [id_tup for id_tup, con_user in self.view.users.items() if id_tup[0] == self.view.racks[stale_rack_id].user_id]
                         if stale_rack_user:
                             self.view.users[stale_rack_user[0]].remove_rack(stale_rack_id[0])
                         del self.view.racks[stale_rack_id]
@@ -141,7 +141,7 @@ class BulkUpdateHandler(UpdateHandler):
                 # Instance device creation
                 for nova_server in nova_servers_list:
                     in_openstack.append(nova_server.id)
-                    matching_devices = [id_tup for id_tup, con_dev in self.view.devices if id_tup[1] == nova_server.id]
+                    matching_devices = [id_tup for id_tup, con_dev in self.view.devices.items() if id_tup[1] == nova_server.id]
                     if matching_devices:
                         # Existing device found, check if it needs to update
                         if nova_server._info['OS-EXT-STS:vm_state'] not in UpdateHandler.CONCERTIM_STATE_MAP['DEVICE'][self.view.devices[matching_devices[0]].status]:
@@ -156,14 +156,14 @@ class BulkUpdateHandler(UpdateHandler):
             # End new device creation
 
             self.__LOGGER.debug(f"Checking for stale Devices that are mapped to a non-existing Instances in Openstack")
-            stale_device_ids = [id_tup for id_tup, con_device in self.view.devices if id_tup[1] not in in_openstack]
+            stale_device_ids = [id_tup for id_tup, con_device in self.view.devices.items() if id_tup[1] not in in_openstack]
             # Start stale device deletion
             if stale_device_ids:
                 self.__LOGGER.warning(f"Stale devices found - IDs:{stale_device_ids} - Deleting from Concertim")
                 for stale_device_id in stale_device_ids:
                     try:
                         self.concertim_service.delete_device(stale_device_id[0])
-                        stale_device_rack = [id_tup for id_tup, con_rack in self.view.racks if id_tup[0] == self.view.devices[stale_device_id].rack_id]
+                        stale_device_rack = [id_tup for id_tup, con_rack in self.view.racks.items() if id_tup[0] == self.view.devices[stale_device_id].rack_id]
                         if stale_device_rack:
                             self.view.racks[stale_device_rack[0]].remove_device(stale_device_id[0], self.view.devices[stale_device_id].location)
                         del self.view.devices[stale_device_id]
@@ -200,7 +200,7 @@ class BulkUpdateHandler(UpdateHandler):
                                                                             'disk' : new_template.disk, 
                                                                             'vcpus' : new_template.vcpus, 
                                                                             'foreign_id' : new_template.id[1]})
-            new_template.id = (concertim_response_template['id'], new_template.id[1])
+            new_template.id = tuple((concertim_response_template['id'], new_template.id[1]))
             self.__LOGGER.debug(f"Successfully created new Template: {new_template}")
             self.view.add_template(new_template)
             return True
@@ -212,7 +212,7 @@ class BulkUpdateHandler(UpdateHandler):
             return False
 
     def create_rack_in_concertim(self, os_stack, user_id_tup):
-        con_state_list = [c_state for c_state, os_state_list in UpdateHandler.CONCERTIM_STATE_MAP['RACK'] if os_stack.stack_status in os_state_list]
+        con_state_list = [c_state for c_state, os_state_list in UpdateHandler.CONCERTIM_STATE_MAP['RACK'].items() if os_stack.stack_status in os_state_list]
         if con_state_list:
             con_state = con_state_list[0]
         else:
@@ -241,7 +241,7 @@ class BulkUpdateHandler(UpdateHandler):
                                                             'openstack_stack_status_reason':os_stack.stack_status_reason,
                                                             'openstack_stack_owner':os_stack.stack_owner,
                                                             'openstack_stack_owner_id' : os_stack.stack_user_project_id})
-            new_rack.id = (concertim_response_rack['id'],new_rack.id[1])
+            new_rack.id = tuple((concertim_response_rack['id'],new_rack.id[1]))
             self.__LOGGER.debug(f"Successfully created new Rack: {new_rack}")
             self.view.add_rack(new_rack)
             self.view.users[user_id_tup].add_rack(new_rack.id[0])
@@ -254,12 +254,12 @@ class BulkUpdateHandler(UpdateHandler):
             return False
 
     def create_device_in_concertim(self, os_instance, rack_id_tup):
-        con_state_list = [c_state for c_state, os_state_list in UpdateHandler.CONCERTIM_STATE_MAP['DEVICE'] if os_instance._info['OS-EXT-STS:vm_state'] in os_state_list]
+        con_state_list = [c_state for c_state, os_state_list in UpdateHandler.CONCERTIM_STATE_MAP['DEVICE'].items() if os_instance._info['OS-EXT-STS:vm_state'] in os_state_list]
         if con_state_list:
             con_state = con_state_list[0]
         else:
             con_state = 'FAILED'
-        matching_template_id_tup = [id_tup for id_tup, con_temp in self.view.templates if id_tup[1] == os_instance.flavor['id']]
+        matching_template_id_tup = [id_tup for id_tup, con_temp in self.view.templates.items() if id_tup[1] == os_instance.flavor['id']]
         if not matching_template_id_tup:
             self.__LOGGER.error(f"Cannot create device for Instance[ID:{os_instance.id},Name:{os_instance.name}] - No ConcertimTemplate matching Flavor[ID:{os_instance.flavor['id']}] found")
             return
@@ -293,7 +293,7 @@ class BulkUpdateHandler(UpdateHandler):
                                                                 'openstack_ips' : new_device.ips,
                                                                 'openstack_ssh_key': new_device.ssh_key,
                                                                 'volumes_attached': new_device.volumes_attached})
-            new_device.id = (concertim_response_device['id'], new_device.id[1])
+            new_device.id = tuple((concertim_response_device['id'], new_device.id[1]))
             self.__LOGGER.debug(f"Successfully created new Device: {new_device}")
             self.view.add_device(new_device)
             self.view.racks[rack_id_tup].add_device(new_device.id[0], new_device.location)
@@ -305,7 +305,7 @@ class BulkUpdateHandler(UpdateHandler):
             return False
 
     def update_rack_status(self, os_stack, rack_id_tup):
-        con_state_list = [c_state for c_state, os_state_list in UpdateHandler.CONCERTIM_STATE_MAP['RACK'] if os_stack.stack_status in os_state_list]
+        con_state_list = [c_state for c_state, os_state_list in UpdateHandler.CONCERTIM_STATE_MAP['RACK'].items() if os_stack.stack_status in os_state_list]
         if con_state_list:
             con_state = con_state_list[0]
         else:
@@ -366,7 +366,7 @@ class BulkUpdateHandler(UpdateHandler):
             return
 
     def update_device_status(self, os_instance, device_id_tup):
-        con_state_list = [c_state for c_state, os_state_list in UpdateHandler.CONCERTIM_STATE_MAP['DEVICE'] if os_instance._info['OS-EXT-STS:vm_state'] in os_state_list]
+        con_state_list = [c_state for c_state, os_state_list in UpdateHandler.CONCERTIM_STATE_MAP['DEVICE'].items() if os_instance._info['OS-EXT-STS:vm_state'] in os_state_list]
         if con_state_list:
             con_state = con_state_list[0]
         else:
