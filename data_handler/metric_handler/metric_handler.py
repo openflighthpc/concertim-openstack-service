@@ -33,7 +33,9 @@ class MetricHandler(BaseHandler):
 
                 # Handle instance resource group
                 self.__LOGGER.debug(f"Starting - instance-based metric sending")
-                for instance_id in resources if instance_id not in ['volumes']:
+                for instance_id in resources:
+                    if instance_id in ['volumes']:
+                        continue
                     if resources[instance_id]['concertim_id']:
                         # Handle instance / nova based metrics for instance resource group with a device present
                         self.__LOGGER.debug(f"Handling metrics for instance : {instance_id}, device : {resources[instance_id]['concertim_id']}")

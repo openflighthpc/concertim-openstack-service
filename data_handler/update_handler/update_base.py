@@ -37,7 +37,6 @@ class UpdateHandler(BaseHandler):
         self.__LOGGER = create_logger(__name__, self._LOG_FILE, self._CONFIG['log_level'])
         self.view = ConcertimOpenstackView()
         self._default_rack_height = int(self._CONFIG['concertim']['default_rack_height']) if 'default_rack_height' in self._CONFIG['concertim'] else 42
-        self.load_view()
 
     # Controller method for populating self.view with data from concertim app
     def populate_view(self):
@@ -130,9 +129,9 @@ class UpdateHandler(BaseHandler):
                                         openstack_name=rack['name'], 
                                         user_id=rack['owner']['id'], 
                                         height=rack['u_height'], 
-                                        description=rack['description'],
+                                        description='Stack in Openstack',
                                         status=rack['status'])
-                for k,v in rack['metadata']:
+                for k,v in rack['metadata'].items():
                     if k != 'openstack_stack_id':
                         new_rack.metadata[k] = v
                 self.view.add_rack(new_rack)
