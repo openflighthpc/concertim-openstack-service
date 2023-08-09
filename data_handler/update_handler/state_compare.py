@@ -174,7 +174,7 @@ class BulkUpdateHandler(UpdateHandler):
         new_template = ConcertimTemplate(concertim_id=None, openstack_id=os_flavor['id'], 
                                             concertim_name=os_flavor['name'], openstack_name=os_flavor['name'], 
                                             ram=os_flavor['ram'], disk=os_flavor['disk'], 
-                                            vcpus=os_flavor['vcpus'], size=None, desc='Flavor from Openstack')
+                                            vcpus=os_flavor['vcpus'], size=None, description='Flavor from Openstack')
         if new_template.vcpus <= 1:
             new_template.size = 1
         elif new_template.vcpus <= 2:
@@ -213,7 +213,7 @@ class BulkUpdateHandler(UpdateHandler):
         new_rack = ConcertimRack(concertim_id=None, openstack_id=os_stack.id, 
                                 concertim_name=os_stack.stack_name, openstack_name=os_stack.stack_name, 
                                 user_id=user_id_tup[0], height=self.default_rack_height, 
-                                desc='Heat Stack in Openstack', status=con_state)
+                                description='Heat Stack in Openstack', status=con_state)
         new_rack.output = self.openstack_service.get_stack_output(os_stack.id)
         # ADD EXISTING METADATA
         if hasattr(os_stack, 'stack_status_reason') and os_stack.stack_status_reason:
@@ -261,7 +261,7 @@ class BulkUpdateHandler(UpdateHandler):
         new_device = ConcertimDevice(concertim_id=None, openstack_id=os_instance.id, 
                                     concertim_name=os_instance.name, openstack_name=os_instance.name, 
                                     rack_id=rack_id_tup[0], template=template_for_inst, 
-                                    location=loc_for_inst, desc='Nova Server in Openstack', status=con_state)
+                                    location=loc_for_inst, description='Nova Server in Openstack', status=con_state)
         # ADD EXISTING METADATA
         if hasattr(os_instance, 'accessIPv4') and os_instance.accessIPv4:
             new_device.ips.append(os_instance.accessIPv4)

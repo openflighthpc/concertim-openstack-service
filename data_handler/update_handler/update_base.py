@@ -78,7 +78,7 @@ class UpdateHandler(BaseHandler):
                                     full_name=user['fullname'], 
                                     email=None,
                                     openstack_project_id=user['project_id'],
-                                    desc='')
+                                    description='')
             self.view.add_user(new_user)
             self.__LOGGER.debug(f"New ConcertimUser created in View : {new_user}")
         self.__LOGGER.debug(f"Finished - Fetching Concertim Users")
@@ -102,7 +102,7 @@ class UpdateHandler(BaseHandler):
                                     disk=template['disk'],
                                     vcpus=template['vcpus'],
                                     size=template['height'],
-                                    desc=template['description'])
+                                    description=template['description'])
             self.view.add_template(new_template)
             self.__LOGGER.debug(f"New ConcertimTemplate created in View : {new_template}")
         self.__LOGGER.debug(f"Finished - Fetching Concertim Templates")
@@ -125,7 +125,7 @@ class UpdateHandler(BaseHandler):
                                     openstack_name=None, 
                                     user_id=rack['owner']['id'], 
                                     height=rack['u_height'], 
-                                    desc='',
+                                    description='',
                                     status=rack['status'])
             self.view.add_rack(new_rack)
             self.__LOGGER.debug(f"New ConcertimRack created in View : {new_rack}")                
@@ -157,7 +157,7 @@ class UpdateHandler(BaseHandler):
                                     rack_id=device_info['location']['rack_id'], 
                                     template=device_template, 
                                     location=device_location, 
-                                    desc=device_info['description'], 
+                                    description=device_info['description'], 
                                     status=device_info['status'])
             self.view.add_device(new_device)
             self.__LOGGER.debug(f"New ConcertimDevice created in View : {new_device}")  
