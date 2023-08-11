@@ -284,7 +284,7 @@ class UpdateHandler(BaseHandler):
                 fails.append(f"Could not destroy '{f}' - {type(e).__name__} - {e}")
                 continue
         if fails:
-            self.__LOGGER.error(f"Failed - Updater Data Destroy - {fails}")
+            self.__LOGGER.warning(f"Failed - Updater Data Destroy - {fails}")
         self.view = None
         super().disconnect()
 
