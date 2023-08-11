@@ -251,8 +251,11 @@ class UpdateHandler(BaseHandler):
             with open(UpdateHandler.VIEW_PICKLE_FILE, 'wb') as pkl_file:
                 pickle.dump(self.view, pkl_file, protocol=pickle.HIGHEST_PROTOCOL)
             self.__LOGGER.info(f"Success - View saved to '{UpdateHandler.VIEW_PICKLE_FILE}'")
+        except FileNotFoundError as e:
+            self.__LOGGER.error(f"No pickle file '{UpdateHandler.VIEW_PICKLE_FILE}' found - Please check path exists - {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
+            raise e
         except Exception as e:
-            self.__LOGGER.error(f"Could not save View to '{UpdateHandler.VIEW_PICKLE_FILE}' - {type(e).__name__} - {e}")
+            self.__LOGGER.error(f"Could not save View to '{UpdateHandler.VIEW_PICKLE_FILE}' - {type(e).__name__} - {e} - {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
             raise e
 
     def load_view(self):
@@ -268,7 +271,7 @@ class UpdateHandler(BaseHandler):
             self.save_view()
             return False
         except Exception as e:
-            self.__LOGGER.error(f"Could not load View from '{UpdateHandler.VIEW_PICKLE_FILE}' - {type(e).__name__} - {e}")
+            self.__LOGGER.error(f"Could not load View from '{UpdateHandler.VIEW_PICKLE_FILE}' - {type(e).__name__} - {e} - {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
             raise e
 
     def disconnect(self):
