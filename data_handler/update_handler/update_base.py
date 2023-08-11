@@ -246,6 +246,8 @@ class UpdateHandler(BaseHandler):
     def save_view(self):
         self.__LOGGER.info(f"Saving View to '{UpdateHandler.VIEW_PICKLE_FILE}'")
         try:
+            if not os.path.exists(UpdateHandler.VIEW_PICKLE_FILE):
+                os.mknod(UpdateHandler.VIEW_PICKLE_FILE, mode = 0o660)
             with open(UpdateHandler.VIEW_PICKLE_FILE, 'wb') as pkl_file:
                 pickle.dump(self.view, pkl_file, protocol=pickle.HIGHEST_PROTOCOL)
             self.__LOGGER.info(f"Success - View saved to '{UpdateHandler.VIEW_PICKLE_FILE}'")

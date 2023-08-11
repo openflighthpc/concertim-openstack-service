@@ -4,6 +4,7 @@ from openstack.opstk_auth import OpenStackAuth
 from openstack.exceptions import UnknownOpenstackHandler, NoHandlerFound, MissingOpenstackObject
 # Py Packages
 import sys
+from novaclient.exceptions import NotFound
 
 class OpenstackService(object):
     _REQUIRED_KS_OBJS = {
@@ -353,7 +354,11 @@ class OpenstackService(object):
                     instance_ids.append(inst_r.physical_resource_id)
         # get nova server objs for all instance ids
         for inst_id in instance_ids:
-            instances.append(nova.get_server(inst_id))
+            try:
+                instances.append(nova.get_server(inst_id))
+            except NotFound as e:
+                self.__LOGGER.warning(f"Could not find server '{inst_id}' from stack '{stack_id}' in Openstack - skipping")
+                continue
         return instances
 
     def get_stack_output(self, stack_id):
