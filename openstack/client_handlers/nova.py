@@ -75,6 +75,18 @@ class NovaHandler(ClientHandler):
         return True
     ####
 
+    def switch_off_device(self, device_id):
+        # testing
+        device_id = "c763d503-0c40-4208-9b17-786fd1ce6d99"
+        try:
+            instances = self.client.servers.list()
+            instance = self.get_server(device_id)
+            result = self.client.servers.stop(instance)
+            return result
+        except Exception as e:
+            self.__LOGGER.error(f"An unexpected error : {type(e).__name__} - {e}")
+            raise e
+
     def close(self):
         self.__LOGGER.debug("Closing Nova Client Connection")
         self.client = None

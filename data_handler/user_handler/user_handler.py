@@ -6,7 +6,7 @@ import sys
 
 
 class UserHandler(BaseHandler):
-    DEFAULT_CLIENTS = ['keystone']
+    DEFAULT_CLIENTS = ['keystone', 'nova']
     def __init__(self, config_obj, log_file, enable_concertim=False, clients=None):
         self.clients = clients if clients else UserHandler.DEFAULT_CLIENTS
         super().__init__(config_obj, log_file, self.clients, enable_concertim=enable_concertim)
@@ -38,7 +38,10 @@ class UserHandler(BaseHandler):
             self.__LOGGER.error(f"Encountered error when creating new Concertim Managed User/Project {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
             raise e
 
-
+    def update_status(self, type, id, action):
+        self.__LOGGER.info(f"Starting action {action} for {type} {id}")
+        if type == "devices" and action == "off":
+            result = self.openstack_service.switch_off_device(id)
 
 
     
