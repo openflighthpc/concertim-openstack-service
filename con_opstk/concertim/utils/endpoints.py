@@ -120,7 +120,8 @@ ENDPOINTS = {
                                 }}
                     },
                     'UPDATE_USER':{
-                        'endpoint': '/api/v1/user/{}',
+                        'endpoint': '/api/v1/users/{}',
+                        'required_vars': [],
                         'data': {"user": {
                                     "cost": '{cost}',
                                     "billing_period_start": '{billing_period_start}',
@@ -129,7 +130,7 @@ ENDPOINTS = {
                     },
                     'UPDATE_DEVICE':{
                         'endpoint': '/api/v1/devices/{}',
-                        'required_vars': ['name'],
+                        'required_vars': [],
                         'data': {"device": {
                                     "name": '{name}',
                                     "description": '{description}',
@@ -145,7 +146,7 @@ ENDPOINTS = {
                     },
                     'UPDATE_RACK':{
                         'endpoint': '/api/v1/racks/{}',
-                        'required_vars': ['name'],
+                        'required_vars': [],
                         'data': {"rack": {
                                     "name": '{name}',
                                     "u_height": '{u_height}',
