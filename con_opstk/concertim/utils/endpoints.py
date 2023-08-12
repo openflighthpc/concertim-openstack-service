@@ -119,12 +119,21 @@ ENDPOINTS = {
                                     }
                                 }}
                     },
+                    'UPDATE_USER':{
+                        'endpoint': '/api/v1/user/{}',
+                        'data': {"user": {
+                                    "cost": '{cost}',
+                                    "billing_period_start": '{billing_period_start}',
+                                    "billing_period_end": '{billing_period_end}'
+                                }}
+                    },
                     'UPDATE_DEVICE':{
                         'endpoint': '/api/v1/devices/{}',
                         'required_vars': ['name'],
                         'data': {"device": {
                                     "name": '{name}',
                                     "description": '{description}',
+                                    "cost": '{cost}',
                                     "status" : '{status}',
                                     "metadata": {
                                         "ips": "{openstack_ips}",
@@ -140,6 +149,7 @@ ENDPOINTS = {
                         'data': {"rack": {
                                     "name": '{name}',
                                     "u_height": '{u_height}',
+                                    "cost": '{cost}',
                                     "status" : '{status}',
                                     "metadata": {
                                         "output": "{openstack_stack_output}",

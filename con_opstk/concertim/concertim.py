@@ -88,6 +88,11 @@ class ConcertimService(object):
         response = self._api_call('patch', 'MOVE_DEVICE', variables_dict=variables_dict, endpoint_var=str(ID))
         return response
 
+    def update_user(self, ID, variables_dict):
+        response = self._api_call('patch', 'UPDATE_USER', variables_dict=variables_dict, endpoint_var=str(ID))
+        return response
+
+
     def update_device(self, ID, variables_dict):
         response = self._api_call('patch', 'UPDATE_DEVICE', variables_dict=variables_dict, endpoint_var=str(ID))
         return response
@@ -185,7 +190,7 @@ class ConcertimService(object):
                 else:
                     if key in casting:
                         data_dict[key] = casting[key](value.format(**variables_dict))
-                    elif value.replace('{','').replace('}','') not in variables_dict and endpoint_name in ['UPDATE_DEVICE','UPDATE_RACK','UPDATE_TEMPLATE']:
+                    elif value.replace('{','').replace('}','') not in variables_dict and endpoint_name in ['UPDATE_DEVICE','UPDATE_RACK','UPDATE_TEMPLATE', 'UPDATE_USER']:
                         continue
                     else:
                         data_dict[key] = value.format(**variables_dict)
