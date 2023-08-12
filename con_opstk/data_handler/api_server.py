@@ -1,7 +1,7 @@
 # Local imports
 from con_opstk.data_handler.user_handler.user_handler import UserHandler
 from con_opstk.openstack.exceptions import APIServerDefError, OpStkAuthenticationError
-import app_definitions as app_paths
+import con_opstk.app_definitions as app_paths
 # Py Packages
 from flask import Flask, request, jsonify, make_response
 from flask import Response

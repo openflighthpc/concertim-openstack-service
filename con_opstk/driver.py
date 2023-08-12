@@ -1,6 +1,6 @@
 # Local Imports
 from con_opstk.utils.service_logger import create_logger
-import app_definitions as app_paths
+import con_opstk.app_definitions as app_paths
 # Py Packages
 import signal
 import sys
