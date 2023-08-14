@@ -1,10 +1,12 @@
 # Local imports
 from data_handler.user_handler.user_handler import UserHandler
-from openstack.exceptions import APIServerDefError
+from openstack.exceptions import APIServerDefError, OpStkAuthenticationError
 # Py Packages
 from flask import Flask, request, jsonify, make_response
 from flask import Response
 import logging
+import keystoneauth1.exceptions.http
+import novaclient.exceptions
 
 
 formatter = logging.Formatter('%(asctime)s - [%(levelname)s] (%(module)s) - %(message)s')
@@ -47,7 +49,7 @@ def create_user_project():
     except OpStkAuthenticationError as e:
         response = {"error": type(e).__name__, "message": str(e)}
         app.logger.error(response)
-        return jsonify(response), 400
+        return jsonify(response), 401
     except Exception as e:
         response = {"error": f"An unexpected error occurred: {type(e).__name__}", "message": str(e)}
         stat_code = 500
@@ -78,17 +80,22 @@ def update_status(type, id):
       app.logger.info(f"Successfully created UserHandler")
 
       result = user_handler.update_status(type, id, action)
-#
-#       user, project = user_handler.create_user_project(username, password, email)
-#       app.logger.info(f"Successfully created new User and Project in Openstack")
-#
-#       resp = {"username": username, "user_id": user.id, "project_id": project.id}
+      app.logger.info(f"Successfully submitted {action} request for {type} {id}")
+
       resp = {"result": "testing"}
       return make_response(resp,201)
   except APIServerDefError as e:
       response = {"error": type(e).__name__, "message": str(e)}
       app.logger.error(response)
       return jsonify(response), 400
+  except keystoneauth1.exceptions.http.Unauthorized as e:
+      response = {"error": "Unauthorized", "message": "Unauthorized"}
+      app.logger.error(response)
+      return jsonify(response), 401
+  except novaclient.exceptions.Conflict as e:
+      response = {"error": "Conflict", "message": e.message}
+      app.logger.error(response)
+      return jsonify(response), 409
   except OpStkAuthenticationError as e:
       response = {"error": type(e).__name__, "message": str(e)}
       app.logger.error(response)
@@ -102,8 +109,11 @@ def update_status(type, id):
       return jsonify(response), stat_code
   finally:
       app.logger.debug("Disconnecting Handler")
-#       user_handler.disconnect()
-#       user_handler = None
+      try:
+        user_handler.disconnect()
+        user_handler = None
+      except NameError:
+        user_handler = None
 
 @app.route('/')
 def running():

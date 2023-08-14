@@ -25,6 +25,4 @@ class OpenStackAuth:
                     if required_params.issubset(self.auth_dict.keys()):
                         return session.Session(auth=method(**self.auth_dict))
         except Exception as e:
-            self.__LOGGER.error(f"An unexpected error : {type(e).__name__} - {e}")
-            raise e
-        raise OpStkAuthenticationError(f"Invalid auth_dict provided. It must contain one of the valid sets of parameters: {self.auth_methods}")
+            raise OpStkAuthenticationError(f"Invalid auth_dict provided. It must contain one of the valid sets of parameters: {self.auth_methods}")

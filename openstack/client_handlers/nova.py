@@ -79,7 +79,6 @@ class NovaHandler(ClientHandler):
         # testing
         device_id = "c763d503-0c40-4208-9b17-786fd1ce6d99"
         try:
-            instances = self.client.servers.list()
             instance = self.get_server(device_id)
             result = self.client.servers.stop(instance)
             return result
