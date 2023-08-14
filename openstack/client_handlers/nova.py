@@ -1,6 +1,7 @@
 # Local Imports
 from utils.service_logger import create_logger
 from openstack.client_handlers.client_base import ClientHandler
+from keystoneauth1.exceptions.http import Unauthorized
 # Py Packages
 import sys
 import time
@@ -76,14 +77,29 @@ class NovaHandler(ClientHandler):
     ####
 
     def switch_off_device(self, device_id):
-        # testing
-        device_id = "c763d503-0c40-4208-9b17-786fd1ce6d99"
         try:
             instance = self.get_server(device_id)
-            result = self.client.servers.stop(instance)
+            # need some proper auth. The below means admins can't switch any off
+            self.__LOGGER.error(instance)
+            if instance.tenant_id != self._SESSION.get_project_id():
+                raise Unauthorized("You do not have permission to switch off this device")
+            result = self.client.servers.stop(instance).request_ids
             return result
         except Exception as e:
-            self.__LOGGER.error(f"An unexpected error : {type(e).__name__} - {e}")
+            self.__LOGGER.debug(f"Device switch off exception : {e}")
+            raise e
+
+    def switch_on_device(self, device_id):
+        try:
+            instance = self.get_server(device_id)
+            self.__LOGGER.error(instance)
+            # need some proper auth. The below means admins can't switch any on
+            if instance.tenant_id != self._SESSION.get_project_id():
+                raise Unauthorized("You do not have permission to switch off this device")
+            result = self.client.servers.start(instance).request_ids
+            return result
+        except Exception as e:
+            self.__LOGGER.debug(f"Device switch off exception : {e}")
             raise e
 
     def close(self):

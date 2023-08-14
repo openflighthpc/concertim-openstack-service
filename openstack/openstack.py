@@ -377,7 +377,13 @@ class OpenstackService(object):
         self.__LOGGER.debug(f"Switching off device {device_id}")
         self.__check_handlers('nova')
         nova = self.handlers[self._handlers_key_map['nova']]
-        nova.switch_off_device(device_id)
+        return nova.switch_off_device(device_id)
+
+    def switch_on_device(self, device_id):
+        self.__LOGGER.debug(f"Switching off device {device_id}")
+        self.__check_handlers('nova')
+        nova = self.handlers[self._handlers_key_map['nova']]
+        return nova.switch_on_device(device_id)
 
     def disconnect(self):
         self.__LOGGER.info("Disconnecting Openstack Services")

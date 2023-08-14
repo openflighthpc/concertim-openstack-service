@@ -41,8 +41,12 @@ class UserHandler(BaseHandler):
     def update_status(self, type, id, action):
         self.__LOGGER.info(f"Starting action {action} for {type} {id}")
         try:
-            if type == "devices" and action == "off":
-                result = self.openstack_service.switch_off_device(id)
+            if type == "devices":
+                if action == "on":
+                    return self.openstack_service.switch_on_device(id)
+                elif action == "off":
+                    return self.openstack_service.switch_off_device(id)
+
         except Exception as e:
             self.__LOGGER.error(f"Encountered ERROR - Aborting")
             raise e

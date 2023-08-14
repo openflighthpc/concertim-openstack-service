@@ -80,10 +80,10 @@ def update_status(type, id):
       app.logger.info(f"Successfully created UserHandler")
 
       result = user_handler.update_status(type, id, action)
-      app.logger.info(f"Successfully submitted {action} request for {type} {id}")
+      app.logger.info(f"Successfully submitted {action} request for {type} {id}. Request id: {result}")
 
-      resp = {"result": "testing"}
-      return make_response(resp,201)
+      resp = {"success": True}
+      return jsonify(resp), 202
   except APIServerDefError as e:
       response = {"error": type(e).__name__, "message": str(e)}
       app.logger.error(response)
@@ -96,6 +96,10 @@ def update_status(type, id):
       response = {"error": "Conflict", "message": e.message}
       app.logger.error(response)
       return jsonify(response), 409
+  except novaclient.exceptions.NotFound as e:
+      response = {"error": "Not found", "message": e.message}
+      app.logger.error(response)
+      return jsonify(response), 404
   except OpStkAuthenticationError as e:
       response = {"error": type(e).__name__, "message": str(e)}
       app.logger.error(response)
