@@ -73,6 +73,14 @@ class HeatHandler(ClientHandler):
             self.__LOGGER.error(f"An unexpected error : {type(e).__name__} - {e}")
             raise e
 
+    def suspend_stack(self, stack_id):
+        try:
+            self.client.actions.suspend(stack_id)
+            return
+        except Exception as e:
+            self.__LOGGER.error(f"An unexpected error : {type(e).__name__} - {e}")
+            raise e
+
     def close(self):
         self.__LOGGER.debug("Closing Heat Client Connection")
         self.client = None

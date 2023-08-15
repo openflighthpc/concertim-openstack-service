@@ -1,12 +1,13 @@
 # Local Imports
 from utils.service_logger import create_logger
 from data_handler.base import BaseHandler
+from openstack.exceptions import APIServerDefError
 # Py Packages
 import sys
 
 
 class UserHandler(BaseHandler):
-    DEFAULT_CLIENTS = ['keystone', 'nova']
+    DEFAULT_CLIENTS = ['keystone', 'nova', 'heat']
     def __init__(self, config_obj, log_file, enable_concertim=False, clients=None):
         self.clients = clients if clients else UserHandler.DEFAULT_CLIENTS
         super().__init__(config_obj, log_file, self.clients, enable_concertim=enable_concertim)
@@ -46,14 +47,20 @@ class UserHandler(BaseHandler):
                     return self.openstack_service.switch_on_device(id)
                 elif action == "off":
                     return self.openstack_service.switch_off_device(id)
+                elif action == "suspend":
+                    return self.openstack_service.suspend_device(id)
+                elif action == "resume":
+                    return self.openstack_service.resume_device(id)
                 elif action == "destroy":
                     return self.openstack_service.destroy_device(id)
+                else:
+                    raise APIServerDefError("Invalid action")
 
-#             elif type == "racks":
+            elif type == "racks":
 #                 if action == "on":
 #                    return self.openstack_service.switch_on_rack(id)
-#                 elif action == "off":
-#                    return self.openstack_service.switch_off_rack(id)
+                if action == "suspend":
+                    return self.openstack_service.suspend_stack(id)
 
         except Exception as e:
             self.__LOGGER.error(f"Encountered ERROR - Aborting")

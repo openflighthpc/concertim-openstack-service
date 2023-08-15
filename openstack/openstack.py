@@ -379,6 +379,18 @@ class OpenstackService(object):
         nova = self.handlers[self._handlers_key_map['nova']]
         return nova.switch_off_device(device_id)
 
+    def suspend_device(self, device_id):
+        self.__LOGGER.debug(f"Suspending device {device_id}")
+        self.__check_handlers('nova')
+        nova = self.handlers[self._handlers_key_map['nova']]
+        return nova.suspend_device(device_id)
+
+    def resume_device(self, device_id):
+        self.__LOGGER.debug(f"Suspending device {device_id}")
+        self.__check_handlers('nova')
+        nova = self.handlers[self._handlers_key_map['nova']]
+        return nova.resume_device(device_id)
+
     def switch_on_device(self, device_id):
         self.__LOGGER.debug(f"Switching off device {device_id}")
         self.__check_handlers('nova')
@@ -390,6 +402,12 @@ class OpenstackService(object):
        self.__check_handlers('nova')
        nova = self.handlers[self._handlers_key_map['nova']]
        return nova.destroy_device(device_id)
+
+    def suspend_stack(self, stack_id):
+       self.__LOGGER.debug(f"Suspending stack {stack_id}")
+       self.__check_handlers('heat')
+       heat = self.handlers[self._handlers_key_map['heat']]
+       return heat.suspend_stack(stack_id)
 
     def disconnect(self):
         self.__LOGGER.info("Disconnecting Openstack Services")

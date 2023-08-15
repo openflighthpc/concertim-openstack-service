@@ -76,41 +76,57 @@ class NovaHandler(ClientHandler):
         return True
     ####
 
+    def switch_on_device(self, device_id):
+            try:
+                instance = self.get_server(device_id)
+                # need some proper auth. The below means admins can't switch any on
+                if instance.tenant_id != self._SESSION.get_project_id():
+                    raise Unauthorized("You do not have permission to switch off this device")
+                return self.client.servers.start(instance).request_ids
+            except Exception as e:
+                self.__LOGGER.debug(f"Device switch off exception : {e}")
+                raise e
+
     def switch_off_device(self, device_id):
         try:
             instance = self.get_server(device_id)
             # need some proper auth. The below means admins can't switch any off
-            self.__LOGGER.error(instance)
             if instance.tenant_id != self._SESSION.get_project_id():
                 raise Unauthorized("You do not have permission to switch off this device")
-            result = self.client.servers.stop(instance).request_ids
-            return result
+            return self.client.servers.stop(instance).request_ids
         except Exception as e:
             self.__LOGGER.debug(f"Device switch off exception : {e}")
             raise e
 
-    def switch_on_device(self, device_id):
+    def suspend_device(self, device_id):
         try:
             instance = self.get_server(device_id)
-            self.__LOGGER.error(instance)
-            # need some proper auth. The below means admins can't switch any on
+            # need some proper auth. The below means admins can't suspend any.
             if instance.tenant_id != self._SESSION.get_project_id():
-                raise Unauthorized("You do not have permission to switch off this device")
-            result = self.client.servers.start(instance).request_ids
-            return result
+                raise Unauthorized("You do not have permission to suspend this device")
+            return self.client.servers.suspend(instance).request_ids
         except Exception as e:
-            self.__LOGGER.debug(f"Device switch off exception : {e}")
+            self.__LOGGER.debug(f"Device suspend exception : {e}")
+            raise e
+
+    def resume_device(self, device_id):
+        try:
+            instance = self.get_server(device_id)
+            # need some proper auth.  The below means admins can't resume any.
+            if instance.tenant_id != self._SESSION.get_project_id():
+                raise Unauthorized("You do not have permission to resume this device")
+            return self.client.servers.resume(instance).request_ids
+        except Exception as e:
+            self.__LOGGER.debug(f"Device resume exception : {e}")
             raise e
 
     def destroy_device(self, device_id):
         try:
             instance = self.get_server(device_id)
-            self.__LOGGER.error(instance)
-            # need some proper auth. The below means admins can't switch any on
+            # need some proper auth. The below means admins can't destroy any
             if instance.tenant_id != self._SESSION.get_project_id():
                 raise Unauthorized("You do not have permission to destroy this device")
-            result = self.client.servers.delete(instance).request_ids
-            return result
+            return self.client.servers.delete(instance).request_ids
         except Exception as e:
             self.__LOGGER.debug(f"Device destroy exception : {e}")
             raise e
