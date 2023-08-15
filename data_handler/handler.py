@@ -241,9 +241,11 @@ class DataHandler(object):
         #self.__LOGGER.debug(f"{body}")
 
         response = json.loads(body)
-
-        message = json.loads(response['oslo.message'])
-            
+        if 'oslo.message' in response:
+            message = json.loads(response['oslo.message'])
+        else:
+            self.__LOGGER.warning(f"No oslo.message[] found in message")
+            return
         self.__LOGGER.debug(f" Event type : {message['event_type']}")
         self.__LOGGER.debug(f"Event payload : {message['payload']}")
 
@@ -475,6 +477,7 @@ class DataHandler(object):
         openstack_device_set = set()
 
         self.__LOGGER.debug(f" *** Adding New Devices in Concertim ***")
+        time.sleep(2)
         for stack_id in openstack_stack_set:
             stack_nova_servers = self.openstack_service.get_stack_instances(stack_id)
             self.__LOGGER.debug(f"Stack Instances : {stack_nova_servers}")

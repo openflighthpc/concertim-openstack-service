@@ -41,6 +41,7 @@ class NovaHandler:
 
     def get_server_group(self, group_id):
         try:
+            self.__LOGGER.debug(f"Getting Server Group {group_id}")
             return self.client.server_groups.get(group_id)
         except Exception as e:
             self.__LOGGER.error(f"An unexpected error : {type(e).__name__} - {e}")

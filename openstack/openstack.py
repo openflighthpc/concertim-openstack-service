@@ -195,7 +195,8 @@ class OpenstackService(object):
                     instance_ids.append(inst_r.physical_resource_id)
         # get nova server objs for all instance ids
         for inst_id in instance_ids:
-            instances.append(self.nova.get_server(inst_id))
+            if self.nova.server_exists(inst_id):
+                instances.append(self.nova.get_server(inst_id))
         return instances
 
     def disconnect(self):
