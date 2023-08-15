@@ -102,6 +102,19 @@ class NovaHandler(ClientHandler):
             self.__LOGGER.debug(f"Device switch off exception : {e}")
             raise e
 
+    def destroy_device(self, device_id):
+        try:
+            instance = self.get_server(device_id)
+            self.__LOGGER.error(instance)
+            # need some proper auth. The below means admins can't switch any on
+            if instance.tenant_id != self._SESSION.get_project_id():
+                raise Unauthorized("You do not have permission to destroy this device")
+            result = self.client.servers.delete(instance).request_ids
+            return result
+        except Exception as e:
+            self.__LOGGER.debug(f"Device destroy exception : {e}")
+            raise e
+
     def close(self):
         self.__LOGGER.debug("Closing Nova Client Connection")
         self.client = None

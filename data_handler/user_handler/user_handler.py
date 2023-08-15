@@ -46,6 +46,14 @@ class UserHandler(BaseHandler):
                     return self.openstack_service.switch_on_device(id)
                 elif action == "off":
                     return self.openstack_service.switch_off_device(id)
+                elif action == "destroy":
+                    return self.openstack_service.destroy_device(id)
+
+#             elif type == "racks":
+#                 if action == "on":
+#                    return self.openstack_service.switch_on_rack(id)
+#                 elif action == "off":
+#                    return self.openstack_service.switch_off_rack(id)
 
         except Exception as e:
             self.__LOGGER.error(f"Encountered ERROR - Aborting")

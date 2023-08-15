@@ -385,6 +385,12 @@ class OpenstackService(object):
         nova = self.handlers[self._handlers_key_map['nova']]
         return nova.switch_on_device(device_id)
 
+    def destroy_device(self, device_id):
+       self.__LOGGER.debug(f"Destroying device {device_id}")
+       self.__check_handlers('nova')
+       nova = self.handlers[self._handlers_key_map['nova']]
+       return nova.destroy_device(device_id)
+
     def disconnect(self):
         self.__LOGGER.info("Disconnecting Openstack Services")
         self.__OPSTK_AUTH = None
