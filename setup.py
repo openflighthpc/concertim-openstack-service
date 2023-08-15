@@ -1,8 +1,9 @@
-# Py Packages
+# Using setup.cfg
+'''
 from setuptools import setup, find_packages
 
 setup(
-    name='con_opstk',
+    name='con-opstk-service',
     version='0.1.2',
     packages=find_packages(exclude=['tests*', 'Dockerfiles*', 'docs*', 'etc*']),
     url='https://github.com/alces-flight/concertim-openstack-service',
@@ -19,6 +20,7 @@ setup(
     #setup_requires=['pytest-runner', 'flake8'],
     #tests_require=['pytest'],
     entry_points={
-        'console_scripts': ['con-opstk=driver:main']
+        'console_scripts': ['con-opstk=shell:main']
     }
 )
+'''
