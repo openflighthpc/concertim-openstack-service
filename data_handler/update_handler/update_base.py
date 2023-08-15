@@ -20,7 +20,8 @@ class UpdateHandler(BaseHandler):
     CONCERTIM_STATE_MAP = {
         'DEVICE':{
             'ACTIVE': ['active', 'running'],
-            'STOPPED': ['stopped','suspended'],
+            'STOPPED': ['stopped'],
+            'SUSPENDED': ['suspended'],
             'IN_PROGRESS': ['building', 'deleting', 'scheduling', 'networking', 'block_device_mapping', 'spawning'],
             'FAILED': []
         },
