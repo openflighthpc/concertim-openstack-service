@@ -204,8 +204,16 @@ class OpenstackService(object):
             domain_ref = domain
 
         new_user = keystone.create_user(name, password, domain_ref, email=email, project=project, desc="Concertim managed User")
-        self.__LOGGER.debug(f"New Concertim-managed user created successfully - '{new_user}'")
-        return new_user
+        try:
+            self.__LOGGER.debug(f"Adding new_user to project")
+            keystone.add_user_to_project(user=new_user,project=project,role=self.req_keystone_objs['role']['member'])
+            self.__LOGGER.debug(f"New Concertim-managed user created successfully - '{new_user}'")
+            return new_user
+        except Exception as e:
+            self.__LOGGER.error(f"Failed - Aborting - scrubbing created user")
+            keystone.delete(new_user)
+            self.__LOGGER.error(f"Failed to add required roles to new user - {type(e).__name__} - {e}")
+            raise e
 
     def get_cpu_load(self, resource, start, stop, granularity=5):
         self.__LOGGER.debug(f"Getting CPU Load % for {resource['id']}")
