@@ -7,7 +7,7 @@ import time
 # Openstack Packages
 import novaclient.client as n_client
 import novaclient.exceptions as nex
-import novaclient.v2.servers.Server
+from novaclient.v2.servers import Server
 
 class NovaHandler(ClientHandler):
     def __init__(self, sess, log_file, log_level):
@@ -78,7 +78,7 @@ class NovaHandler(ClientHandler):
 
     def switch_on_device(self, device_id):
         try:
-            if isinstance(device_id, novaclient.v2.servers.Server):
+            if isinstance(device_id, Server):
                 instance = device_id
             else:
                 instance = self.get_server(device_id)
@@ -92,7 +92,7 @@ class NovaHandler(ClientHandler):
 
     def switch_off_device(self, device_id):
         try:
-            if isinstance(device_id, novaclient.v2.servers.Server):
+            if isinstance(device_id, Server):
                 instance = device_id
             else:
                 instance = self.get_server(device_id)
@@ -106,7 +106,7 @@ class NovaHandler(ClientHandler):
 
     def suspend_device(self, device_id):
         try:
-            if isinstance(device_id, novaclient.v2.servers.Server):
+            if isinstance(device_id, Server):
                 instance = device_id
             else:
                 instance = self.get_server(device_id)
@@ -120,7 +120,7 @@ class NovaHandler(ClientHandler):
 
     def resume_device(self, device_id):
         try:
-            if isinstance(device_id, novaclient.v2.servers.Server):
+            if isinstance(device_id, Server):
                 instance = device_id
             else:
                 instance = self.get_server(device_id)
@@ -134,7 +134,7 @@ class NovaHandler(ClientHandler):
 
     def destroy_device(self, device_id):
         try:
-            if isinstance(device_id, novaclient.v2.servers.Server):
+            if isinstance(device_id, Server):
                 instance = device_id
             else:
                 instance = self.get_server(device_id)

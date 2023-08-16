@@ -4,8 +4,8 @@ from data_handler.base import BaseHandler
 from openstack.exceptions import APIServerDefError
 # Py Packages
 import sys
-import novaclient.exceptions.ClientException as nova_ex
-import heatclient.exc.BaseException as heat_ex
+from novaclient.exceptions import ClientException as nova_ex
+from heatclient.exc import BaseException as heat_ex
 
 
 class UserHandler(BaseHandler):
@@ -53,13 +53,9 @@ class UserHandler(BaseHandler):
             # Check if update function returned a client exception (will only happen if forbidden/unauth)
             if isinstance(result, nova_ex) or isinstance(result, heat_ex):
                 return (403, "Could not complete action due to credentials provided")
-            # Check if update function returned a dict (will happen if type=racks and fallback was called)
-            if isinstance(result, dict):
-                if result['errors']:
-                    # TODO: Return whatever for there being an error for an instance
             return result
         except Exception as e:
-            self.__LOGGER.error(f"Encountered error when completing action [action:{action},type:{type},id:{id}] : {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
+            self.__LOGGER.error(f"Encountered error when completing action [action:{action},type:{type},id:{id}] : {e.__class__.__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
             raise e
 
     

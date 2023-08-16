@@ -5,7 +5,7 @@ from openstack.exceptions import UnknownOpenstackHandler, NoHandlerFound, Missin
 # Py Packages
 import sys
 import novaclient.exceptions
-import heatclient.exc.BaseException
+import heatclient.exc
 
 class OpenstackService(object):
     _REQUIRED_KS_OBJS = {
@@ -413,21 +413,24 @@ class OpenstackService(object):
 
     # For when the heat stack has issues changing status
     # Loop over each instance and change status one at a time
-    # Returns a dict of {'errors':bool, instance_id:action_outcome...}
+    # Returns a dict of {'success':[], 'failure':[], outcome: }
     def _update_stack_status_fallback(self, stack_id, action):
         self.__LOGGER.debug(f"Attempting action '{action}' on stack '{stack_id}' using fallback method")
         instances = self.get_stack_instances(stack_id)
-        returns = {'errors':False}
+        result = {'success': [], 'failure': [], 'outcome': None}
         for inst in instances:
             try:
                 temp = self.update_instance_status(inst, action)
-                returns[inst.id] = temp
-            except (novaclient.exceptions.MethodNotAllowed, novaclient.exceptions.Forbidden) as e:
-                self.__LOGGER.warning(f"Exception when updating instance in stack {stack_id} - {type(e).__name__} - {e}")
-                returns[inst.id] = e
-                returns['errors'] = True
+                result["success"].append(temp)
+            except (novaclient.exceptions.MethodNotAllowed, novaclient.exceptions.Forbidden, novaclient.exceptions.Conflict) as e:
+                self.__LOGGER.warning(f"Exception when updating instance in stack {stack_id} - {e.__class__.__name__} - {e.message}")
+                result["failure"].append(e.message)
                 continue
-        return returns
+        if result["success"]:
+             result["outcome"] = "partial failure" if result["failure"] else "success"
+        elif result["failure"]:
+             result["outcome"] = "failure"
+        return result
 
     def disconnect(self):
         self.__LOGGER.info("Disconnecting Openstack Services")

@@ -51,7 +51,7 @@ def create_user_project():
         app.logger.error(response)
         return jsonify(response), 401
     except Exception as e:
-        response = {"error": f"An unexpected error occurred: {type(e).__name__}", "message": str(e)}
+        response = {"error": f"An unexpected error occurred: {e.__class__.__name__}", "message": str(e)}
         stat_code = 500
         app.logger.error(response)
         if 'http_status' in dir(e):
@@ -80,6 +80,13 @@ def update_status(type, id):
       app.logger.info(f"Successfully created UserHandler")
 
       result = user_handler.update_status(type, id, action)
+      # Check if update function returned a dict (will happen if type=racks and fallback was called)
+      if isinstance(result, dict):
+          if result['outcome'] == 'failure':
+              return jsonify({"error": "Status change failure", "message": "; ".join(result["failure"])}), 409
+          elif result['outcome'] == 'partial failure':
+              return jsonify({"error": "Partial status change failure", "message": "; ".join(result["failure"])}), 207
+
       app.logger.info(f"Successfully submitted {action} request for {type} {id}. Request id: {result}")
 
       resp = {"success": True}
@@ -105,7 +112,7 @@ def update_status(type, id):
       app.logger.error(response)
       return jsonify(response), 400
   except Exception as e:
-      response = {"error": f"An unexpected error occurred: {type(e).__name__}", "message": str(e)}
+      response = {"error": f"An unexpected error occurred: {e.__class__.__name__}", "message": str(e)}
       stat_code = 500
       app.logger.error(response)
       if 'http_status' in dir(e):
