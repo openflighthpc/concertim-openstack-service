@@ -1,8 +1,11 @@
 # Local Imports
 from utils.service_logger import create_logger
 from data_handler.base import BaseHandler
+from openstack.exceptions import APIServerDefError
 # Py Packages
 import sys
+from novaclient.exceptions import ClientException as nova_ex
+from heatclient.exc import BaseException as heat_ex
 
 
 class UserHandler(BaseHandler):
@@ -38,7 +41,21 @@ class UserHandler(BaseHandler):
             self.__LOGGER.error(f"Encountered error when creating new Concertim Managed User/Project {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
             raise e
 
-
-
+    def update_status(self, type, id, action):
+        self.__LOGGER.info(f"Starting action {action} for {type} {id}")
+        try:
+            result = None
+            if type == "devices":
+                result = self.openstack_service.update_instance_status(id, action)
+            elif type == "racks":
+                result = self.openstack_service.update_stack_status(id, action)
+            
+            # Check if update function returned a client exception (will only happen if forbidden/unauth)
+            if isinstance(result, nova_ex) or isinstance(result, heat_ex):
+                return (403, "Could not complete action due to credentials provided")
+            return result
+        except Exception as e:
+            self.__LOGGER.error(f"Encountered error when completing action [action:{action},type:{type},id:{id}] : {e.__class__.__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
+            raise e
 
     

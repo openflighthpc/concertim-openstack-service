@@ -4,7 +4,8 @@ from openstack.opstk_auth import OpenStackAuth
 from openstack.exceptions import UnknownOpenstackHandler, NoHandlerFound, MissingOpenstackObject
 # Py Packages
 import sys
-from novaclient.exceptions import NotFound
+import novaclient.exceptions
+import heatclient.exc
 
 class OpenstackService(object):
     _REQUIRED_KS_OBJS = {
@@ -356,7 +357,7 @@ class OpenstackService(object):
         for inst_id in instance_ids:
             try:
                 instances.append(nova.get_server(inst_id))
-            except NotFound as e:
+            except novaclient.exceptions.NotFound as e:
                 self.__LOGGER.warning(f"Could not find server '{inst_id}' from stack '{stack_id}' in Openstack - skipping")
                 continue
         return instances
@@ -372,6 +373,64 @@ class OpenstackService(object):
             output_details = heat.show_output(stack_id,output_dict['output_key'])
             return_output.append((output_dict['output_key'],output_details['output_value']))
         return return_output
+
+    def update_instance_status(self, instance_id, action):
+        self.__LOGGER.debug(f"Attempting action '{action}' on instance '{instance_id}'")
+        self.__check_handlers('nova')
+        nova = self.handlers[self._handlers_key_map['nova']]
+        actions_map = {
+            'on': nova.switch_on_device,
+            'off': nova.switch_off_device,
+            'suspend': nova.suspend_device,
+            'resume': nova.resume_device,
+            'destroy': nova.destroy_device
+        }
+        if action not in actions_map:
+            raise APIServerDefError("Invalid action")
+        attempt = actions_map[action](instance_id)
+        if isinstance(attempt, novaclient.exceptions.ClientException):
+            raise attempt
+        return attempt
+
+    def update_stack_status(self, stack_id, action):
+        self.__LOGGER.debug(f"Attempting action '{action}' on stack '{stack_id}'")
+        self.__check_handlers('heat')
+        heat = self.handlers[self._handlers_key_map['heat']]
+        actions_map = {
+            #'on': heat.switch_on_stack,
+            #'off': heat.switch_off_stack,
+            'suspend': heat.suspend_stack#,
+            #'resume': heat.resume_stack,
+            #'destroy': heat.destroy_stack
+        }
+        if action not in actions_map:
+            raise APIServerDefError("Invalid action")
+        attempt = actions_map[action](stack_id)
+        # If attempt returns the specified exc from the heat.action(id) call, use fallback
+        if isinstance(attempt, heatclient.exc.BaseException):
+            return self._update_stack_status_fallback(stack_id, action)
+        return attempt
+
+    # For when the heat stack has issues changing status
+    # Loop over each instance and change status one at a time
+    # Returns a dict of {'success':[], 'failure':[], outcome: }
+    def _update_stack_status_fallback(self, stack_id, action):
+        self.__LOGGER.debug(f"Attempting action '{action}' on stack '{stack_id}' using fallback method")
+        instances = self.get_stack_instances(stack_id)
+        result = {'success': [], 'failure': [], 'outcome': None}
+        for inst in instances:
+            try:
+                temp = self.update_instance_status(inst, action)
+                result["success"].append(temp)
+            except (novaclient.exceptions.MethodNotAllowed, novaclient.exceptions.Forbidden, novaclient.exceptions.Conflict) as e:
+                self.__LOGGER.warning(f"Exception when updating instance in stack {stack_id} - {e.__class__.__name__} - {e.message}")
+                result["failure"].append(e.message)
+                continue
+        if result["success"]:
+             result["outcome"] = "partial failure" if result["failure"] else "success"
+        elif result["failure"]:
+             result["outcome"] = "failure"
+        return result
 
     def disconnect(self):
         self.__LOGGER.info("Disconnecting Openstack Services")

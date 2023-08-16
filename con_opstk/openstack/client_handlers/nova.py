@@ -6,7 +6,8 @@ import sys
 import time
 # Openstack Packages
 import novaclient.client as n_client
-#import novaclient.exceptions
+import novaclient.exceptions as nex
+from novaclient.v2.servers import Server
 
 class NovaHandler(ClientHandler):
     def __init__(self, sess, log_file, log_level):
@@ -74,6 +75,76 @@ class NovaHandler(ClientHandler):
         self.__LOGGER.debug(f"Server return status : {ret}")
         return True
     ####
+
+    def switch_on_device(self, device_id):
+        try:
+            if isinstance(device_id, Server):
+                instance = device_id
+            else:
+                instance = self.get_server(device_id)
+            return self.client.servers.start(instance).request_ids
+        except (nex.MethodNotAllowed, nex.Forbidden) as e:
+            self.__LOGGER.error(f"Switch instance '{device_id}' ON not allowed with current credentials: {type(e).__name__} - {e}")
+            return e
+        except Exception as e:
+            self.__LOGGER.debug(f"Device switch on exception : {e}")
+            raise e
+
+    def switch_off_device(self, device_id):
+        try:
+            if isinstance(device_id, Server):
+                instance = device_id
+            else:
+                instance = self.get_server(device_id)
+            return self.client.servers.stop(instance).request_ids
+        except (nex.MethodNotAllowed, nex.Forbidden) as e:
+            self.__LOGGER.error(f"Switch instance '{device_id}' OFF not allowed with current credentials: {type(e).__name__} - {e}")
+            return e
+        except Exception as e:
+            self.__LOGGER.debug(f"Device switch off exception : {e}")
+            raise e
+
+    def suspend_device(self, device_id):
+        try:
+            if isinstance(device_id, Server):
+                instance = device_id
+            else:
+                instance = self.get_server(device_id)
+            return self.client.servers.suspend(instance).request_ids
+        except (nex.MethodNotAllowed, nex.Forbidden) as e:
+            self.__LOGGER.error(f"Suspend instance '{device_id}' not allowed with current credentials: {type(e).__name__} - {e}")
+            return e
+        except Exception as e:
+            self.__LOGGER.debug(f"Device suspend exception : {e}")
+            raise e
+
+    def resume_device(self, device_id):
+        try:
+            if isinstance(device_id, Server):
+                instance = device_id
+            else:
+                instance = self.get_server(device_id)
+            return self.client.servers.resume(instance).request_ids
+        except (nex.MethodNotAllowed, nex.Forbidden) as e:
+            self.__LOGGER.error(f"Resume instance '{device_id}' not allowed with current credentials: {type(e).__name__} - {e}")
+            return e
+        except Exception as e:
+            self.__LOGGER.debug(f"Device resume exception : {e}")
+            raise e
+
+    def destroy_device(self, device_id):
+        try:
+            if isinstance(device_id, Server):
+                instance = device_id
+            else:
+                instance = self.get_server(device_id)
+            return self.client.servers.delete(instance).request_ids
+        except (nex.MethodNotAllowed, nex.Forbidden) as e:
+            self.__LOGGER.error(f"Delete instance '{device_id}' not allowed with current credentials: {type(e).__name__} - {e}")
+            return e
+        except Exception as e:
+            self.__LOGGER.debug(f"Device destroy exception : {e}")
+            raise e
 
     def close(self):
         self.__LOGGER.debug("Closing Nova Client Connection")
