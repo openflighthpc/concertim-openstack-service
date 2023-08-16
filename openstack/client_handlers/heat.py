@@ -76,7 +76,11 @@ class HeatHandler(ClientHandler):
     def suspend_stack(self, stack_id):
         try:
             self.client.actions.suspend(stack_id)
-            return
+            return True
+        # TODO: put in exceptions that match the failing from instance mismatch status
+        #except <heat exception> as e:
+        #    self.__LOGGER.warning(f"An unexpected instance conflict caused suspend of stack {stack_id} to fail")
+        #    return e
         except Exception as e:
             self.__LOGGER.error(f"An unexpected error : {type(e).__name__} - {e}")
             raise e

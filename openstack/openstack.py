@@ -4,7 +4,8 @@ from openstack.opstk_auth import OpenStackAuth
 from openstack.exceptions import UnknownOpenstackHandler, NoHandlerFound, MissingOpenstackObject
 # Py Packages
 import sys
-from novaclient.exceptions import NotFound
+import novaclient.exceptions
+import heatclient.exc.BaseException
 
 class OpenstackService(object):
     _REQUIRED_KS_OBJS = {
@@ -356,7 +357,7 @@ class OpenstackService(object):
         for inst_id in instance_ids:
             try:
                 instances.append(nova.get_server(inst_id))
-            except NotFound as e:
+            except novaclient.exceptions.NotFound as e:
                 self.__LOGGER.warning(f"Could not find server '{inst_id}' from stack '{stack_id}' in Openstack - skipping")
                 continue
         return instances
@@ -373,41 +374,60 @@ class OpenstackService(object):
             return_output.append((output_dict['output_key'],output_details['output_value']))
         return return_output
 
-    def switch_off_device(self, device_id):
-        self.__LOGGER.debug(f"Switching off device {device_id}")
+    def update_instance_status(self, instance_id, action):
+        self.__LOGGER.debug(f"Attempting action '{action}' on instance '{instance_id}'")
         self.__check_handlers('nova')
         nova = self.handlers[self._handlers_key_map['nova']]
-        return nova.switch_off_device(device_id)
+        actions_map = {
+            'on': nova.switch_on_device,
+            'off': nova.switch_off_device,
+            'suspend': nova.suspend_device,
+            'resume': nova.resume_device,
+            'destroy': nova.destroy_device
+        }
+        if action not in actions_map:
+            raise APIServerDefError("Invalid action")
+        attempt = actions_map[action](instance_id)
+        if isinstance(attempt, novaclient.exceptions.ClientException):
+            raise attempt
+        return attempt
 
-    def suspend_device(self, device_id):
-        self.__LOGGER.debug(f"Suspending device {device_id}")
-        self.__check_handlers('nova')
-        nova = self.handlers[self._handlers_key_map['nova']]
-        return nova.suspend_device(device_id)
+    def update_stack_status(self, stack_id, action):
+        self.__LOGGER.debug(f"Attempting action '{action}' on stack '{stack_id}'")
+        self.__check_handlers('heat')
+        heat = self.handlers[self._handlers_key_map['heat']]
+        actions_map = {
+            #'on': heat.switch_on_stack,
+            #'off': heat.switch_off_stack,
+            'suspend': heat.suspend_stack#,
+            #'resume': heat.resume_stack,
+            #'destroy': heat.destroy_stack
+        }
+        if action not in actions_map:
+            raise APIServerDefError("Invalid action")
+        attempt = actions_map[action](stack_id)
+        # If attempt returns the specified exc from the heat.action(id) call, use fallback
+        if isinstance(attempt, heatclient.exc.BaseException):
+            return self._update_stack_status_fallback(stack_id, action)
+        return attempt
 
-    def resume_device(self, device_id):
-        self.__LOGGER.debug(f"Suspending device {device_id}")
-        self.__check_handlers('nova')
-        nova = self.handlers[self._handlers_key_map['nova']]
-        return nova.resume_device(device_id)
-
-    def switch_on_device(self, device_id):
-        self.__LOGGER.debug(f"Switching off device {device_id}")
-        self.__check_handlers('nova')
-        nova = self.handlers[self._handlers_key_map['nova']]
-        return nova.switch_on_device(device_id)
-
-    def destroy_device(self, device_id):
-       self.__LOGGER.debug(f"Destroying device {device_id}")
-       self.__check_handlers('nova')
-       nova = self.handlers[self._handlers_key_map['nova']]
-       return nova.destroy_device(device_id)
-
-    def suspend_stack(self, stack_id):
-       self.__LOGGER.debug(f"Suspending stack {stack_id}")
-       self.__check_handlers('heat')
-       heat = self.handlers[self._handlers_key_map['heat']]
-       return heat.suspend_stack(stack_id)
+    # For when the heat stack has issues changing status
+    # Loop over each instance and change status one at a time
+    # Returns a dict of {'errors':bool, instance_id:action_outcome...}
+    def _update_stack_status_fallback(self, stack_id, action):
+        self.__LOGGER.debug(f"Attempting action '{action}' on stack '{stack_id}' using fallback method")
+        instances = self.get_stack_instances(stack_id)
+        returns = {'errors':False}
+        for inst in instances:
+            try:
+                temp = self.update_instance_status(inst, action)
+                returns[inst.id] = temp
+            except (novaclient.exceptions.MethodNotAllowed, novaclient.exceptions.Forbidden) as e:
+                self.__LOGGER.warning(f"Exception when updating instance in stack {stack_id} - {type(e).__name__} - {e}")
+                returns[inst.id] = e
+                returns['errors'] = True
+                continue
+        return returns
 
     def disconnect(self):
         self.__LOGGER.info("Disconnecting Openstack Services")

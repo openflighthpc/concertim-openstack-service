@@ -1,13 +1,13 @@
 # Local Imports
 from utils.service_logger import create_logger
 from openstack.client_handlers.client_base import ClientHandler
-from keystoneauth1.exceptions.http import Unauthorized
 # Py Packages
 import sys
 import time
 # Openstack Packages
 import novaclient.client as n_client
-#import novaclient.exceptions
+import novaclient.exceptions as nex
+import novaclient.v2.servers.Server
 
 class NovaHandler(ClientHandler):
     def __init__(self, sess, log_file, log_level):
@@ -77,56 +77,71 @@ class NovaHandler(ClientHandler):
     ####
 
     def switch_on_device(self, device_id):
-            try:
+        try:
+            if isinstance(device_id, novaclient.v2.servers.Server):
+                instance = device_id
+            else:
                 instance = self.get_server(device_id)
-                # need some proper auth. The below means admins can't switch any on
-                if instance.tenant_id != self._SESSION.get_project_id():
-                    raise Unauthorized("You do not have permission to switch off this device")
-                return self.client.servers.start(instance).request_ids
-            except Exception as e:
-                self.__LOGGER.debug(f"Device switch off exception : {e}")
-                raise e
+            return self.client.servers.start(instance).request_ids
+        except (nex.MethodNotAllowed, nex.Forbidden) as e:
+            self.__LOGGER.error(f"Switch instance '{device_id}' ON not allowed with current credentials: {type(e).__name__} - {e}")
+            return e
+        except Exception as e:
+            self.__LOGGER.debug(f"Device switch on exception : {e}")
+            raise e
 
     def switch_off_device(self, device_id):
         try:
-            instance = self.get_server(device_id)
-            # need some proper auth. The below means admins can't switch any off
-            if instance.tenant_id != self._SESSION.get_project_id():
-                raise Unauthorized("You do not have permission to switch off this device")
+            if isinstance(device_id, novaclient.v2.servers.Server):
+                instance = device_id
+            else:
+                instance = self.get_server(device_id)
             return self.client.servers.stop(instance).request_ids
+        except (nex.MethodNotAllowed, nex.Forbidden) as e:
+            self.__LOGGER.error(f"Switch instance '{device_id}' OFF not allowed with current credentials: {type(e).__name__} - {e}")
+            return e
         except Exception as e:
             self.__LOGGER.debug(f"Device switch off exception : {e}")
             raise e
 
     def suspend_device(self, device_id):
         try:
-            instance = self.get_server(device_id)
-            # need some proper auth. The below means admins can't suspend any.
-            if instance.tenant_id != self._SESSION.get_project_id():
-                raise Unauthorized("You do not have permission to suspend this device")
+            if isinstance(device_id, novaclient.v2.servers.Server):
+                instance = device_id
+            else:
+                instance = self.get_server(device_id)
             return self.client.servers.suspend(instance).request_ids
+        except (nex.MethodNotAllowed, nex.Forbidden) as e:
+            self.__LOGGER.error(f"Suspend instance '{device_id}' not allowed with current credentials: {type(e).__name__} - {e}")
+            return e
         except Exception as e:
             self.__LOGGER.debug(f"Device suspend exception : {e}")
             raise e
 
     def resume_device(self, device_id):
         try:
-            instance = self.get_server(device_id)
-            # need some proper auth.  The below means admins can't resume any.
-            if instance.tenant_id != self._SESSION.get_project_id():
-                raise Unauthorized("You do not have permission to resume this device")
+            if isinstance(device_id, novaclient.v2.servers.Server):
+                instance = device_id
+            else:
+                instance = self.get_server(device_id)
             return self.client.servers.resume(instance).request_ids
+        except (nex.MethodNotAllowed, nex.Forbidden) as e:
+            self.__LOGGER.error(f"Resume instance '{device_id}' not allowed with current credentials: {type(e).__name__} - {e}")
+            return e
         except Exception as e:
             self.__LOGGER.debug(f"Device resume exception : {e}")
             raise e
 
     def destroy_device(self, device_id):
         try:
-            instance = self.get_server(device_id)
-            # need some proper auth. The below means admins can't destroy any
-            if instance.tenant_id != self._SESSION.get_project_id():
-                raise Unauthorized("You do not have permission to destroy this device")
+            if isinstance(device_id, novaclient.v2.servers.Server):
+                instance = device_id
+            else:
+                instance = self.get_server(device_id)
             return self.client.servers.delete(instance).request_ids
+        except (nex.MethodNotAllowed, nex.Forbidden) as e:
+            self.__LOGGER.error(f"Delete instance '{device_id}' not allowed with current credentials: {type(e).__name__} - {e}")
+            return e
         except Exception as e:
             self.__LOGGER.debug(f"Device destroy exception : {e}")
             raise e

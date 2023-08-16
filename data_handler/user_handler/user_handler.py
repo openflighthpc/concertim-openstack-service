@@ -4,10 +4,12 @@ from data_handler.base import BaseHandler
 from openstack.exceptions import APIServerDefError
 # Py Packages
 import sys
+import novaclient.exceptions.ClientException as nova_ex
+import heatclient.exc.BaseException as heat_ex
 
 
 class UserHandler(BaseHandler):
-    DEFAULT_CLIENTS = ['keystone', 'nova', 'heat']
+    DEFAULT_CLIENTS = ['keystone']
     def __init__(self, config_obj, log_file, enable_concertim=False, clients=None):
         self.clients = clients if clients else UserHandler.DEFAULT_CLIENTS
         super().__init__(config_obj, log_file, self.clients, enable_concertim=enable_concertim)
@@ -42,28 +44,22 @@ class UserHandler(BaseHandler):
     def update_status(self, type, id, action):
         self.__LOGGER.info(f"Starting action {action} for {type} {id}")
         try:
+            result = None
             if type == "devices":
-                if action == "on":
-                    return self.openstack_service.switch_on_device(id)
-                elif action == "off":
-                    return self.openstack_service.switch_off_device(id)
-                elif action == "suspend":
-                    return self.openstack_service.suspend_device(id)
-                elif action == "resume":
-                    return self.openstack_service.resume_device(id)
-                elif action == "destroy":
-                    return self.openstack_service.destroy_device(id)
-                else:
-                    raise APIServerDefError("Invalid action")
-
+                result = self.openstack_service.update_instance_status(id, action)
             elif type == "racks":
-#                 if action == "on":
-#                    return self.openstack_service.switch_on_rack(id)
-                if action == "suspend":
-                    return self.openstack_service.suspend_stack(id)
-
+                result = self.openstack_service.update_stack_status(id, action)
+            
+            # Check if update function returned a client exception (will only happen if forbidden/unauth)
+            if isinstance(result, nova_ex) or isinstance(result, heat_ex):
+                return (403, "Could not complete action due to credentials provided")
+            # Check if update function returned a dict (will happen if type=racks and fallback was called)
+            if isinstance(result, dict):
+                if result['errors']:
+                    # TODO: Return whatever for there being an error for an instance
+            return result
         except Exception as e:
-            self.__LOGGER.error(f"Encountered ERROR - Aborting")
+            self.__LOGGER.error(f"Encountered error when completing action [action:{action},type:{type},id:{id}] : {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
             raise e
 
     

@@ -76,7 +76,7 @@ def update_status(type, id):
       config['openstack'] = req_data['cloud_env']
       action = req_data['action']
 
-      user_handler = UserHandler(config, log_file)
+      user_handler = UserHandler(config, log_file, clients=['keystone', 'nova', 'heat'])
       app.logger.info(f"Successfully created UserHandler")
 
       result = user_handler.update_status(type, id, action)
