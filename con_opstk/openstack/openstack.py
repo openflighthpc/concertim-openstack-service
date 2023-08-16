@@ -1,7 +1,7 @@
 # Local Imports
-from utils.service_logger import create_logger
-from openstack.opstk_auth import OpenStackAuth
-from openstack.exceptions import UnknownOpenstackHandler, NoHandlerFound, MissingOpenstackObject
+from con_opstk.utils.service_logger import create_logger
+from con_opstk.openstack.opstk_auth import OpenStackAuth
+from con_opstk.openstack.exceptions import UnknownOpenstackHandler, NoHandlerFound, MissingOpenstackObject
 # Py Packages
 import sys
 import novaclient.exceptions
@@ -32,25 +32,25 @@ class OpenstackService(object):
         try:
             sess = auth.get_session() if auth is not None else self.__OPSTK_AUTH.get_session()
             if client_name.lower() in ["keystone", "keystoneclient", "keystone_client", "keystonehandler", "keystone_handler"]:
-                from openstack.client_handlers.keystone import KeystoneHandler
+                from con_opstk.openstack.client_handlers.keystone import KeystoneHandler
                 kh = KeystoneHandler(sess, self._LOG_FILE, self._CONFIG['log_level'])
                 self.__LOGGER.debug(f"Successfully added KeystoneHandler to OpenstackService")
                 self._handlers_key_map['keystone'] = client_name
                 return kh
             elif client_name.lower() in ["nova", "novaclient", "nova_client", "novahandler", "nova_handler"]:
-                from openstack.client_handlers.nova import NovaHandler
+                from con_opstk.openstack.client_handlers.nova import NovaHandler
                 nh = NovaHandler(sess, self._LOG_FILE, self._CONFIG['log_level'])
                 self.__LOGGER.debug(f"Successfully added NovaHandler to OpenstackService")
                 self._handlers_key_map['nova'] = client_name
                 return nh
             elif client_name.lower() in ["heat", "heatclient", "heat_client", "heathandler", "heat_handler"]:
-                from openstack.client_handlers.heat import HeatHandler
+                from con_opstk.openstack.client_handlers.heat import HeatHandler
                 hh = HeatHandler(sess, self._LOG_FILE, self._CONFIG['log_level'])
                 self.__LOGGER.debug(f"Successfully added HeatHandler to OpenstackService")
                 self._handlers_key_map['heat'] = client_name
                 return hh
             elif client_name.lower() in ["gnocchi", "gnocchiclient", "gnocchi_client", "gnocchihandler", "gnocchi_handler"]:
-                from openstack.client_handlers.gnocchi import GnocchiHandler
+                from con_opstk.openstack.client_handlers.gnocchi import GnocchiHandler
                 gh = GnocchiHandler(sess, self._LOG_FILE, self._CONFIG['log_level'])
                 self.__LOGGER.debug(f"Successfully added GnocchiHandler to OpenstackService")
                 self._handlers_key_map['gnocchi'] = client_name

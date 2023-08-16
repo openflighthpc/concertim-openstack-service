@@ -10,18 +10,12 @@ COPY . /app
 # Install any needed packages specified in requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 # Install component specific packages
-RUN pip install --no-cache-dir -r data_handler/requirements-api.txt
+RUN pip install --no-cache-dir -r con_opstk/data_handler/requirements-api.txt
 # Install packages used by ALL handlers used in the api_server.py code
-RUN pip install --no-cache-dir -r data_handler/user_handler/requirements-user.txt
-
-# NEEDED INFRA
-# Create logging diretory
-RUN mkdir -p /var/log/concertim-openstack-service
-# Create data diretory
-RUN mkdir -p /var/lib/concertim-openstack-service
+RUN pip install --no-cache-dir -r con_opstk/data_handler/user_handler/requirements-user.txt
 
 # Make port 42356 available to the world outside this container
 EXPOSE 42356
 
 # Run user_handler when the container launches
-CMD ["python", "driver.py", "run=api"]
+CMD ["python", "con_opstk/driver.py", "run=api"]

@@ -1,6 +1,6 @@
 # Local Imports
-from utils.service_logger import create_logger
-from openstack.exceptions import UnsupportedObject
+from con_opstk.utils.service_logger import create_logger
+from con_opstk.openstack.exceptions import UnsupportedObject
 # Py Packages
 import sys
 

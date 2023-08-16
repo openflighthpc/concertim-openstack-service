@@ -1,6 +1,6 @@
 # Local Imports
-from utils.service_logger import create_logger
-from openstack.client_handlers.client_base import ClientHandler
+from con_opstk.utils.service_logger import create_logger
+from con_opstk.openstack.client_handlers.client_base import ClientHandler
 # Py Packages
 import sys
 import time

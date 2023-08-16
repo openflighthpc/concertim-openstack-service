@@ -1,8 +1,8 @@
 # Local Imports
-from utils.service_logger import create_logger
+from con_opstk.utils.service_logger import create_logger
 # endpoints file containing info on all concertim endpoints
-from concertim.utils.endpoints import ENDPOINTS
-from concertim.exceptions import ConcertimItemConflict, MissingRequiredArgs
+from con_opstk.concertim.utils.endpoints import ENDPOINTS
+from con_opstk.concertim.exceptions import ConcertimItemConflict, MissingRequiredArgs
 
 # Py Packages
 import sys
@@ -13,17 +13,17 @@ requests.packages.urllib3.disable_warnings()
 
 class ConcertimService(object):
     def __init__(self, config_obj, log_file):
-        self.__CONFIG = config_obj
-        self.__LOG_FILE = log_file
-        self.__LOGGER = create_logger(__name__, self.__LOG_FILE, self.__CONFIG['log_level'])
-        self.__URL = self.__CONFIG['concertim']['concertim_url']
+        self._CONFIG = config_obj
+        self._LOG_FILE = log_file
+        self.__LOGGER = create_logger(__name__, self._LOG_FILE, self._CONFIG['log_level'])
+        self._URL = self._CONFIG['concertim']['concertim_url']
         self.__AUTH_TOKEN = self.__get_auth_token()
     
     def __get_auth_token(self):
-        login = self.__CONFIG['concertim']['concertim_username']
-        password = self.__CONFIG['concertim']['concertim_password']
+        login = self._CONFIG['concertim']['concertim_username']
+        password = self._CONFIG['concertim']['concertim_password']
         variables_dict = {'login': login, 'password': password}
-        token = self.__api_call('post', 'LOGIN_AUTH', variables_dict)
+        token = self._api_call('post', 'LOGIN_AUTH', variables_dict)
         return token
     
     # Return a dict of available endpoints and the call/data needed
@@ -31,85 +31,85 @@ class ConcertimService(object):
         return ENDPOINTS
 
     def create_device(self, variables_dict):
-        response = self.__api_call('post', 'CREATE_DEVICE', variables_dict=variables_dict)
+        response = self._api_call('post', 'CREATE_DEVICE', variables_dict=variables_dict)
         return response
     
     def create_rack(self, variables_dict):
-        response = self.__api_call('post', 'CREATE_RACK', variables_dict=variables_dict)
+        response = self._api_call('post', 'CREATE_RACK', variables_dict=variables_dict)
         return response
     
     def create_template(self, variables_dict):
-        response = self.__api_call('post', 'CREATE_TEMPLATE', variables_dict=variables_dict)
+        response = self._api_call('post', 'CREATE_TEMPLATE', variables_dict=variables_dict)
         return response
 
     def delete_device(self, ID):
-        response = self.__api_call('delete', 'DELETE_DEVICE', endpoint_var=str(ID))
+        response = self._api_call('delete', 'DELETE_DEVICE', endpoint_var=str(ID))
         return True
     
     def delete_rack(self, ID, recurse=False):
         opts = str(ID)
         if recurse:
             opts += ENDPOINTS['DELETE']['recurse']
-        response = self.__api_call('delete', 'DELETE_RACK', endpoint_var=opts)
+        response = self._api_call('delete', 'DELETE_RACK', endpoint_var=opts)
         return True
 
     def delete_template(self, ID, recurse=False):
         opts = str(ID)
         if recurse:
             opts += ENDPOINTS['DELETE']['recurse']
-        response = self.__api_call('delete', 'DELETE_TEMPLATE', endpoint_var=opts)
+        response = self._api_call('delete', 'DELETE_TEMPLATE', endpoint_var=opts)
         return True
 
     def list_devices(self):
-        response = self.__api_call('get', 'LIST_DEVICES')
+        response = self._api_call('get', 'LIST_DEVICES')
         return response
 
     def list_racks(self):
-        response = self.__api_call('get', 'LIST_RACKS')
+        response = self._api_call('get', 'LIST_RACKS')
         return response
 
     def list_templates(self):
-        response = self.__api_call('get', 'LIST_TEMPLATES')
+        response = self._api_call('get', 'LIST_TEMPLATES')
         return response
 
     def list_users(self):
-        response = self.__api_call('get', 'LIST_USERS')
+        response = self._api_call('get', 'LIST_USERS')
         return response
     
     def show_device(self, ID):
-        response = self.__api_call('get', 'SHOW_DEVICE', endpoint_var=str(ID))
+        response = self._api_call('get', 'SHOW_DEVICE', endpoint_var=str(ID))
         return response
 
     def show_rack(self, ID):
-        response = self.__api_call('get', 'SHOW_RACK', endpoint_var=str(ID))
+        response = self._api_call('get', 'SHOW_RACK', endpoint_var=str(ID))
         return response
 
     def move_device(self, ID, variables_dict):
-        response = self.__api_call('patch', 'MOVE_DEVICE', variables_dict=variables_dict, endpoint_var=str(ID))
+        response = self._api_call('patch', 'MOVE_DEVICE', variables_dict=variables_dict, endpoint_var=str(ID))
         return response
 
     def update_device(self, ID, variables_dict):
-        response = self.__api_call('patch', 'UPDATE_DEVICE', variables_dict=variables_dict, endpoint_var=str(ID))
+        response = self._api_call('patch', 'UPDATE_DEVICE', variables_dict=variables_dict, endpoint_var=str(ID))
         return response
 
     def update_rack(self, ID, variables_dict):
-        response = self.__api_call('patch', 'UPDATE_RACK', variables_dict=variables_dict, endpoint_var=str(ID))
+        response = self._api_call('patch', 'UPDATE_RACK', variables_dict=variables_dict, endpoint_var=str(ID))
         return response
 
     def update_template(self, ID, variables_dict):
-        response = self.__api_call('patch', 'UPDATE_TEMPLATE', variables_dict=variables_dict, endpoint_var=str(ID))
+        response = self._api_call('patch', 'UPDATE_TEMPLATE', variables_dict=variables_dict, endpoint_var=str(ID))
         return response
 
     def send_metric(self, ID, variables_dict):
         try:
-            response = self.__api_call('put', 'METRIC', variables_dict=variables_dict, endpoint_var=str(ID))
+            response = self._api_call('put', 'METRIC', variables_dict=variables_dict, endpoint_var=str(ID))
             return response
         except Exception as e:
             self.__LOGGER.error(f"FAILED - Could not send metric for {variables_dict['name']} - {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
             raise e
 
     # Generic method for handling Concertim API calls.
-    def __api_call(self, method, endpoint_name, variables_dict={}, endpoint_var=''):
+    def _api_call(self, method, endpoint_name, variables_dict={}, endpoint_var=''):
         """
         Generic method for handling Concertim API calls.
         ACCEPTS:
@@ -127,9 +127,9 @@ class ConcertimService(object):
         headers = ENDPOINTS[method.upper()]['headers']
         # Handle endpoint formatting
         if endpoint_var:
-            url = self.__URL + endpoint['endpoint'].format(endpoint_var)
+            url = self._URL + endpoint['endpoint'].format(endpoint_var)
         else:
-            url = self.__URL + endpoint['endpoint']
+            url = self._URL + endpoint['endpoint']
 
         # Handle if it is LOGIN_AUTH
         if endpoint_name != 'LOGIN_AUTH' and self.__AUTH_TOKEN is not None:
@@ -206,5 +206,5 @@ class ConcertimService(object):
     def disconnect(self):
         self.__LOGGER.info("Disconnecting Concertim Services")
         self.__AUTH_TOKEN = None
-        self.__URL = None
+        self._URL = None
 

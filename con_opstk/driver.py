@@ -1,5 +1,6 @@
 # Local Imports
-from utils.service_logger import create_logger
+from con_opstk.utils.service_logger import create_logger
+import app_definitions as app_paths
 # Py Packages
 import signal
 import sys
@@ -7,13 +8,12 @@ import yaml
 import time
 
 # GLOBAL VARS
-CONFIG_DIR = '/etc/concertim-openstack-service/'
-CONFIG_FILE = CONFIG_DIR + 'config.yaml'
-LOG_DIR = '/var/log//concertim-openstack-service/'
+CONFIG_FILE = app_paths.CONFIG_FILE
+LOG_DIR = app_paths.LOG_DIR
 
 def run_metrics(test=False):
     # Common
-    from data_handler.metric_handler.metric_handler import MetricHandler
+    from con_opstk.data_handler.metric_handler.metric_handler import MetricHandler
     log_file = MetricHandler.LOG_DIR + 'metrics.log'
     config = load_config(CONFIG_FILE)
     logger = create_logger(__name__, log_file, config['log_level'])
@@ -64,8 +64,8 @@ def run_metrics(test=False):
 
 def run_bulk_updates(test=False):
     # Common
-    from data_handler.update_handler.state_compare import BulkUpdateHandler
-    log_file = BulkUpdateHandler.LOG_DIR + 'updates_bulk.log'
+    from con_opstk.data_handler.update_handler.state_compare import BulkUpdateHandler
+    log_file = LOG_DIR + 'updates_bulk.log'
     config = load_config(CONFIG_FILE)
     logger = create_logger(__name__, log_file, config['log_level'])
     
@@ -110,8 +110,8 @@ def run_bulk_updates(test=False):
 
 def run_mq_updates(test=False):
     # Common
-    from data_handler.update_handler.mq_listener import MqUpdateHandler
-    log_file = MqUpdateHandler.LOG_DIR + 'updates_mq.log'
+    from con_opstk.data_handler.update_handler.mq_listener import MqUpdateHandler
+    log_file = LOG_DIR + 'updates_mq.log'
     config = load_config(CONFIG_FILE)
     logger = create_logger(__name__, log_file, config['log_level'])
     
@@ -141,9 +141,9 @@ def run_mq_updates(test=False):
 
 def run_updates_aio(test=False):
     # Common
-    from data_handler.update_handler.mq_listener import MqUpdateHandler
-    from data_handler.update_handler.state_compare import BulkUpdateHandler
-    log_file = BulkUpdateHandler.LOG_DIR + 'updates_aio.log'
+    from con_opstk.data_handler.update_handler.mq_listener import MqUpdateHandler
+    from con_opstk.data_handler.update_handler.state_compare import BulkUpdateHandler
+    log_file = LOG_DIR + 'updates_aio.log'
     config = load_config(CONFIG_FILE)
     logger = create_logger(__name__, log_file, config['log_level'])
     
@@ -192,7 +192,7 @@ def run_updates_aio(test=False):
 
 def run_api_server():
     # Common
-    from data_handler.api_server import run_app
+    from con_opstk.data_handler.api_server import run_app
     log_file = LOG_DIR + 'api_server.log'
     config = load_config(CONFIG_FILE)
     logger = create_logger(__name__, log_file, config['log_level'])

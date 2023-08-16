@@ -1,6 +1,7 @@
 # Local imports
-from data_handler.user_handler.user_handler import UserHandler
-from openstack.exceptions import APIServerDefError, OpStkAuthenticationError
+from con_opstk.data_handler.user_handler.user_handler import UserHandler
+from con_opstk.openstack.exceptions import APIServerDefError, OpStkAuthenticationError
+import app_definitions as app_paths
 # Py Packages
 from flask import Flask, request, jsonify, make_response
 from flask import Response
@@ -10,7 +11,7 @@ import novaclient.exceptions
 
 
 formatter = logging.Formatter('%(asctime)s - [%(levelname)s] (%(module)s) - %(message)s')
-log_file = '/var/log/concertim-openstack-service/api_server.log'
+log_file = app_paths.LOG_DIR + 'api_server.log'
 fh = logging.FileHandler(log_file)
 fh.setFormatter(formatter)
 

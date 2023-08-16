@@ -1,4 +1,4 @@
-from concertim.components.component import ConcertimComponent
+from con_opstk.concertim.components.component import ConcertimComponent
 
 class ConcertimRack(ConcertimComponent):
     def __init__(self, concertim_id=None, openstack_id=None, concertim_name=None, openstack_name=None, user_id=None, height=42, description='', status=None):

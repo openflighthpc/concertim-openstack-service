@@ -20,10 +20,11 @@ def create_logger(name, log_file, level):
         raise Exception(f"Could not create log file: {log_file} - {type(e).__name__} - {e}")
 
     try:
+        # File handler for log file with given log level from CONFIG
         fh = logging.FileHandler(log_file)
         fh.setLevel(lvl)
         fh.setFormatter(formatter)
-
+        # Console handler for console output with WARNING log level
         ch = logging.StreamHandler()
         ch.setLevel(logging.WARNING)
         ch.setFormatter(formatter)

@@ -1,7 +1,7 @@
 # Local Imports
-from utils.service_logger import create_logger
-from data_handler.base import BaseHandler
-from openstack.exceptions import APIServerDefError
+from con_opstk.utils.service_logger import create_logger
+from con_opstk.data_handler.base import BaseHandler
+from con_opstk.openstack.exceptions import APIServerDefError
 # Py Packages
 import sys
 from novaclient.exceptions import ClientException as nova_ex

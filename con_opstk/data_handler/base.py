@@ -1,13 +1,12 @@
 # Local Imports
-from utils.service_logger import create_logger
-from openstack.openstack import OpenstackService
-from concertim.concertim import ConcertimService
-from openstack.exceptions import FailureToScrub, UnsupportedObject
+from con_opstk.utils.service_logger import create_logger
+from con_opstk.openstack.openstack import OpenstackService
+from con_opstk.concertim.concertim import ConcertimService
+from con_opstk.openstack.exceptions import FailureToScrub, UnsupportedObject
 # Py Packages
 import sys
 
 class BaseHandler(object):
-    LOG_DIR = '/var/log/concertim-openstack-service/'
     def __init__(self, config_obj, log_file, openstack_client_list, enable_concertim=True):
         self._CONFIG = config_obj
         self._LOG_FILE = log_file

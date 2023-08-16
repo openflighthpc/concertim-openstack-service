@@ -1,4 +1,4 @@
-from concertim.components.component import ConcertimComponent
+from con_opstk.concertim.components.component import ConcertimComponent
 
 class ConcertimTemplate(ConcertimComponent):
     def __init__(self, concertim_id=None, openstack_id=None, concertim_name=None, openstack_name=None, ram=None, disk=None, vcpus=None, size=None, description=''):

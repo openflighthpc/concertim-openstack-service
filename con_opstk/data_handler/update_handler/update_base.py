@@ -1,12 +1,13 @@
 # Local Imports
-from utils.service_logger import create_logger
-from data_handler.base import BaseHandler
-from concertim.utils.view import ConcertimOpenstackView
-from concertim.components.device import ConcertimDevice
-from concertim.components.rack import ConcertimRack
-from concertim.components.template import ConcertimTemplate
-from concertim.components.user import ConcertimUser
-from concertim.components.location import Location
+from con_opstk.utils.service_logger import create_logger
+from con_opstk.data_handler.base import BaseHandler
+from con_opstk.concertim.utils.view import ConcertimOpenstackView
+from con_opstk.concertim.components.device import ConcertimDevice
+from con_opstk.concertim.components.rack import ConcertimRack
+from con_opstk.concertim.components.template import ConcertimTemplate
+from con_opstk.concertim.components.user import ConcertimUser
+from con_opstk.concertim.components.location import Location
+import app_definitions as app_paths
 # Py Packages
 import sys
 import pickle
@@ -14,8 +15,7 @@ import os
 
 class UpdateHandler(BaseHandler):
     DEFAULT_CLIENTS = ['keystone','nova','heat']
-    DATA_DIR = '/var/lib/concertim-openstack-service/data/'
-    VIEW_PICKLE_FILE = DATA_DIR + 'view.pickle'
+    VIEW_PICKLE_FILE = app_paths.DATA_DIR + 'view.pickle'
     __DATA = [VIEW_PICKLE_FILE]
     CONCERTIM_STATE_MAP = {
         'DEVICE':{

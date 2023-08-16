@@ -1,6 +1,6 @@
 # Local Imports
-from utils.service_logger import create_logger
-from data_handler.update_handler.update_base import UpdateHandler
+from con_opstk.utils.service_logger import create_logger
+from con_opstk.data_handler.update_handler.update_base import UpdateHandler
 # Py Packages
 import sys
 import json

@@ -1,13 +1,13 @@
 # Local Imports
-from utils.service_logger import create_logger
-from data_handler.update_handler.update_base import UpdateHandler
-from concertim.utils.view import ConcertimOpenstackView
-from concertim.components.device import ConcertimDevice
-from concertim.components.rack import ConcertimRack
-from concertim.components.template import ConcertimTemplate
-from concertim.components.user import ConcertimUser
-from concertim.components.location import Location
-from concertim.exceptions import ConcertimItemConflict, MissingRequiredArgs
+from con_opstk.utils.service_logger import create_logger
+from con_opstk.data_handler.update_handler.update_base import UpdateHandler
+from con_opstk.concertim.utils.view import ConcertimOpenstackView
+from con_opstk.concertim.components.device import ConcertimDevice
+from con_opstk.concertim.components.rack import ConcertimRack
+from con_opstk.concertim.components.template import ConcertimTemplate
+from con_opstk.concertim.components.user import ConcertimUser
+from con_opstk.concertim.components.location import Location
+from con_opstk.concertim.exceptions import ConcertimItemConflict, MissingRequiredArgs
 # Py Packages
 import sys
 
