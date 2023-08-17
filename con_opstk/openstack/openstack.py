@@ -440,6 +440,26 @@ class OpenstackService(object):
              result["outcome"] = "failure"
         return result
 
+    # NOTE: only specify user if using an ADMIN session
+    def create_keypair(self, name, imported_pub_key=None, user=None, key_type='ssh'):
+        self.__LOGGER.debug(f"Attempting to add new keypair '{name}'")
+        self.__check_handlers('nova')
+        nova = self.handlers[self._handlers_key_map['nova']]
+
+        if imported_pub_key:
+            self.__LOGGER.debug(f"Creating keypair using provided public key")
+        try:
+            keypair = nova.create_keypair(name,public_key=imported_pub_key,key_type=key_type,user=user)
+            self.__LOGGER.debug(f"Successfully added keypair {keypair.name} for user {keypair.user_id}")
+            return keypair
+        # TODO: except whatever is thrown if keytype is wrong
+        # TODO: except whatever is thrown if publickey couldnt be used
+        # TODO: except whatever is thrown if could not create for user
+        except Exception as e:
+            self.__LOGGER.error(f"An unexpected error : {type(e).__name__} - {e}")
+            raise e
+        
+
     def disconnect(self):
         self.__LOGGER.info("Disconnecting Openstack Services")
         self.__OPSTK_AUTH = None

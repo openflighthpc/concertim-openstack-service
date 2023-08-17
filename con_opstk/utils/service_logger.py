@@ -7,7 +7,7 @@ def create_logger(name, log_file, level):
     levels = {'DEBUG': logging.DEBUG, 'INFO': logging.INFO, 'WARNING': logging.WARNING, 'ERROR': logging.ERROR, 'CRITICAL': logging.CRITICAL}
     lvl = (levels[level.upper()])
     logger.setLevel(lvl)
-    formatter = logging.Formatter('%(asctime)s - [%(levelname)s] (%(module)s) - %(message)s')
+    formatter = logging.Formatter('%(asctime)s - [%(levelname)s] (%(module)s:%(funcName)s) - %(message)s')
     dir_name = os.path.dirname(log_file)
     try:
         # Create directories if they don't exist
