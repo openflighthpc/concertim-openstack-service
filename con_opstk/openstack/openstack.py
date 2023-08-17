@@ -407,9 +407,9 @@ class OpenstackService(object):
         actions_map = {
             #'on': heat.switch_on_stack,
             #'off': heat.switch_off_stack,
-            'suspend': heat.suspend_stack#,
+            #'suspend': heat.suspend_stack,
             #'resume': heat.resume_stack,
-            #'destroy': heat.destroy_stack
+            'destroy': heat.destroy_stack
         }
         if action not in actions_map:
             raise APIServerDefError("Invalid action")
@@ -422,23 +422,24 @@ class OpenstackService(object):
     # For when the heat stack has issues changing status
     # Loop over each instance and change status one at a time
     # Returns a dict of {'success':[], 'failure':[], outcome: }
-    def _update_stack_status_fallback(self, stack_id, action):
-        self.__LOGGER.debug(f"Attempting action '{action}' on stack '{stack_id}' using fallback method")
-        instances = self.get_stack_instances(stack_id)
-        result = {'success': [], 'failure': [], 'outcome': None}
-        for inst in instances:
-            try:
-                temp = self.update_instance_status(inst, action)
-                result["success"].append(temp)
-            except (novaclient.exceptions.MethodNotAllowed, novaclient.exceptions.Forbidden, novaclient.exceptions.Conflict) as e:
-                self.__LOGGER.warning(f"Exception when updating instance in stack {stack_id} - {e.__class__.__name__} - {e.message}")
-                result["failure"].append(e.message)
-                continue
-        if result["success"]:
-             result["outcome"] = "partial failure" if result["failure"] else "success"
-        elif result["failure"]:
-             result["outcome"] = "failure"
-        return result
+    # This would need additional logic for updating status of other resources.
+#     def _update_stack_status_fallback(self, stack_id, action):
+#         self.__LOGGER.debug(f"Attempting action '{action}' on stack '{stack_id}' using fallback method")
+#         instances = self.get_stack_instances(stack_id)
+#         result = {'success': [], 'failure': [], 'outcome': None}
+#         for inst in instances:
+#             try:
+#                 temp = self.update_instance_status(inst, action)
+#                 result["success"].append(temp)
+#             except (novaclient.exceptions.MethodNotAllowed, novaclient.exceptions.Forbidden, novaclient.exceptions.Conflict) as e:
+#                 self.__LOGGER.warning(f"Exception when updating instance in stack {stack_id} - {e.__class__.__name__} - {e.message}")
+#                 result["failure"].append(e.message)
+#                 continue
+#         if result["success"]:
+#              result["outcome"] = "partial failure" if result["failure"] else "success"
+#         elif result["failure"]:
+#              result["outcome"] = "failure"
+#         return result
 
     def disconnect(self):
         self.__LOGGER.info("Disconnecting Openstack Services")
