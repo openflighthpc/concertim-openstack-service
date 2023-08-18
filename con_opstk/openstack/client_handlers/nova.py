@@ -153,7 +153,8 @@ class NovaHandler(ClientHandler):
     # NOTE: only specify user if using an admin session
     def create_keypair(self, name, public_key=None, key_type='ssh', user=None):
         try:
-            return self.client.keypairs.create(name, public_key=public_key, key_type=key_type, user_id=user)
+            # this seems to expect/require different parameter combinations
+            return self.client.keypairs.create(name)
         # TODO: except whatever is thrown if versioning is off
         except Exception as e:
             self.__LOGGER.error(f"An unexpected error : {type(e).__name__} - {e}")

@@ -127,6 +127,66 @@ def update_status(type, id):
       except NameError:
         user_handler = None
 
+@app.route('/key_pairs', methods=['POST'])
+def create_keypair():
+  config = {'log_level': 'debug', 'openstack': {}}
+  try:
+      req_data = request.get_json()
+      app.logger.info(req_data)
+      if 'cloud_env' not in req_data:
+          raise APIServerDefError("No Authentication data received.", 400)
+      if 'key_pair' not in req_data:
+          raise APIServerDefError("Invalid data. 'key_pair' is required.", 400)
+
+      config['openstack'] = req_data['cloud_env']
+      key_pair = req_data['key_pair']
+
+      user_handler = UserHandler(config, log_file, clients=['nova'])
+      app.logger.info(f"Successfully created UserHandler")
+
+
+      app.logger.error(key_pair)
+      result = user_handler.create_keypair(key_pair["name"], key_type=key_pair["key_type"])
+
+      app.logger.info(f"Successfully submitted create key pair request")
+
+      resp = {"success": True, "private_key": result.private_key}
+      return jsonify(resp), 202
+  except APIServerDefError as e:
+      response = {"error": type(e).__name__, "message": str(e)}
+      app.logger.error(response)
+      return jsonify(response), 400
+  except keystoneauth1.exceptions.http.Unauthorized as e:
+      response = {"error": "Unauthorized", "message": "Unauthorized"}
+      app.logger.error(response)
+      return jsonify(response), 401
+  except novaclient.exceptions.Conflict as e:
+      response = {"error": "Conflict", "message": e.message}
+      app.logger.error(response)
+      return jsonify(response), 409
+  except novaclient.exceptions.NotFound as e:
+      response = {"error": "Not found", "message": e.message}
+      app.logger.error(response)
+      return jsonify(response), 404
+  except OpStkAuthenticationError as e:
+      response = {"error": type(e).__name__, "message": str(e)}
+      app.logger.error(response)
+      return jsonify(response), 400
+  except Exception as e:
+      response = {"error": f"An unexpected error occurred: {e.__class__.__name__}", "message": str(e)}
+      stat_code = 500
+      app.logger.error(response)
+      if 'http_status' in dir(e):
+          stat_code = e.http_status
+      return jsonify(response), stat_code
+  finally:
+      app.logger.debug("Disconnecting Handler")
+      try:
+        user_handler.disconnect()
+        user_handler = None
+      except NameError:
+        user_handler = None
+
 @app.route('/')
 def running():
     app.logger.info('Running')
