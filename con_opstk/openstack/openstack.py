@@ -442,23 +442,22 @@ class OpenstackService(object):
 #         return result
 
     # NOTE: only specify user if using an ADMIN session
-    def create_keypair(self, name, imported_pub_key=None, user=None, key_type='ssh'):
+    def create_keypair(self, name, imported_pub_key=None, key_type='ssh'):
         self.__LOGGER.debug(f"Attempting to add new keypair '{name}'")
         self.__check_handlers('nova')
         nova = self.handlers[self._handlers_key_map['nova']]
 
         try:
-#             if imported_pub_key:
-#                 self.__LOGGER.debug(f"Creating keypair using provided public key")
-#                 keypair = nova.create_keypair(name, public_key=imported_pub_key, user=user)
-#                 self.__LOGGER.debug(f"Successfully added keypair {keypair.name} for user {keypair.user_id}")
-#                 return keypair
-#             else
-            self.__LOGGER.debug(f"Creating keypair from scratch")
-            keypair = nova.create_keypair(name, key_type=key_type, user=user)
-            self.__LOGGER.debug(f"Successfully added keypair {keypair.name} for user {keypair.user_id}")
-            return keypair
-
+             if imported_pub_key:
+                 self.__LOGGER.debug(f"Creating keypair using provided public key")
+                 keypair = nova.create_keypair(name, public_key=imported_pub_key, key_type=key_type)
+                 self.__LOGGER.debug(f"Successfully added keypair {keypair.name} for user {keypair.user_id}")
+                 return keypair
+             else
+                self.__LOGGER.debug(f"Creating keypair from scratch")
+                keypair = nova.create_keypair(name, key_type=key_type)
+                self.__LOGGER.debug(f"Successfully added keypair {keypair.name} for user {keypair.user_id}")
+                return keypair
         # TODO: except whatever is thrown if keytype is wrong
         # TODO: except whatever is thrown if publickey couldnt be used
         # TODO: except whatever is thrown if could not create for user
@@ -466,17 +465,15 @@ class OpenstackService(object):
             self.__LOGGER.error(f"An unexpected error : {type(e).__name__} - {e}")
             raise e
 
-    # NOTE: only specify user if using an ADMIN session
-    def list_keypairs(self, user=None):
+    def list_keypairs(self):
         self.__LOGGER.debug(f"Attempting to list keypairs")
         self.__check_handlers('nova')
         nova = self.handlers[self._handlers_key_map['nova']]
 
         try:
-            keypairs = nova.list_keypairs(user=user) or []
+            keypairs = nova.list_keypairs()
             self.__LOGGER.debug(f"Successfully obtained keypairs")
             return keypairs
-
         except Exception as e:
             self.__LOGGER.error(f"An unexpected error : {type(e).__name__} - {e}")
             raise e
