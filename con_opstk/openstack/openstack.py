@@ -464,7 +464,21 @@ class OpenstackService(object):
         except Exception as e:
             self.__LOGGER.error(f"An unexpected error : {type(e).__name__} - {e}")
             raise e
-        
+
+    # NOTE: only specify user if using an ADMIN session
+    def list_keypairs(self, user=None):
+        self.__LOGGER.debug(f"Attempting to list keypairs")
+        self.__check_handlers('nova')
+        nova = self.handlers[self._handlers_key_map['nova']]
+
+        try:
+            keypairs = nova.list_keypairs(user=user) or []
+            self.__LOGGER.debug(f"Successfully obtained keypairs")
+            return keypairs
+
+        except Exception as e:
+            self.__LOGGER.error(f"An unexpected error : {type(e).__name__} - {e}")
+            raise e
 
     def disconnect(self):
         self.__LOGGER.info("Disconnecting Openstack Services")

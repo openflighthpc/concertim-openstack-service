@@ -170,9 +170,12 @@ class NovaHandler(ClientHandler):
             raise e
 
     # NOTE: only specify user if using an admin session
-    def list_keypairs(self, keypair, user=None):
+    def list_keypairs(self, user=None):
         try:
-            return self.client.keypairs.list(keypair, user_id=user)
+            if user == None:
+                return self.client.keypairs.list()
+            else:
+                return self.client.keypairs.list(user_id=user)
         # TODO: except whatever is thrown if versioning is off
         except Exception as e:
             self.__LOGGER.error(f"An unexpected error : {type(e).__name__} - {e}")
