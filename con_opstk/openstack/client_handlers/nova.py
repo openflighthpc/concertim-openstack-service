@@ -150,38 +150,30 @@ class NovaHandler(ClientHandler):
             self.__LOGGER.debug(f"Device destroy exception : {e}")
             raise e
 
-    # NOTE: only specify user if using an admin session
-    def create_keypair(self, name, public_key=None, key_type='ssh', user=None):
+    def create_keypair(self, name, public_key=None, key_type='ssh'):
         try:
-            return self.client.keypairs.create(name, public_key=public_key, key_type=key_type, user_id=user)
-        # TODO: except whatever is thrown if versioning is off
+            return self.client.keypairs.create(name, public_key=public_key, key_type=key_type)
         except Exception as e:
             self.__LOGGER.error(f"An unexpected error : {type(e).__name__} - {e}")
             raise e
 
-    # NOTE: only specify user if using an admin session
-    def get_keypair(self, keypair, user=None):
+    def get_keypair(self, keypair_name):
         try:
-            return self.client.keypairs.get(keypair, user_id=user)
-        # TODO: except whatever is thrown if versioning is off
+            return self.client.keypairs.get(keypair_name)
         except Exception as e:
             self.__LOGGER.error(f"An unexpected error : {type(e).__name__} - {e}")
             raise e
 
-    # NOTE: only specify user if using an admin session
-    def list_keypairs(self, keypair, user=None):
+    def list_keypairs(self):
         try:
-            return self.client.keypairs.list(keypair, user_id=user)
-        # TODO: except whatever is thrown if versioning is off
+            return self.client.keypairs.list()
         except Exception as e:
             self.__LOGGER.error(f"An unexpected error : {type(e).__name__} - {e}")
             raise e
 
-    # NOTE: only specify user if using an admin session
-    def delete_keypair(self, keypair, user=None):
+    def delete_keypair(self, keypair):
         try:
-            return self.client.keypairs.delete(keypair, user_id=user)
-        # TODO: except whatever is thrown if versioning is off
+            return self.client.keypairs.delete(keypair)
         except Exception as e:
             self.__LOGGER.error(f"An unexpected error : {type(e).__name__} - {e}")
             raise e

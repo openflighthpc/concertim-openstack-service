@@ -442,24 +442,52 @@ class OpenstackService(object):
 #         return result
 
     # NOTE: only specify user if using an ADMIN session
-    def create_keypair(self, name, imported_pub_key=None, user=None, key_type='ssh'):
+    def create_keypair(self, name, imported_pub_key=None, key_type='ssh'):
         self.__LOGGER.debug(f"Attempting to add new keypair '{name}'")
         self.__check_handlers('nova')
         nova = self.handlers[self._handlers_key_map['nova']]
 
-        if imported_pub_key:
-            self.__LOGGER.debug(f"Creating keypair using provided public key")
         try:
-            keypair = nova.create_keypair(name,public_key=imported_pub_key,key_type=key_type,user=user)
-            self.__LOGGER.debug(f"Successfully added keypair {keypair.name} for user {keypair.user_id}")
-            return keypair
+             if imported_pub_key:
+                 self.__LOGGER.debug(f"Creating keypair using provided public key")
+                 keypair = nova.create_keypair(name, public_key=imported_pub_key, key_type=key_type)
+                 self.__LOGGER.debug(f"Successfully added keypair {keypair.name} for user {keypair.user_id}")
+                 return keypair
+             else:
+                self.__LOGGER.debug(f"Creating keypair from scratch")
+                keypair = nova.create_keypair(name, key_type=key_type)
+                self.__LOGGER.debug(f"Successfully added keypair {keypair.name} for user {keypair.user_id}")
+                return keypair
         # TODO: except whatever is thrown if keytype is wrong
         # TODO: except whatever is thrown if publickey couldnt be used
         # TODO: except whatever is thrown if could not create for user
         except Exception as e:
             self.__LOGGER.error(f"An unexpected error : {type(e).__name__} - {e}")
             raise e
-        
+
+    def list_keypairs(self):
+        self.__LOGGER.debug(f"Listing keypairs for current session user")
+        self.__check_handlers('nova')
+        nova = self.handlers[self._handlers_key_map['nova']]
+
+        try:
+            keypairs = nova.list_keypairs()
+            return keypairs
+        except Exception as e:
+            self.__LOGGER.error(f"An unexpected error : {type(e).__name__} - {e}")
+            raise e
+
+    def delete_keypair(self, keypair_name):
+        self.__LOGGER.debug(f"Deleting keypair '{keypair_name}' for current session user")
+        self.__check_handlers('nova')
+        nova = self.handlers[self._handlers_key_map['nova']]
+
+        try:
+            result = nova.delete_keypair(keypair_name)
+            return result
+        except Exception as e:
+            self.__LOGGER.error(f"An unexpected error : {type(e).__name__} - {e}")
+            raise e
 
     def disconnect(self):
         self.__LOGGER.info("Disconnecting Openstack Services")

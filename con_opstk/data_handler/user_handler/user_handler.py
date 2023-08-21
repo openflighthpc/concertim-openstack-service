@@ -58,4 +58,33 @@ class UserHandler(BaseHandler):
             self.__LOGGER.error(f"Encountered error when completing action [action:{action},type:{type},id:{id}] : {e.__class__.__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
             raise e
 
+    def create_keypair(self, name, key_type='ssh', imported_pub_key=None):
+        self.__LOGGER.info(f"Starting creation of {key_type} key pair {name}")
+        try:
+            result = self.openstack_service.create_keypair(name, imported_pub_key=imported_pub_key, key_type=key_type)
+            # Return the keypair information as a dict, not the <KeyPair> object
+            return result._info
+        except Exception as e:
+            self.__LOGGER.error(f"Encountered error when completing key pair creation : {e.__class__.__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
+            raise e
+
+    def list_keypairs(self):
+        self.__LOGGER.info(f"Starting listing of keypairs")
+        try:
+            result = self.openstack_service.list_keypairs()
+            # Return the keypair information as a dict, not the <KeyPair> object
+            return [kp._info for result in keypairs if hasattr(kp,'_info')]
+        except Exception as e:
+            self.__LOGGER.error(f"Encountered error when trying to list key pairs : {e.__class__.__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
+            raise e
+
+    def delete_keypair(self, name):
+        self.__LOGGER.info(f"Starting deletion of key pair {name}")
+        try:
+            result = self.openstack_service.delete_keypair(name)
+            return result
+        except Exception as e:
+            self.__LOGGER.error(f"Encountered error when completing key pair deletion : {e.__class__.__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
+            raise e
+
     
