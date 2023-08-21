@@ -1,17 +1,11 @@
+# Local Imports
+from con_opstk.utils.service_logger import create_logger
+import con_opstk.app_definitions as app_paths
 # Py Packages
 import signal
 import sys
 import yaml
 import time
-
-# Local Imports
-sys.path.append("..")
-from utils.service_logger import create_logger
-import app_definitions as app_paths
-
-# GLOBAL VARS
-CONFIG_FILE = app_paths.CONFIG_FILE
-LOG_DIR = app_paths.LOG_DIR
 
 # GLOBAL VARS
 CONFIG_FILE = app_paths.CONFIG_FILE
