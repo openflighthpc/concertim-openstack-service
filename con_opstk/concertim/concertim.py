@@ -192,6 +192,8 @@ class ConcertimService(object):
                         data_dict[key] = casting[key](value.format(**variables_dict))
                     elif value.replace('{','').replace('}','') not in variables_dict and endpoint_name in ['UPDATE_DEVICE','UPDATE_RACK','UPDATE_TEMPLATE', 'UPDATE_USER']:
                         continue
+                    elif key == "metadata" and not value:
+                        continue
                     else:
                         data_dict[key] = value.format(**variables_dict)
             return data_dict
