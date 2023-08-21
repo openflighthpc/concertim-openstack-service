@@ -453,7 +453,7 @@ class OpenstackService(object):
                  keypair = nova.create_keypair(name, public_key=imported_pub_key, key_type=key_type)
                  self.__LOGGER.debug(f"Successfully added keypair {keypair.name} for user {keypair.user_id}")
                  return keypair
-             else
+             else:
                 self.__LOGGER.debug(f"Creating keypair from scratch")
                 keypair = nova.create_keypair(name, key_type=key_type)
                 self.__LOGGER.debug(f"Successfully added keypair {keypair.name} for user {keypair.user_id}")

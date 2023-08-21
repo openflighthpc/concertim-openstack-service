@@ -58,11 +58,10 @@ class UserHandler(BaseHandler):
             self.__LOGGER.error(f"Encountered error when completing action [action:{action},type:{type},id:{id}] : {e.__class__.__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
             raise e
 
-    def create_keypair(self, name, key_type='ssh', imported_pub_key=None, user=None):
+    def create_keypair(self, name, key_type='ssh', imported_pub_key=None):
         self.__LOGGER.info(f"Starting creation of {key_type} key pair {name}")
         try:
-            result = self.openstack_service.create_keypair(name, imported_pub_key=imported_pub_key, user=user, key_type=key_type)
-
+            result = self.openstack_service.create_keypair(name, imported_pub_key=imported_pub_key, key_type=key_type)
             # Check if update function returned a client exception (will only happen if forbidden/unauth)
             if isinstance(result, nova_ex) or isinstance(result, heat_ex):
                 return (403, "Could not complete action due to credentials provided")
@@ -71,11 +70,10 @@ class UserHandler(BaseHandler):
             self.__LOGGER.error(f"Encountered error when completing key pair creation : {e.__class__.__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
             raise e
 
-    def list_keypairs(self, user=None):
+    def list_keypairs(self):
         self.__LOGGER.info(f"Starting listing of keypairs")
         try:
-            result = self.openstack_service.list_keypairs(user=None)
-
+            result = self.openstack_service.list_keypairs()
             # Check if update function returned a client exception (will only happen if forbidden/unauth)
             if isinstance(result, nova_ex) or isinstance(result, heat_ex):
                 return (403, "Could not complete action due to credentials provided")
