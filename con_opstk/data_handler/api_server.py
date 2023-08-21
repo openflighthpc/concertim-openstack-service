@@ -34,6 +34,7 @@ def create_user_project():
         username = req_data['username']
         password = req_data['password']
         email = req_data['email'] if 'email' in req_data else ''
+        app.logger.debug(f"Starting - Creating new CM_ project and user in Openstack for User: {username}")
         
         user_handler = UserHandler(config, log_file)
         app.logger.info(f"Successfully created UserHandler")
@@ -59,6 +60,7 @@ def create_user_project():
             stat_code = e.http_status
         return jsonify(response), stat_code
     finally:
+        app.logger.debug(f"Finished - Creating new CM_ project and user in Openstack")
         app.logger.debug("Disconnecting Handler")
         user_handler.disconnect()
         user_handler = None
@@ -76,6 +78,7 @@ def update_status(type, id):
 
         config['openstack'] = req_data['cloud_env']
         action = req_data['action']
+        app.logger.debug(f"Starting - Updating status for {type}:{id} with {action}")
 
         user_handler = UserHandler(config, log_file, clients=['nova', 'heat'])
         app.logger.info(f"Successfully created UserHandler")
@@ -89,7 +92,6 @@ def update_status(type, id):
                 return jsonify({"error": "Partial status change failure", "message": "; ".join(result["failure"])}), 207
 
         app.logger.info(f"Successfully submitted {action} request for {type} {id}. Request id: {result}")
-
         resp = {"success": True}
         return jsonify(resp), 202
     except APIServerDefError as e:
@@ -120,6 +122,7 @@ def update_status(type, id):
             stat_code = e.http_status
         return jsonify(response), stat_code
     finally:
+        app.logger.debug(f"Finished - Updating status")
         app.logger.debug("Disconnecting Handler")
         try:
           user_handler.disconnect()
@@ -141,6 +144,7 @@ def create_keypair():
 
         config['openstack'] = req_data['cloud_env']
         key_pair = req_data['key_pair']
+        app.logger.debug(f"Starting - Creating keypair in Openstack")
 
         user_handler = UserHandler(config, log_file, clients=['nova'])
         app.logger.info(f"Successfully created UserHandler")
@@ -179,6 +183,7 @@ def create_keypair():
             stat_code = e.http_status
         return jsonify(response), stat_code
     finally:
+        app.logger.debug(f"Finished - Creating keypair in Openstack")
         app.logger.debug("Disconnecting Handler")
         try:
           user_handler.disconnect()
@@ -195,6 +200,7 @@ def list_keypairs():
             raise APIServerDefError("No Authentication data received.", 400)
 
         config['openstack']["cloud_env"] = req_data
+        app.logger.debug(f"Starting - Listing keypairs")
 
         user_handler = UserHandler(config, log_file, clients=['nova'])
         app.logger.info(f"Successfully created UserHandler")
@@ -233,6 +239,7 @@ def list_keypairs():
             stat_code = e.http_status
         return jsonify(response), stat_code
     finally:
+        app.logger.debug(f"Finished - Listing keypairs")
         app.logger.debug("Disconnecting Handler")
         try:
           user_handler.disconnect()
