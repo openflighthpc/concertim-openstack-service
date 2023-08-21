@@ -145,7 +145,7 @@ def create_keypair():
         user_handler = UserHandler(config, log_file, clients=['nova'])
         app.logger.info(f"Successfully created UserHandler")
 
-        result = user_handler.create_keypair(key_pair["name"], key_type=key_pair["key_type"])
+        result = user_handler.create_keypair(key_pair["name"], key_type=key_pair["key_type"], imported_pub_key=key_pair["public_key"])
 
         app.logger.info(f"Successfully submitted create key pair request")
 

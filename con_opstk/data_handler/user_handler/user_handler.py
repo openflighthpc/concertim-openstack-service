@@ -61,7 +61,7 @@ class UserHandler(BaseHandler):
     def create_keypair(self, name, key_type='ssh', imported_pub_key=None, user=None):
         self.__LOGGER.info(f"Starting creation of {key_type} key pair {name}")
         try:
-            result = self.openstack_service.create_keypair(name, imported_pub_key=None, user=None, key_type='ssh')
+            result = self.openstack_service.create_keypair(name, imported_pub_key=imported_pub_key, user=user, key_type=key_type)
 
             # Check if update function returned a client exception (will only happen if forbidden/unauth)
             if isinstance(result, nova_ex) or isinstance(result, heat_ex):
