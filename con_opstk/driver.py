@@ -17,6 +17,7 @@ def run_metrics(test=False):
     log_file = MetricHandler.LOG_DIR + 'metrics.log'
     config = load_config(CONFIG_FILE)
     logger = create_logger(__name__, log_file, config['log_level'])
+    logger.info(f"Log File: {log_file}")
     
     # Handler specific
     # granularity=60 to match IRV refresh rate
@@ -68,6 +69,7 @@ def run_bulk_updates(test=False):
     log_file = LOG_DIR + 'updates_bulk.log'
     config = load_config(CONFIG_FILE)
     logger = create_logger(__name__, log_file, config['log_level'])
+    logger.info(f"Log File: {log_file}")
     
     # Handler specific
     bulk_update_handler = None
@@ -114,6 +116,7 @@ def run_mq_updates(test=False):
     log_file = LOG_DIR + 'updates_mq.log'
     config = load_config(CONFIG_FILE)
     logger = create_logger(__name__, log_file, config['log_level'])
+    logger.info(f"Log File: {log_file}")
     
     # Handler specific
     mq_update_handler = None
@@ -146,6 +149,7 @@ def run_updates_aio(test=False):
     log_file = LOG_DIR + 'updates_aio.log'
     config = load_config(CONFIG_FILE)
     logger = create_logger(__name__, log_file, config['log_level'])
+    logger.info(f"Log File: {log_file}")
     
     # Handler specific
     bulk_update_handler = None
@@ -196,12 +200,10 @@ def run_api_server():
     log_file = LOG_DIR + 'api_server.log'
     config = load_config(CONFIG_FILE)
     logger = create_logger(__name__, log_file, config['log_level'])
+    logger.info(f"Log File: {log_file}")
     logger.info("------- START -------")
     logger.info("STARTING API SERVER")
     run_app()
-
-
-
 
 
 ### COMMON METHODS ###
