@@ -477,6 +477,18 @@ class OpenstackService(object):
             self.__LOGGER.error(f"An unexpected error : {type(e).__name__} - {e}")
             raise e
 
+    def delete_keypair(self, keypair_name):
+        self.__LOGGER.debug(f"Deleting keypair '{keypair_name}' for current session user")
+        self.__check_handlers('nova')
+        nova = self.handlers[self._handlers_key_map['nova']]
+
+        try:
+            result = nova.delete_keypair(keypair_name)
+            return result
+        except Exception as e:
+            self.__LOGGER.error(f"An unexpected error : {type(e).__name__} - {e}")
+            raise e
+
     def disconnect(self):
         self.__LOGGER.info("Disconnecting Openstack Services")
         self.__OPSTK_AUTH = None
