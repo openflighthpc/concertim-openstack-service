@@ -18,11 +18,12 @@ fh.setFormatter(formatter)
 # Flask app
 app = Flask('user_handler')
 app.logger.addHandler(fh)
-app.logger.setLevel(logging.INFO)
+app.logger.setLevel(logging.DEBUG)
 
 @app.route('/create_user_project', methods=['POST'])
 def create_user_project():
     config = {'log_level': 'debug', 'openstack': {}}
+    app.logger.debug(f"Starting - Creating new 'CM_' project and user in Openstack")
     try:
         req_data = request.get_json()
         if 'cloud_env' not in req_data:
@@ -34,7 +35,6 @@ def create_user_project():
         username = req_data['username']
         password = req_data['password']
         email = req_data['email'] if 'email' in req_data else ''
-        app.logger.debug(f"Starting - Creating new CM_ project and user in Openstack for User: {username}")
         
         user_handler = UserHandler(config, log_file)
         app.logger.info(f"Successfully created UserHandler")
@@ -68,6 +68,7 @@ def create_user_project():
 @app.route('/update_status/<type>/<id>', methods=['POST'])
 def update_status(type, id):
     config = {'log_level': 'debug', 'openstack': {}}
+    app.logger.debug(f"Starting - Updating status for {type}:{id}")
     try:
         req_data = request.get_json()
         app.logger.info(req_data)
@@ -78,7 +79,6 @@ def update_status(type, id):
 
         config['openstack'] = req_data['cloud_env']
         action = req_data['action']
-        app.logger.debug(f"Starting - Updating status for {type}:{id} with {action}")
 
         user_handler = UserHandler(config, log_file, clients=['nova', 'heat'])
         app.logger.info(f"Successfully created UserHandler")
@@ -133,7 +133,7 @@ def update_status(type, id):
 @app.route('/key_pairs', methods=['POST'])
 def create_keypair():
     config = {'log_level': 'debug', 'openstack': {}}
-    app.logger.info()
+    app.logger.debug(f"Starting - Creating keypair in Openstack")
     try:
         req_data = request.get_json()
         app.logger.info(req_data)
@@ -144,7 +144,6 @@ def create_keypair():
 
         config['openstack'] = req_data['cloud_env']
         key_pair = req_data['key_pair']
-        app.logger.debug(f"Starting - Creating keypair in Openstack")
 
         user_handler = UserHandler(config, log_file, clients=['nova'])
         app.logger.info(f"Successfully created UserHandler")
@@ -194,13 +193,13 @@ def create_keypair():
 @app.route('/key_pairs', methods=['GET'])
 def list_keypairs():
     config = {'log_level': 'debug', 'openstack': {}}
+    app.logger.debug(f"Starting - Listing keypairs")
     try:
         req_data = request.args.to_dict()
         if req_data['password'] == None or req_data['user_id'] == None:
             raise APIServerDefError("No Authentication data received.", 400)
 
         config['openstack']["cloud_env"] = req_data
-        app.logger.debug(f"Starting - Listing keypairs")
 
         user_handler = UserHandler(config, log_file, clients=['nova'])
         app.logger.info(f"Successfully created UserHandler")
