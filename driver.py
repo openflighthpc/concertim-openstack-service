@@ -10,6 +10,9 @@ import time
 # GLOBAL VARS
 CONFIG_FILE = app_paths.CONFIG_FILE
 LOG_DIR = app_paths.LOG_DIR
+ROOT_DIR = app_paths.ROOT_DIR
+print(f"Root DIR: {ROOT_DIR}")
+print(f"Log DIR: {LOG_DIR}")
 
 def run_metrics(test=False):
     # Common
