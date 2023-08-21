@@ -210,7 +210,7 @@ def list_keypairs():
 
         app.logger.debug(f"Successfully obtained list of key pairs")
 
-        resp = {"success": True, key_pairs: result}
+        resp = {"success": True, 'key_pairs': result}
         return jsonify(resp), 202
     except APIServerDefError as e:
         response = {"error": type(e).__name__, "message": str(e)}
