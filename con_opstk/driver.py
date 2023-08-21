@@ -13,6 +13,10 @@ import app_definitions as app_paths
 CONFIG_FILE = app_paths.CONFIG_FILE
 LOG_DIR = app_paths.LOG_DIR
 
+# GLOBAL VARS
+CONFIG_FILE = app_paths.CONFIG_FILE
+LOG_DIR = app_paths.LOG_DIR
+
 def run_metrics(test=False):
     # Common
     from con_opstk.data_handler.metric_handler.metric_handler import MetricHandler
