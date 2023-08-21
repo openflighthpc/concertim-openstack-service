@@ -153,7 +153,7 @@ def create_keypair():
 
         app.logger.debug(f"Successfully submitted create key pair request")
 
-        resp = {"success": True, "private_key": result.private_key}
+        resp = {"success": True, "private_key": result['private_key']}
         return jsonify(resp), 202
     except APIServerDefError as e:
         response = {"error": type(e).__name__, "message": str(e)}

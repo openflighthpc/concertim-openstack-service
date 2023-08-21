@@ -65,7 +65,8 @@ class UserHandler(BaseHandler):
             # Check if update function returned a client exception (will only happen if forbidden/unauth)
             if isinstance(result, nova_ex) or isinstance(result, heat_ex):
                 return (403, "Could not complete action due to credentials provided")
-            return result
+            # Return the keypair information as a dict, not the <KeyPair> object
+            return result._info
         except Exception as e:
             self.__LOGGER.error(f"Encountered error when completing key pair creation : {e.__class__.__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
             raise e
@@ -77,7 +78,8 @@ class UserHandler(BaseHandler):
             # Check if update function returned a client exception (will only happen if forbidden/unauth)
             if isinstance(result, nova_ex) or isinstance(result, heat_ex):
                 return (403, "Could not complete action due to credentials provided")
-            return result
+            # Return the keypair information as a dict, not the <KeyPair> object
+            return [kp._info for result in keypairs if hasattr(kp,'_info')]
         except Exception as e:
             self.__LOGGER.error(f"Encountered error when trying to list key pairs : {e.__class__.__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
             raise e

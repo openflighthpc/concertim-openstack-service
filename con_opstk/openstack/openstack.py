@@ -466,13 +466,12 @@ class OpenstackService(object):
             raise e
 
     def list_keypairs(self):
-        self.__LOGGER.debug(f"Attempting to list keypairs")
+        self.__LOGGER.debug(f"Listing keypairs for current session user")
         self.__check_handlers('nova')
         nova = self.handlers[self._handlers_key_map['nova']]
 
         try:
             keypairs = nova.list_keypairs()
-            self.__LOGGER.debug(f"Successfully obtained keypairs")
             return keypairs
         except Exception as e:
             self.__LOGGER.error(f"An unexpected error : {type(e).__name__} - {e}")
