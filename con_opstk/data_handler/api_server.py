@@ -299,7 +299,7 @@ def delete_keypairs():
             stat_code = e.http_status
         return jsonify(response), stat_code
     finally:
-        app.logger.info(f"Finished - Listing keypairs")
+        app.logger.info(f"Finished - Deleting keypair")
         app.logger.debug("Disconnecting Handler")
         try:
           user_handler.disconnect()
