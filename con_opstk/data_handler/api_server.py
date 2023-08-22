@@ -1,5 +1,5 @@
 # Local imports
-from con_opstk.data_handler.user_handler.user_handler import UserHandler
+from con_opstk.data_handler.api_handler.api_handler import APIHandler
 from con_opstk.openstack.exceptions import APIServerDefError, OpStkAuthenticationError
 import con_opstk.app_definitions as app_paths
 # Py Packages
@@ -16,7 +16,7 @@ fh = logging.FileHandler(log_file)
 fh.setFormatter(formatter)
 
 # Flask app
-app = Flask('user_handler')
+app = Flask('api')
 app.logger.addHandler(fh)
 app.logger.setLevel(logging.DEBUG)
 
@@ -37,10 +37,10 @@ def create_user_project():
         password = req_data['password']
         email = req_data['email'] if 'email' in req_data else ''
         
-        user_handler = UserHandler(config, log_file)
-        app.logger.debug(f"Successfully created UserHandler")
+        api_handler = APIHandler(config, log_file)
+        app.logger.debug(f"Successfully created APIHandler")
 
-        user, project = user_handler.create_user_project(username, password, email)
+        user, project = api_handler.create_user_project(username, password, email)
         app.logger.debug(f"Successfully created new User and Project in Openstack")
 
         resp = {"username": username, "user_id": user.id, "project_id": project.id}
@@ -63,8 +63,8 @@ def create_user_project():
     finally:
         app.logger.info(f"Finished - Creating new CM_ project and user in Openstack")
         app.logger.debug("Disconnecting Handler")
-        user_handler.disconnect()
-        user_handler = None
+        api_handler.disconnect()
+        api_handler = None
 
 @app.route('/update_status/<type>/<id>', methods=['POST'])
 def update_status(type, id):
@@ -81,10 +81,10 @@ def update_status(type, id):
         config['openstack'] = req_data['cloud_env']
         action = req_data['action']
 
-        user_handler = UserHandler(config, log_file, clients=['nova', 'heat'])
-        app.logger.debug(f"Successfully created UserHandler")
+        api_handler = APIHandler(config, log_file, clients=['nova', 'heat'])
+        app.logger.debug(f"Successfully created APIHandler")
 
-        result = user_handler.update_status(type, id, action)
+        result = api_handler.update_status(type, id, action)
         # Check if update function returned a dict (will happen if type=racks and fallback was called)
         if isinstance(result, dict):
             if result['outcome'] == 'failure':
@@ -126,10 +126,10 @@ def update_status(type, id):
         app.logger.info(f"Finished - Updating status")
         app.logger.debug("Disconnecting Handler")
         try:
-          user_handler.disconnect()
-          user_handler = None
+          api_handler.disconnect()
+          api_handler = None
         except NameError:
-          user_handler = None
+          api_handler = None
 
 @app.route('/key_pairs', methods=['POST'])
 def create_keypair():
@@ -146,10 +146,10 @@ def create_keypair():
         config['openstack'] = req_data['cloud_env']
         key_pair = req_data['key_pair']
 
-        user_handler = UserHandler(config, log_file, clients=['nova'])
-        app.logger.debug(f"Successfully created UserHandler")
+        api_handler = APIHandler(config, log_file, clients=['nova'])
+        app.logger.debug(f"Successfully created APIHandler")
 
-        result = user_handler.create_keypair(key_pair["name"], key_type=key_pair["key_type"], imported_pub_key=key_pair["public_key"])
+        result = api_handler.create_keypair(key_pair["name"], key_type=key_pair["key_type"], imported_pub_key=key_pair["public_key"])
 
         app.logger.debug(f"Successfully submitted create key pair request")
 
@@ -186,10 +186,10 @@ def create_keypair():
         app.logger.info(f"Finished - Creating keypair in Openstack")
         app.logger.debug("Disconnecting Handler")
         try:
-          user_handler.disconnect()
-          user_handler = None
+          api_handler.disconnect()
+          api_handler = None
         except NameError:
-          user_handler = None
+          api_handler = None
 
 @app.route('/key_pairs', methods=['GET'])
 def list_keypairs():
@@ -203,10 +203,10 @@ def list_keypairs():
 
         config['openstack'] = req_data['cloud_env']
 
-        user_handler = UserHandler(config, log_file, clients=['nova'])
-        app.logger.debug(f"Successfully created UserHandler")
+        api_handler = APIHandler(config, log_file, clients=['nova'])
+        app.logger.debug(f"Successfully created APIHandler")
 
-        result = user_handler.list_keypairs()
+        result = api_handler.list_keypairs()
 
         app.logger.debug(f"Successfully obtained list of key pairs")
 
@@ -243,10 +243,10 @@ def list_keypairs():
         app.logger.info(f"Finished - Listing keypairs")
         app.logger.debug("Disconnecting Handler")
         try:
-          user_handler.disconnect()
-          user_handler = None
+          api_handler.disconnect()
+          api_handler = None
         except NameError:
-          user_handler = None
+          api_handler = None
 
 @app.route('/key_pairs', methods=['DELETE'])
 def delete_keypairs():
@@ -262,10 +262,10 @@ def delete_keypairs():
 
         config['openstack'] = req_data['cloud_env']
 
-        user_handler = UserHandler(config, log_file, clients=['nova'])
-        app.logger.debug(f"Successfully created UserHandler")
+        api_handler = APIHandler(config, log_file, clients=['nova'])
+        app.logger.debug(f"Successfully created APIHandler")
 
-        result = user_handler.delete_keypair()
+        result = api_handler.delete_keypair()
 
         app.logger.debug(f"Successfully deleted key pair {req_data['keypair_name']}")
 
@@ -302,10 +302,10 @@ def delete_keypairs():
         app.logger.info(f"Finished - Deleting keypair")
         app.logger.debug("Disconnecting Handler")
         try:
-          user_handler.disconnect()
-          user_handler = None
+          api_handler.disconnect()
+          api_handler = None
         except NameError:
-          user_handler = None
+          api_handler = None
 
 @app.route('/')
 def running():

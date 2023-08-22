@@ -12,7 +12,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Install component specific packages
 RUN pip install --no-cache-dir -r con_opstk/data_handler/requirements-api.txt
 # Install packages used by ALL handlers used in the api_server.py code
-RUN pip install --no-cache-dir -r con_opstk/data_handler/user_handler/requirements-user.txt
+RUN pip install --no-cache-dir -r con_opstk/data_handler/api_handler/requirements-api-handler.txt
 
 # Make port 42356 available to the world outside this container
 EXPOSE 42356

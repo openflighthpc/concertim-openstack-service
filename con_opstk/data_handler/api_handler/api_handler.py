@@ -8,10 +8,10 @@ from novaclient.exceptions import ClientException as nova_ex
 from heatclient.exc import BaseException as heat_ex
 
 
-class UserHandler(BaseHandler):
+class APIHandler(BaseHandler):
     DEFAULT_CLIENTS = ['keystone']
     def __init__(self, config_obj, log_file, enable_concertim=False, clients=None):
-        self.clients = clients if clients else UserHandler.DEFAULT_CLIENTS
+        self.clients = clients if clients else APIHandler.DEFAULT_CLIENTS
         super().__init__(config_obj, log_file, self.clients, enable_concertim=enable_concertim)
         self.__LOGGER = create_logger(__name__, self._LOG_FILE, self._CONFIG['log_level'])
 
