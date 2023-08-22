@@ -32,12 +32,15 @@ def create_user_project():
         if 'username' not in req_data or 'password' not in req_data:
             raise APIServerDefError("Invalid user data. 'username' and 'password' are required.", 400)
 
+        billing = False
         config['openstack'] = req_data['cloud_env']
         username = req_data['username']
         password = req_data['password']
         email = req_data['email'] if 'email' in req_data else ''
+        if 'billing_enabled' in req_data['cloud_env'] and eval(req_data['cloud_env']['billing_enabled']):
+            billing = True
         
-        api_handler = APIHandler(config, log_file)
+        api_handler = APIHandler(config, log_file, billing_enabled=billing)
         app.logger.debug(f"Successfully created APIHandler")
 
         user, project = api_handler.create_user_project(username, password, email)
