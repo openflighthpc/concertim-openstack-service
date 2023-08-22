@@ -15,16 +15,20 @@ class OpenstackService(object):
             'project': []
         }
 
-    def __init__(self, config_obj, log_file, client_list=[], required_ks_objs={}):
+    def __init__(self, config_obj, log_file, client_list=[], required_ks_objs={}, billing_enabled=False):
         self._CONFIG = config_obj
         self._LOG_FILE = log_file
         self.__LOGGER = create_logger(__name__, self._LOG_FILE, self._CONFIG['log_level'])
         self.__OPSTK_AUTH = OpenStackAuth(self._CONFIG['openstack'])
         self._handlers_key_map = {}
         self.handlers = {client:self.__create_handler(client) for client in client_list}
-        self.req_keystone_objs = required_ks_objs
+        self.req_keystone_objs_list = required_ks_objs if required_ks_objs else OpenstackService._REQUIRED_KS_OBJS
+        self.billing_enabled = billing_enabled
+        if self.billing_enabled:
+            self.req_keystone_objs_list['role'].append('rating')
+            self.req_keystone_objs_list['user'].append('cloudkitty')
         if 'keystone' in self._handlers_key_map:
-            self.req_keystone_objs = self.__populate_required_objs('keystone', required_ks_objs) if required_ks_objs else self.__populate_required_objs('keystone', OpenstackService._REQUIRED_KS_OBJS)
+            self.req_keystone_objs = self.__populate_required_objs('keystone', self.req_keystone_objs_list)
     
     # Private method to return correct ClientHandler object with instance's openstack auth data
     def __create_handler(self, client_name, auth=None):
@@ -175,15 +179,20 @@ class OpenstackService(object):
 
         if domain != 'default':
             domain_ref = keystone.get_domain(domain)
+        elif domain == 'Default':
+            domain_ref = 'default'
         else:
             domain_ref = domain
 
         new_project = keystone.create_project(name, domain_ref, desc="Concertim managed project")
-        self.__LOGGER.debug(f"Adding [concertim,admin] user roles to new project")
+        self.__LOGGER.debug(f"Adding necessary user roles to new project")
         try:
             keystone.add_user_to_project(user=self.req_keystone_objs['user']['concertim'],project=new_project,role=self.req_keystone_objs['role']['watcher'])
             keystone.add_user_to_project(user=self.req_keystone_objs['user']['concertim'],project=new_project,role=self.req_keystone_objs['role']['member'])
             keystone.add_user_to_project(user=self.req_keystone_objs['user']['admin'],project=new_project,role=self.req_keystone_objs['role']['admin'])
+            if self.billing_enabled:
+                self.__LOGGER.debug(f"Billing is enabled - adding necessary billing user roles to new project")
+                keystone.add_user_to_project(user=self.req_keystone_objs['user']['cloudkitty'],project=new_project,role=self.req_keystone_objs['role']['rating'])
             self.__LOGGER.debug(f"New Concertim-managed project created successfully - '{new_project}'")
             return new_project
         except Exception as e:

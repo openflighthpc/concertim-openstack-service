@@ -7,11 +7,11 @@ from con_opstk.openstack.exceptions import FailureToScrub, UnsupportedObject
 import sys
 
 class BaseHandler(object):
-    def __init__(self, config_obj, log_file, openstack_client_list, enable_concertim=True):
+    def __init__(self, config_obj, log_file, openstack_client_list, enable_concertim=True, billing_enabled=False):
         self._CONFIG = config_obj
         self._LOG_FILE = log_file
         self.__LOGGER = create_logger(__name__, self._LOG_FILE, self._CONFIG['log_level'])
-        self.openstack_service = OpenstackService(self._CONFIG, self._LOG_FILE, client_list=openstack_client_list)
+        self.openstack_service = OpenstackService(self._CONFIG, self._LOG_FILE, client_list=openstack_client_list, billing_enabled=billing_enabled)
         self.concertim_service = ConcertimService(self._CONFIG, self._LOG_FILE) if enable_concertim else None
 
     # Delete objects that were created before encountering an error ('orphans')

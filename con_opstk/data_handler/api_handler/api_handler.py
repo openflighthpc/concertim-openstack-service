@@ -10,9 +10,10 @@ from heatclient.exc import BaseException as heat_ex
 
 class APIHandler(BaseHandler):
     DEFAULT_CLIENTS = ['keystone']
-    def __init__(self, config_obj, log_file, enable_concertim=False, clients=None):
+    def __init__(self, config_obj, log_file, enable_concertim=False, clients=None, billing_enabled=False):
         self.clients = clients if clients else APIHandler.DEFAULT_CLIENTS
-        super().__init__(config_obj, log_file, self.clients, enable_concertim=enable_concertim)
+        self.billing_enabled = billing_enabled
+        super().__init__(config_obj, log_file, self.clients, enable_concertim=enable_concertim, billing_enabled=billing_enabled)
         self.__LOGGER = create_logger(__name__, self._LOG_FILE, self._CONFIG['log_level'])
 
     def create_user_project(self, username, password, email):

@@ -6,6 +6,8 @@ from con_opstk.openstack.exceptions import OpStkAuthenticationError
 class OpenStackAuth:
     def __init__(self, auth_dict):
         self.auth_dict = auth_dict
+        if 'billing_enabled' in self.auth_dict:
+            del self.auth_dict['billing_enabled']
         self.auth_methods = {
             v3.Password: [
                 {'auth_url', 'user_id', 'password', 'project_id'},
