@@ -11,8 +11,11 @@ import time
 CONFIG_FILE = app_paths.CONFIG_FILE
 LOG_DIR = app_paths.LOG_DIR
 ROOT_DIR = app_paths.ROOT_DIR
+DATA_DIR = app_paths.DATA_DIR
+print(f"Config File: {CONFIG_FILE}")
 print(f"Root DIR: {ROOT_DIR}")
 print(f"Log DIR: {LOG_DIR}")
+print(f"Data DIR: {DATA_DIR}")
 
 def run_metrics(test=False):
     # Common
