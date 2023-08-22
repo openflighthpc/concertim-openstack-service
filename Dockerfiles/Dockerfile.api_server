@@ -18,4 +18,4 @@ RUN pip install --no-cache-dir -r con_opstk/data_handler/user_handler/requiremen
 EXPOSE 42356
 
 # Run user_handler when the container launches
-CMD ["python", "con_opstk/driver.py", "run=api"]
+CMD ["python", "driver.py", "run=api"]

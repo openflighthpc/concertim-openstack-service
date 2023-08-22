@@ -13,4 +13,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 RUN pip install --no-cache-dir -r con_opstk/data_handler/update_handler/requirements-updates.txt
 
 # Run driver for All-In-One updates process when the container launches
-CMD ["python", "con_opstk/driver.py", "run=updates_bulk"]
+CMD ["python", "driver.py", "run=updates_bulk"]

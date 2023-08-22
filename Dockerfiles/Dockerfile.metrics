@@ -13,4 +13,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 RUN pip install --no-cache-dir -r con_opstk/data_handler/metric_handler/requirements-metrics.txt
 
 # Run driver for metrics process when the container launches
-CMD ["python", "con_opstk/driver.py", "run=metrics"]
+CMD ["python", "driver.py", "run=metrics"]

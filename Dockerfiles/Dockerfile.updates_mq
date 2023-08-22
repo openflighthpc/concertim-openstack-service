@@ -14,4 +14,4 @@ RUN pip install --no-cache-dir -r con_opstk/data_handler/update_handler/requirem
 RUN pip install --no-cache-dir -r con_opstk/data_handler/update_handler/requirements-mq.txt
 
 # Run driver for All-In-One updates process when the container launches
-CMD ["python", "con_opstk/driver.py", "run=updates_mq"]
+CMD ["python", "driver.py", "run=updates_mq"]
