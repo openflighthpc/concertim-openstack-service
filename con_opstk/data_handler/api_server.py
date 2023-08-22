@@ -153,7 +153,7 @@ def create_keypair():
 
         app.logger.debug(f"Successfully submitted create key pair request")
 
-        resp = {"success": True, "private_key": result['private_key']}
+        resp = {"success": True, "key_pair": result}
         return jsonify(resp), 202
     except APIServerDefError as e:
         response = {"error": type(e).__name__, "message": str(e)}
@@ -196,12 +196,12 @@ def list_keypairs():
     config = {'log_level': 'debug', 'openstack': {}}
     app.logger.info(f"Starting - Listing keypairs")
     try:
-        req_data = request.get_json()
+        req_data = request.args.to_dict()
         app.logger.debug(req_data)
-        if 'cloud_env' not in req_data:
-            raise APIServerDefError("No Authentication data received.", 400)
+        if req_data['password'] == None or req_data['user_id'] == None:
+           raise APIServerDefError("No Authentication data received.", 400)
 
-        config['openstack'] = req_data['cloud_env']
+        config['openstack']["cloud_env"] = req_data
 
         user_handler = UserHandler(config, log_file, clients=['nova'])
         app.logger.debug(f"Successfully created UserHandler")
