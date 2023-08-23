@@ -187,12 +187,12 @@ class ConcertimService(object):
             for key, value in data_template.items():
                 if isinstance(value, dict):
                     data_dict[key] = self.__get_data(variables_dict, value, endpoint_name)
+                    if key == 'metadata' and not data_dict['metadata']:
+                        del data_dict['metadata']
                 else:
                     if key in casting:
                         data_dict[key] = casting[key](value.format(**variables_dict))
                     elif value.replace('{','').replace('}','') not in variables_dict and endpoint_name in ['UPDATE_DEVICE','UPDATE_RACK','UPDATE_TEMPLATE', 'UPDATE_USER']:
-                        continue
-                    elif key == "metadata" and not value:
                         continue
                     else:
                         data_dict[key] = value.format(**variables_dict)
