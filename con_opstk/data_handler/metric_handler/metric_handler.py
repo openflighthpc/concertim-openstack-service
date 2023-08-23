@@ -101,7 +101,7 @@ class MetricHandler(BaseHandler):
                     self.concertim_service.send_metric(instance_resource_dict["concertim_id"], {'type': "double",'name': "os.disk.avg_iops",'value': iops,'units': 'Ops/s','slope': "both",'ttl': 3600})
             #'''
             except Exception as e:
-                self.__LOGGER.warning(f"Failed to handle metric '{resource["type"]}' - skipping - {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
+                self.__LOGGER.warning(f"Failed to handle metric '{resource['type']}' - skipping - {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
                 continue
         self.__LOGGER.debug(f"Finished - Processing metrics for instance:{instance_resource_dict['display_name']}")
 
