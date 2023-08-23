@@ -9,7 +9,7 @@ def create_logger(name, log_file, level):
     levels = {'DEBUG': logging.DEBUG, 'INFO': logging.INFO, 'WARNING': logging.WARNING, 'ERROR': logging.ERROR, 'CRITICAL': logging.CRITICAL}
     lvl = (levels[level.upper()])
     logger.setLevel(lvl)
-    formatter = logging.Formatter('%(asctime)s - [%(levelname)s] (%(module)s:%(funcName)s) - %(message)s')
+    formatter = SensitiveFormatter('%(asctime)s - [%(levelname)s] (%(module)s:%(funcName)-40s) - %(message)s')
     dir_name = os.path.dirname(log_file)
     try:
         # Create directories if they don't exist
@@ -37,3 +37,16 @@ def create_logger(name, log_file, level):
         raise Exception(f"Could not create FileHandler for log file: {log_file} - {type(e).__name__} - {e}")
     
     return logger
+
+
+class SensitiveFormatter(logging.Formatter):
+    """Formatter that removes sensitive information in urls."""
+    @staticmethod
+    def _filter(s):
+        if 'password' in s.lower():
+            return "<< Message contains a 'password' string redacting >>"
+        return s
+
+    def format(self, record):
+        filtered = self._filter(record)
+        return logging.Formatter.format(self, filtered)
