@@ -9,8 +9,8 @@ sudo docker build --network=host --tag concertim_api_server:latest -f Dockerfile
 sudo docker run -d --name concertim_api_server \
     --network=host \
     -v /etc/concertim-openstack-service/config.yaml:/etc/concertim-openstack-service/config.yaml \
-    -v /var/log/concertim-openstack-service/:/var/log/concertim-openstack-service/ \
-    -v /var/lib/concertim-openstack-service/data/:/var/lib/concertim-openstack-service/data/ \
+    -v /var/log/concertim-openstack-service/:/app/var/log/ \
+    -v /var/lib/concertim-openstack-service/data/:/app/var/data/ \
     --publish 10.151.0.184:42356:42356 \
     concertim_api_server
 
@@ -30,8 +30,8 @@ sudo docker build --network=host --tag concertim_metrics:latest -f Dockerfiles/D
 sudo docker run -d --name concertim_metrics \
     --network=host \
     -v /etc/concertim-openstack-service/config.yaml:/etc/concertim-openstack-service/config.yaml \
-    -v /var/log/concertim-openstack-service/:/var/log/concertim-openstack-service/ \
-    -v /var/lib/concertim-openstack-service/data/:/var/lib/concertim-openstack-service/data/ \
+    -v /var/log/concertim-openstack-service/:/app/var/log/ \
+    -v /var/lib/concertim-openstack-service/data/:/app/var/data/ \
     concertim_metrics
 
 # LOGS - tail 50 with follow (also in log dir on localhost)
@@ -50,8 +50,8 @@ sudo docker build --network=host --tag concertim_bulk_updates:latest -f Dockerfi
 sudo docker run -d --name concertim_bulk_updates \
     --network=host \
     -v /etc/concertim-openstack-service/config.yaml:/etc/concertim-openstack-service/config.yaml \
-    -v /var/log/concertim-openstack-service/:/var/log/concertim-openstack-service/ \
-    -v /var/lib/concertim-openstack-service/data/:/var/lib/concertim-openstack-service/data/ \
+    -v /var/log/concertim-openstack-service/:/app/var/log/ \
+    -v /var/lib/concertim-openstack-service/data/:/app/var/data/ \
     concertim_bulk_updates
 
 # LOGS - tail 50 with follow (also in log dir on localhost)
@@ -70,8 +70,8 @@ sudo docker build --network=host --tag concertim_mq_listener:latest -f Dockerfil
 sudo docker run -d --name concertim_mq_listener \
     --network=host \
     -v /etc/concertim-openstack-service/config.yaml:/etc/concertim-openstack-service/config.yaml \
-    -v /var/log/concertim-openstack-service/:/var/log/concertim-openstack-service/ \
-    -v /var/lib/concertim-openstack-service/data/:/var/lib/concertim-openstack-service/data/ \
+    -v /var/log/concertim-openstack-service/:/app/var/log/ \
+    -v /var/lib/concertim-openstack-service/data/:/app/var/data/ \
     concertim_mq_listener
 
 # LOGS - tail 50 with follow (also in log dir on localhost)
