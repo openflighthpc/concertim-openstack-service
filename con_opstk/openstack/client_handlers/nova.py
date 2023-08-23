@@ -152,7 +152,8 @@ class NovaHandler(ClientHandler):
 
     def create_keypair(self, name, public_key=None, key_type='ssh'):
         try:
-            return self.client.keypairs.create(name, public_key=public_key, key_type=key_type)
+            # key_type not supported for novaclient - add handling
+            return self.client.keypairs.create(name, public_key=public_key)
         except Exception as e:
             self.__LOGGER.error(f"An unexpected error : {type(e).__name__} - {e}")
             raise e
