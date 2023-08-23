@@ -125,7 +125,7 @@ class MqUpdateHandler(UpdateHandler):
         # State changed - update concertim and self.view
         self.__LOGGER.info(f"Updating Device '{device.id[0]}' status: {device.status} --> {con_state}")
         try:
-            self.concertim_service.update_device(ID=device.id[0], variables_dict = {'name': device.concertim_name,\
+            self.concertim_service.update_device(ID=device.id[0], variables_dict = {'name': device.name[0],\
                                             'description': device.description, \
                                             'status': con_state})
             self.view.devices[device.id].status = con_state
@@ -165,7 +165,7 @@ class MqUpdateHandler(UpdateHandler):
         # State changed - update concertim and self.view
         self.__LOGGER.info(f"Updating Rack '{rack.id[0]}' status: {rack.status} --> {con_state}")
         try:
-            self.concertim_service.update_rack(ID=rack.id[0], variables_dict = {'name': rack.concertim_name,\
+            self.concertim_service.update_rack(ID=rack.id[0], variables_dict = {'name': rack.name[0],\
                                             'description': rack.description, \
                                             'status': con_state})
             self.view.racks[rack.id].status = con_state
