@@ -224,7 +224,7 @@ class BulkUpdateHandler(UpdateHandler):
                 con_state = 'FAILED'
             # BASE RACK CREATION
             new_rack = ConcertimRack(concertim_id=None, openstack_id=os_stack.id, 
-                                    concertim_name=os_stack.stack_name, openstack_name=os_stack.stack_name, 
+                                    concertim_name=os_stack.stack_name.replace('.','-').replace('_','-'), openstack_name=os_stack.stack_name, 
                                     user_id=user_id_tup[0], height=self.default_rack_height, 
                                     description='Heat Stack in Openstack', status=con_state)
             new_rack.output = self.openstack_service.get_stack_output(os_stack.id)
@@ -237,7 +237,7 @@ class BulkUpdateHandler(UpdateHandler):
                 new_rack.add_metadata(openstack_stack_owner_id=os_stack.stack_user_project_id)
             concertim_response_rack = None
             try:
-                concertim_response_rack = self.concertim_service.create_rack({'name': new_rack.name[1],
+                concertim_response_rack = self.concertim_service.create_rack({'name': new_rack.name[0],
                                                                 'user_id' : new_rack.user_id,
                                                                 'u_height': new_rack.height,
                                                                 'openstack_stack_id' : new_rack.id[1],
@@ -252,10 +252,10 @@ class BulkUpdateHandler(UpdateHandler):
                 self.view.users[user_id_tup].add_rack(new_rack.id[0])
                 return True
             except ConcertimItemConflict as e:
-                self.__LOGGER.warning(f"The rack {new_rack.name[1]} already exists - Skipping - {type(e).__name__} - {e}")
+                self.__LOGGER.warning(f"The rack {new_rack.name[0]} already exists - Skipping - {type(e).__name__} - {e}")
                 return False
             except Exception as e:
-                self.__LOGGER.error(f"Unhandled Exception when creating rack {new_rack.name[1]} - Skipping - {type(e).__name__} - {e}")
+                self.__LOGGER.error(f"Unhandled Exception when creating rack {new_rack.name[0]} - Skipping - {type(e).__name__} - {e}")
                 return False
         except Exception as e:
             self.__LOGGER.error(f"Failed to create Rack - {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
@@ -276,7 +276,7 @@ class BulkUpdateHandler(UpdateHandler):
             template_for_inst = self.view.templates[matching_template_id_tup[0]]
             loc_for_inst = self.__find_empty_slot(rack_id_tup, template_for_inst.size)
             new_device = ConcertimDevice(concertim_id=None, openstack_id=os_instance.id, 
-                                        concertim_name=os_instance.name, openstack_name=os_instance.name, 
+                                        concertim_name=os_instance.name.replace('.','-').replace('_','-'), openstack_name=os_instance.name, 
                                         rack_id=rack_id_tup[0], template=template_for_inst, 
                                         location=loc_for_inst, description='Nova Server in Openstack', status=con_state)
             # ADD EXISTING METADATA
@@ -295,7 +295,7 @@ class BulkUpdateHandler(UpdateHandler):
             try:
                 concertim_response_device = self.concertim_service.create_device({'template_id': new_device.template.id[0], 
                                                                     'description': new_device.description, 
-                                                                    'name': new_device.name[1], 
+                                                                    'name': new_device.name[0], 
                                                                     'facing': new_device.location.facing, 
                                                                     'rack_id': new_device.rack_id, 
                                                                     'start_u': new_device.location.start_u, 
@@ -309,10 +309,10 @@ class BulkUpdateHandler(UpdateHandler):
                 self.view.add_device(new_device)
                 self.view.racks[rack_id_tup].add_device(new_device.id[0], new_device.location)
             except ConcertimItemConflict as e:
-                self.__LOGGER.warning(f"The device {new_device.name[1]} already exists - Skipping - {type(e).__name__} - {e}")
+                self.__LOGGER.warning(f"The device {new_device.name[0]} already exists - Skipping - {type(e).__name__} - {e}")
                 return False
             except Exception as e:
-                self.__LOGGER.error(f"Unhandled Exception when creating device {new_device.name[1]} - Skipping - {type(e).__name__} - {e}")
+                self.__LOGGER.error(f"Unhandled Exception when creating device {new_device.name[0]} - Skipping - {type(e).__name__} - {e}")
                 return False
         except Exception as e:
             self.__LOGGER.error(f"Failed to create Device - {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
@@ -326,7 +326,7 @@ class BulkUpdateHandler(UpdateHandler):
             else:
                 con_state = 'FAILED'
             try:
-                self.concertim_service.update_rack(rack_id_tup[0], {'name':os_stack.stack_name,'status':con_state})
+                self.concertim_service.update_rack(rack_id_tup[0], {'name':self.view.racks[rack_id_tup].name[0],'status':con_state})
                 self.view.racks[rack_id_tup].status = con_state
                 self.__LOGGER.debug(f"Status updated to {con_state}")
             except Exception as e:
@@ -340,7 +340,7 @@ class BulkUpdateHandler(UpdateHandler):
         try:
             # Store other rack metadata
             curr_md = self.view.racks[rack_id_tup].metadata
-            vars_dict_to_send = {'name':os_stack.stack_name, 
+            vars_dict_to_send = {'name':self.view.racks[rack_id_tup].name[0], 
                                 'openstack_stack_id': os_stack.id, 
                                 **curr_md}
             new_output = self.openstack_service.get_stack_output(os_stack.id)
@@ -373,7 +373,7 @@ class BulkUpdateHandler(UpdateHandler):
                 os_stk_owner_id = os_stack.stack_user_project_id
             if not (os_stk_owner or os_stk_owner_id or os_stk_status_reas):
                 try:
-                    self.concertim_service.update_rack(rack_id_tup[0], {'name':os_stack.stack_name,
+                    self.concertim_service.update_rack(rack_id_tup[0], {'name':self.view.racks[rack_id_tup].name[0],
                                                                         'openstack_stack_output': curr_output,
                                                                         'openstack_stack_status_reason': os_stk_status_reas,
                                                                         'openstack_stack_owner': os_stk_owner,
@@ -399,7 +399,7 @@ class BulkUpdateHandler(UpdateHandler):
             else:
                 con_state = 'FAILED'
             try:
-                self.concertim_service.update_device(device_id_tup[0], {'name':os_instance.name,'status':con_state})
+                self.concertim_service.update_device(device_id_tup[0], {'name':self.view.devices[device_id_tup].name[0],'status':con_state})
                 self.view.devices[device_id_tup].status = con_state
                 self.__LOGGER.debug(f"Status updated to {con_state}")
             except Exception as e:
@@ -424,7 +424,7 @@ class BulkUpdateHandler(UpdateHandler):
                 os_vols_att = os_instance._info['os-extended-volumes:volumes_attached']
             if not (os_ips or os_ssh_key or os_vols_att):
                 try:
-                    self.concertim_service.update_device(device_id_tup[0], {'name':os_instance.name, 
+                    self.concertim_service.update_device(device_id_tup[0], {'name':self.view.devices[device_id_tup].name[0], 
                                                                             'openstack_ips': os_ips,
                                                                             'openstack_ssh_key': os_ssh_key,
                                                                             'volumes_attached': os_vols_att,
