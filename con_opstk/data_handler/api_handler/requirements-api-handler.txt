@@ -1,1 +1,0 @@
-python-keystoneclient==4.4.0
