@@ -20,7 +20,7 @@ print(f"Data DIR: {DATA_DIR}")
 def run_metrics(test=False):
     # Common
     from con_opstk.data_handler.metric_handler.metric_handler import MetricHandler
-    log_file = MetricHandler.LOG_DIR + 'metrics.log'
+    log_file = LOG_DIR + 'metrics.log'
     config = load_config(CONFIG_FILE)
     logger = create_logger(__name__, log_file, config['log_level'])
     logger.info(f"Log File: {log_file}")
