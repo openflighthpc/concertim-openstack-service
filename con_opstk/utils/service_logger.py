@@ -4,6 +4,8 @@ import os
 
 def create_logger(name, log_file, level):
     logger = logging.getLogger(name)
+    if logger.hasHandlers(): 
+        logger.handlers.clear()
     levels = {'DEBUG': logging.DEBUG, 'INFO': logging.INFO, 'WARNING': logging.WARNING, 'ERROR': logging.ERROR, 'CRITICAL': logging.CRITICAL}
     lvl = (levels[level.upper()])
     logger.setLevel(lvl)
