@@ -74,7 +74,7 @@ class APIHandler(BaseHandler):
         try:
             result = self.openstack_service.list_keypairs()
             # Return the keypair information as a dict, not the <KeyPair> object
-            return [kp._info for result in keypairs if hasattr(kp,'_info')]
+            return [kp._info for kp in result if hasattr(kp,'_info')]
         except Exception as e:
             self.__LOGGER.error(f"Encountered error when trying to list key pairs : {e.__class__.__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
             raise e
