@@ -2,6 +2,7 @@
 from con_opstk.data_handler.api_handler.api_handler import APIHandler
 from con_opstk.openstack.exceptions import APIServerDefError, OpStkAuthenticationError
 import con_opstk.app_definitions as app_paths
+from con_opstk.utils.service_logger import SensitiveFormatter
 # Py Packages
 from flask import Flask, request, jsonify, make_response
 from flask import Response
@@ -10,7 +11,7 @@ import keystoneauth1.exceptions.http
 import novaclient.exceptions
 
 
-formatter = logging.Formatter('%(asctime)s - [%(levelname)s] (%(module)s) - %(message)s')
+formatter = SensitiveFormatter('%(asctime)s - [%(levelname)s] (%(module)s:%(funcName)-40s) - %(message)s')
 log_file = app_paths.LOG_DIR + 'api_server.log'
 fh = logging.FileHandler(log_file)
 fh.setFormatter(formatter)
@@ -23,7 +24,7 @@ app.logger.setLevel(logging.DEBUG)
 @app.route('/create_user_project', methods=['POST'])
 def create_user_project():
     config = {'log_level': 'debug', 'openstack': {}}
-    app.logger.info(f"Starting - Creating new 'CM_' project and user in Openstack")
+    app.logger.info(f"\nStarting - Creating new 'CM_' project and user in Openstack")
     try:
         req_data = request.get_json()
         app.logger.debug(req_data)
@@ -72,7 +73,7 @@ def create_user_project():
 @app.route('/update_status/<type>/<id>', methods=['POST'])
 def update_status(type, id):
     config = {'log_level': 'debug', 'openstack': {}}
-    app.logger.info(f"Starting - Updating status for {type}:{id}")
+    app.logger.info(f"\nStarting - Updating status for {type}:{id}")
     try:
         req_data = request.get_json()
         app.logger.debug(req_data)
@@ -137,7 +138,7 @@ def update_status(type, id):
 @app.route('/key_pairs', methods=['POST'])
 def create_keypair():
     config = {'log_level': 'debug', 'openstack': {}}
-    app.logger.info(f"Starting - Creating keypair in Openstack")
+    app.logger.info(f"\nStarting - Creating keypair in Openstack")
     try:
         req_data = request.get_json()
         app.logger.debug(req_data)
@@ -197,7 +198,7 @@ def create_keypair():
 @app.route('/key_pairs', methods=['GET'])
 def list_keypairs():
     config = {'log_level': 'debug', 'openstack': {}}
-    app.logger.info(f"Starting - Listing keypairs")
+    app.logger.info(f"\nStarting - Listing keypairs")
     try:
         req_data = request.get_json()
         app.logger.debug(req_data)
@@ -254,7 +255,7 @@ def list_keypairs():
 @app.route('/key_pairs', methods=['DELETE'])
 def delete_keypairs():
     config = {'log_level': 'debug', 'openstack': {}}
-    app.logger.info(f"Starting - Deleting keypair")
+    app.logger.info(f"\nStarting - Deleting keypair")
     try:
         req_data = request.get_json()
         app.logger.debug(req_data)
@@ -312,8 +313,8 @@ def delete_keypairs():
 
 @app.route('/')
 def running():
-    app.logger.info('Running')
-    return 'Running'
+    app.logger.info("\nRunning\n")
+    return "\nRunning\n"
 
 def run_app():
     app.run(host='0.0.0.0', port=42356)
