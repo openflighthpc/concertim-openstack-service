@@ -23,7 +23,7 @@ class UpdateHandler(BaseHandler):
             'ACTIVE': ['active', 'running'],
             'STOPPED': ['stopped'],
             'SUSPENDED': ['suspended'],
-            'IN_PROGRESS': ['building', 'deleting', 'scheduling', 'networking', 'block_device_mapping', 'spawning'],
+            'IN_PROGRESS': ['building', 'deleting', 'scheduling', 'networking', 'block_device_mapping', 'spawning', 'deleted'],
             'FAILED': []
         },
         'RACK':{
