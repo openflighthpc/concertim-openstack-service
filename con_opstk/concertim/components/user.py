@@ -9,15 +9,13 @@ class ConcertimUser(ConcertimComponent):
         self.racks = []
 
     def __repr__(self):
-        opsk_info = super().get_openstack_definition()
-        con_info = super().get_concertim_definition()
-        return (f"ConcertimUser{{openstack_info:{repr(opsk_info)}, concertim_info:{repr(con_info)}, description:{repr(self.description)}, "
-                f"full_name:{repr(self.full_name)}, email:{repr(self.email)}, openstack_project_id:{repr(self.openstack_project_id)},racks:{repr(self.racks)}}}")
+        return (f"<ConcertimUser:{{id:{repr(self.id)}, name:{repr(self.name)}, description:{repr(self.description)}, "
+                f"full_name:{repr(self.full_name)}, email:{repr(self.email)}, openstack_project_id:{repr(self.openstack_project_id)}, racks:{repr(self.racks)}}}>")
 
     def __eq__(self, other):
         if isinstance(other, ConcertimUser):
-            return (self.concertim_id == other.concertim_id 
-                and self.openstack_id == other.openstack_id 
+            return (self.id[0] == other.id[0] 
+                and self.id[1] == other.id[1]
                 and self.openstack_project_id == other.openstack_project_id)
         return NotImplemented
 

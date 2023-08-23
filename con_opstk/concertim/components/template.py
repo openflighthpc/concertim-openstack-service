@@ -9,15 +9,13 @@ class ConcertimTemplate(ConcertimComponent):
         self.size = size
 
     def __repr__(self):
-        opsk_info = super().get_openstack_definition()
-        con_info = super().get_concertim_definition()
-        return (f"ConcertimTemplate{{openstack_info:{repr(opsk_info)}, concertim_info:{repr(con_info)}, description:{repr(self.description)}, size:{repr(self.size)}, "
-                f"vcpus:{repr(self.vcpus)}, disk:{repr(self.disk)}, ram:{repr(self.ram)}}}")
+        return (f"<ConcertimTemplate:{{id:{repr(self.id)}, name:{repr(self.name)}, description:{repr(self.description)}, size:{repr(self.size)}, "
+                f"vcpus:{repr(self.vcpus)}, disk:{repr(self.disk)}, ram:{repr(self.ram)}}}>")
     
     def __eq__(self, other):
         if isinstance(other, ConcertimTemplate):
-            return (self.concertim_id == other.concertim_id 
-                and self.openstack_id == other.openstack_id)
+            return (self.id[0] == other.id[0] 
+                and self.id[1] == other.id[1])
         return NotImplemented
 
     def __ne__(self, other):

@@ -5,14 +5,12 @@ class ConcertimComponent(object):
         self.description = description
 
     def __repr__(self):
-        opsk_info = self.get_openstack_definition()
-        con_info = self.get_concertim_definition()
-        return f"ConcertimComponent{{openstack_info:{repr(opsk_info)}, concertim_info:{repr(con_info)}, description:{repr(self.description)}}}"
+        return f"<ConcertimComponent:{{id:{repr(self.id)}, name:{repr(self.name)}, description:{repr(self.description)}}}>"
 
     def __eq__(self, other):
         if isinstance(other, ConcertimComponent):
-            return (self.concertim_id == other.concertim_id 
-                and self.openstack_id == other.openstack_id)
+            return (self.id[0] == other.id[0] 
+                and self.id[1] == other.id[1])
         return NotImplemented
 
     def __ne__(self, other):

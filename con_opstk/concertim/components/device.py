@@ -8,21 +8,25 @@ class ConcertimDevice(ConcertimComponent):
         self.location = location
         self.status = status
         self.ips = []
+        self.private_ips = ''
+        self.public_ips = ''
         self.ssh_key = ''
-        self.volumes_attached = []
+        self.volume_details = {}
+        self.login_user = ''
 
     def __repr__(self):
-        opsk_info = super().get_openstack_definition()
-        con_info = super().get_concertim_definition()
-        return (f"ConcertimDevice{{openstack_info:{repr(opsk_info)}, concertim_info:{repr(con_info)}, description:{repr(self.description)}, status:{repr(self.status)}, "
-                f"rack_id:{repr(self.rack_id)}, template:{repr(self.template)}, location:{repr(self.location)}, IPs:{repr(self.ips)}, ssh_key:{repr(self.ssh_key)}, "
-                f"volumes_attached:{repr(self.volumes_attached)}}}")
+        return (f"<ConcertimDevice:{{id:{repr(self.id)}, name:{repr(self.name)}, description:{repr(self.description)}, status:{repr(self.status)}, "
+                f"rack_id:{repr(self.rack_id)}, template:{repr(self.template)}, location:{repr(self.location)}, ips:{repr(self.ips)}, private_ips:{repr(self.private_ips)}, "
+                f"public_ips:{repr(self.public_ips)}, ssh_key:{repr(self.ssh_key)}, login_user:{repr(self.login_user)}, volume_details:{repr(self.volume_details)}}}>")
 
     def __eq__(self, other):
         if isinstance(other, ConcertimDevice):
-            return (self.concertim_id == other.concertim_id 
-                and self.openstack_id == other.openstack_id 
-                and self.rack_id == other.rack_id)
+            return (self.id[0] == other.id[0] 
+                and self.id[1] == other.id[1]
+                and self.rack_id == other.rack_id
+                and self.ssh_key == other.ssh_key
+                and self.private_ips == other.private_ips
+                and self.public_ips == other.public_ips)
         return NotImplemented
 
     def __ne__(self, other):

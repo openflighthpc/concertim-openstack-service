@@ -9,19 +9,18 @@ class ConcertimRack(ConcertimComponent):
         self.status = status
         self._occupied = []
         self.output = []
+        self.network_details = {}
         self.metadata = {}
 
     def __repr__(self):
-        opsk_info = super().get_openstack_definition()
-        con_info = super().get_concertim_definition()
-        return (f"ConcertimRack{{openstack_info:{repr(opsk_info)}, concertim_info:{repr(con_info)}, description:{repr(self.description)}, status:{repr(self.status)}, "
+        return (f"<ConcertimRack:{{id:{repr(self.id)}, name:{repr(self.name)}, description:{repr(self.description)}, status:{repr(self.status)}, "
                 f"user_id:{repr(self.user_id)}, height:{repr(self.height)}, devices:{repr(self.devices)}, output:{repr(self.output)}, "
-                f"metadata:{repr(self.metadata)}, occupied:{repr(self._occupied)}}}")
+                f"network_details:{repr(self.network_details)}, metadata:{repr(self.metadata)}, _occupied:{repr(self._occupied)}}}>")
 
     def __eq__(self, other):
         if isinstance(other, ConcertimRack):
-            return (self.concertim_id == other.concertim_id 
-                and self.openstack_id == other.openstack_id 
+            return (self.id[0] == other.id[0] 
+                and self.id[1] == other.id[1]
                 and self.height == other.height)
         return NotImplemented
 
