@@ -11,7 +11,7 @@ import keystoneauth1.exceptions.http
 import novaclient.exceptions
 
 
-formatter = SensitiveFormatter('%(asctime)s - [%(levelname)s] (%(module)s:%(funcName)-40s) - %(message)s')
+formatter = SensitiveFormatter('[%(asctime)s] - %(levelname)-8s: %(module)-12s: %(funcName)-26s===>  %(message)s')
 log_file = app_paths.LOG_DIR + 'api_server.log'
 fh = logging.FileHandler(log_file)
 fh.setFormatter(formatter)
