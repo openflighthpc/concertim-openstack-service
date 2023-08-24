@@ -95,22 +95,25 @@ def run_bulk_updates(test=False):
     try:
         bulk_update_handler = BulkUpdateHandler(config, log_file)
         logger.info("BEGINNING COMMUNICATION")
-        ## FIRST RUN SETUP
-        bulk_update_handler.full_update_sync()
-        if not test:
-            time.sleep(300)
-            ## MAIN LOOP
-            while True:
-                try:
-                    bulk_update_handler.full_update_sync()
-                except Exception as e:
-                    logger.error(f"Unexpected exception has caused the bulk update loop to terminate : {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
-                    logger.warning(f"Continuing loop at next interval.")
-                    continue
-                finally:
-                    time.sleep(150) # Run full sync every 2.5 min
-        else:
-            stop(logger,bulk_update_handler)
+        ## MAIN LOOP
+        while True:
+            try:
+                bulk_update_handler.full_update_sync()
+                if test:
+                    break
+            except Exception as e:
+                logger.error(f"Unexpected exception has caused the bulk update loop to terminate : {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
+                logger.warning(f"Continuing loop at next interval.")
+                continue
+            finally:
+                # Run full sync every 2.5 min / check for resync every 15 seconds
+                if not test:
+                    for _ in range(1,11):
+                        time.sleep(15)
+                        bulk_update_handler._check_resync()
+                else:
+                    bulk_update_handler._check_resync()
+        stop(logger,bulk_update_handler)
     except Exception as e:
         msg = f"Could not run All-In-One Updates process - {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}"
         logger.error(msg)
@@ -148,6 +151,7 @@ def run_mq_updates(test=False):
         logger.error(msg)
         stop(logger,mq_update_handler)
 
+'''
 def run_updates_aio(test=False):
     # Common
     from con_opstk.data_handler.update_handler.mq_listener import MqUpdateHandler
@@ -168,9 +172,9 @@ def run_updates_aio(test=False):
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
 
-    '''
-    FULL UPDATES MAIN CODE BEGIN
-    '''
+
+    #FULL UPDATES MAIN CODE BEGIN
+
     logger.info("------- START -------")
     logger.info("CONNECTING SERVICES")
     try:
@@ -199,6 +203,7 @@ def run_updates_aio(test=False):
         msg = f"Could not run All-In-One Updates process - {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}"
         logger.error(msg)
         stop(logger,bulk_update_handler,mq_update_handler)
+'''
 
 def run_api_server():
     # Common
@@ -236,7 +241,7 @@ def main(args):
         'metrics': run_metrics,
         'updates_bulk': run_bulk_updates,
         'updates_mq': run_mq_updates,
-        'updates_aio': run_updates_aio,
+        #'updates_aio': run_updates_aio,
         'api': run_api_server
     }
     for arg in args:

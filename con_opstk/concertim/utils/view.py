@@ -4,6 +4,7 @@ class ConcertimOpenstackView(object):
         self.devices = {}
         self.users = {}
         self.templates = {}
+        self._needs_resync = False
 
     def __repr__(self):
         return f"<ConcertimOpenstackView:{{racks:{repr(self.racks)}, devices:{repr(self.devices)}, users:{repr(self.users)}, templates:{repr(self.templates)}}}>"

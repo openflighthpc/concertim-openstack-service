@@ -112,6 +112,8 @@ class MqUpdateHandler(UpdateHandler):
                 break
         if not device:
             self.__LOGGER.warning(f"No matching ConcertimDevice found in View for instannce: {instance_id} - Skipping update")
+            self.view._needs_resync = True
+            self.save_view()
             return
         # Get state to send concertim
         what_to_check = inst_state_desc if inst_state_desc else inst_state
@@ -132,6 +134,7 @@ class MqUpdateHandler(UpdateHandler):
                                             'description': device.description, \
                                             'status': con_state})
             self.view.devices[device.id].status = con_state
+            self.view._needs_resync = True
             self.save_view()
         except Exception as e:
             self.__LOGGER.error(f"Failed to update device - {type(e).__name__} - {e}")
@@ -156,6 +159,8 @@ class MqUpdateHandler(UpdateHandler):
                 break
         if not rack:
             self.__LOGGER.warning(f"No matching ConcertimRack found in View for stack: {stack_id} - Skipping update")
+            self.view._needs_resync = True
+            self.save_view()
             return
         # Get state to send concertim
         con_state_list = [c_state for c_state, os_state_list in UpdateHandler.CONCERTIM_STATE_MAP['RACK'].items() if stack_state in os_state_list]
@@ -175,6 +180,7 @@ class MqUpdateHandler(UpdateHandler):
                                             'description': rack.description, \
                                             'status': con_state})
             self.view.racks[rack.id].status = con_state
+            self.view._needs_resync = True
             self.save_view()
         except Exception as e:
             self.__LOGGER.error(f"Failed to update rack - {type(e).__name__} - {e}")
