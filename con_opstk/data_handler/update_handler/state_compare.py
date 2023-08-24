@@ -453,7 +453,7 @@ class BulkUpdateHandler(UpdateHandler):
                 os_ssh_key = os_instance.key_name
             if hasattr(os_instance, 'os-extended-volumes:volumes_attached') and os_instance._info['os-extended-volumes:volumes_attached']:
                 os_vols_att = os_instance._info['os-extended-volumes:volumes_attached']
-            new_device.login_user = '' ## TODO: ADD GETTING LOGIN USER
+            os_login_user = '' ## TODO: ADD GETTING LOGIN USER
             if not (os_ips or os_ssh_key or os_vols_att):
                 try:
                     self.concertim_service.update_device(device_id_tup[0], {'name':self.view.devices[device_id_tup].name[0], 
@@ -461,11 +461,13 @@ class BulkUpdateHandler(UpdateHandler):
                                                                             'public_ips' : os_public_ips, 
                                                                             'openstack_ips' : os_ips,
                                                                             'ssh_key': os_ssh_key,
+                                                                            'login_user': os_login_user,
                                                                             'volume_details': os_vols_att})
                     self.view.devices[device_id_tup].ips = os_ips
                     self.view.devices[device_id_tup].private_ips = os_private_ips
                     self.view.devices[device_id_tup].public_ips = os_public_ips
                     self.view.devices[device_id_tup].ssh_key = os_ssh_key
+                    self.view.devices[device_id_tup].login_user = os_login_user
                     self.view.devices[device_id_tup].volume_details = os_vols_att
                     self.__LOGGER.debug(f"Metadata Updated")
                 except Exception as e:
