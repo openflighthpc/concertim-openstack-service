@@ -18,6 +18,7 @@ class BulkUpdateHandler(UpdateHandler):
         super().__init__(config_obj, log_file, self.clients)
         self.__LOGGER = create_logger(__name__, self._LOG_FILE, self._CONFIG['log_level'])
         self.default_rack_height=self._CONFIG['concertim']['default_rack_height']
+        self.__needs_resync = False
 
     def full_update_sync(self):
         self.__LOGGER.info(f"Starting - Full Openstack Concertim Sync")
@@ -27,6 +28,10 @@ class BulkUpdateHandler(UpdateHandler):
         self.update_concertim()
         self.save_view()
         self.__LOGGER.info(f"Finished - Full Openstack Concertim Sync\n")
+        if self.__needs_resync:
+            self.__LOGGER.info(f"RESYNC SCHEDULED")
+            self.__needs_resync = False
+            self.full_update_sync()
 
     def update_concertim(self):
         self.__LOGGER.info(f"Starting - Updating Concertim with new Openstack data")
@@ -64,6 +69,7 @@ class BulkUpdateHandler(UpdateHandler):
                         del self.view.templates[stale_temp_id]
                     except Exception as e:
                         self.__LOGGER.warning(f"Unhandled Exception when deleting template {stale_temp_id[0]} - Skipping - {type(e).__name__} - {e}")
+                        self.__needs_resync = True
                         continue
             else:
                 self.__LOGGER.debug("--- No stale Templates found")
@@ -127,6 +133,7 @@ class BulkUpdateHandler(UpdateHandler):
                         del self.view.racks[stale_rack_id]
                     except Exception as e:
                         self.__LOGGER.warning(f"Unhandled Exception when deleting rack {stale_rack_id[0]} - Skipping - {type(e).__name__} - {e}")
+                        self.__needs_resync = True
                         continue
             else:
                 self.__LOGGER.debug("--- No stale Racks found")
@@ -179,6 +186,7 @@ class BulkUpdateHandler(UpdateHandler):
                         del self.view.devices[stale_device_id]
                     except Exception as e:
                         self.__LOGGER.warning(f"Unhandled Exception when deleting device {stale_device_id[0]} - Skipping - {type(e).__name__} - {e}")
+                        self.__needs_resync = True
                         continue
             else:
                 self.__LOGGER.debug("--- No stale Devices found")
@@ -217,9 +225,11 @@ class BulkUpdateHandler(UpdateHandler):
                 return True
             except ConcertimItemConflict as e:
                 self.__LOGGER.warning(f"The template {new_template.name[1]} already exists - Skipping - {type(e).__name__} - {e}")
+                self.__needs_resync = True
                 return False
             except Exception as e:
                 self.__LOGGER.error(f"Unhandled Exception when creating template {new_template.name[1]} - Skipping - {type(e).__name__} - {e}")
+                self.__needs_resync = True
                 return False
         except Exception as e:
             self.__LOGGER.error(f"Failed to create Template - {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
@@ -267,9 +277,11 @@ class BulkUpdateHandler(UpdateHandler):
                 return True
             except ConcertimItemConflict as e:
                 self.__LOGGER.warning(f"The rack {new_rack.name[0]} already exists - Skipping - {type(e).__name__} - {e}")
+                self.__needs_resync = True
                 return False
             except Exception as e:
                 self.__LOGGER.error(f"Unhandled Exception when creating rack {new_rack.name[0]} - Skipping - {type(e).__name__} - {e}")
+                self.__needs_resync = True
                 return False
         except Exception as e:
             self.__LOGGER.error(f"Failed to create Rack - {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
@@ -333,9 +345,11 @@ class BulkUpdateHandler(UpdateHandler):
                 self.view.racks[rack_id_tup].add_device(new_device.id[0], new_device.location)
             except ConcertimItemConflict as e:
                 self.__LOGGER.warning(f"The device {new_device.name[0]} already exists - Skipping - {type(e).__name__} - {e}")
+                self.__needs_resync = True
                 return False
             except Exception as e:
                 self.__LOGGER.error(f"Unhandled Exception when creating device {new_device.name[0]} - Skipping - {type(e).__name__} - {e}")
+                self.__needs_resync = True
                 return False
         except Exception as e:
             self.__LOGGER.error(f"Failed to create Device - {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
@@ -354,6 +368,7 @@ class BulkUpdateHandler(UpdateHandler):
                 self.__LOGGER.debug(f"Status updated to {con_state}")
             except Exception as e:
                 self.__LOGGER.error(f"Unhandled Exception when updating status for Rack {rack_id_tup[0]} - Skipping - {type(e).__name__} - {e}")
+                self.__needs_resync = True
                 return 
         except Exception as e:
             self.__LOGGER.error(f"Failed to update Rack status - {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
@@ -377,6 +392,7 @@ class BulkUpdateHandler(UpdateHandler):
                 self.__LOGGER.debug(f"Output Updated")
             except Exception as e:
                 self.__LOGGER.error(f"Unhandled Exception when output metadata for Rack {rack_id_tup[0]} - Skipping - {type(e).__name__} - {e}")
+                self.__needs_resync = True
                 return 
         except Exception as e:
             self.__LOGGER.error(f"Failed to update Rack output - {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
@@ -409,6 +425,7 @@ class BulkUpdateHandler(UpdateHandler):
                     self.__LOGGER.debug(f"Metadata Updated")
                 except Exception as e:
                     self.__LOGGER.error(f"Unhandled Exception when updating metadata for Rack {rack_id_tup[0]} - Skipping - {type(e).__name__} - {e}")
+                    self.__needs_resync = True
                     return 
             else:
                 self.__LOGGER.debug(f"Rack Metadata fields are empty - Skipping update")
@@ -430,6 +447,7 @@ class BulkUpdateHandler(UpdateHandler):
                 self.__LOGGER.debug(f"Status updated to {con_state}")
             except Exception as e:
                 self.__LOGGER.error(f"Unhandled Exception when updating status for Device {device_id_tup[0]} - Skipping - {type(e).__name__} - {e}")
+                self.__needs_resync = True
                 return 
         except Exception as e:
             self.__LOGGER.error(f"Failed to update Device status - {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
@@ -472,6 +490,7 @@ class BulkUpdateHandler(UpdateHandler):
                     self.__LOGGER.debug(f"Metadata Updated")
                 except Exception as e:
                     self.__LOGGER.error(f"Unhandled Exception when updating metadata for Device {device_id_tup[0]} - Skipping - {type(e).__name__} - {e}")
+                    self.__needs_resync = True
                     return 
             else:
                 self.__LOGGER.debug(f"Instance Metadata fields are empty - Skipping update")

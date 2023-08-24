@@ -108,7 +108,7 @@ def run_bulk_updates(test=False):
                     logger.warning(f"Continuing loop at next interval.")
                     continue
                 finally:
-                    time.sleep(300) # Run full sync every 5 min
+                    time.sleep(150) # Run full sync every 2.5 min
         else:
             stop(logger,bulk_update_handler)
     except Exception as e:
@@ -182,7 +182,7 @@ def run_updates_aio(test=False):
         mq_update_handler.load_view()
         mq_update_handler.start_listener()
         if not test:
-            time.sleep(300)
+            time.sleep(150)
             ## MAIN LOOP
             while True:
                 try:
@@ -192,7 +192,7 @@ def run_updates_aio(test=False):
                     logger.warning(f"Continuing loop at next interval.")
                     continue
                 finally:
-                    time.sleep(300) # Run full sync every 5 min
+                    time.sleep(150) # Run full sync every 2.5 min
         else:
             stop(logger,bulk_update_handler, mq_update_handler)
     except Exception as e:
