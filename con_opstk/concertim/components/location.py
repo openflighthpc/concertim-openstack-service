@@ -5,4 +5,4 @@ class Location(object):
         self.facing = facing
 
     def __repr__(self):
-        return f"location{{start_u:{repr(self.start_u)}, end_u:{repr(self.end_u)}, facing:{repr(self.facing)}}}"
+        return f"<Location:{{start_u:{repr(self.start_u)}, end_u:{repr(self.end_u)}, facing:{repr(self.facing)}}}>"

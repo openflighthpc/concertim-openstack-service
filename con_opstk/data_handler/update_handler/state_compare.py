@@ -20,13 +20,13 @@ class BulkUpdateHandler(UpdateHandler):
         self.default_rack_height=self._CONFIG['concertim']['default_rack_height']
 
     def full_update_sync(self):
-        self.__LOGGER.info(f"Starting - Full Openstack Concertim Sync")
+        self.__LOGGER.info(f"\nStarting - Full Openstack Concertim Sync")
         self.__LOGGER.debug(f"Pulling View data directly from Concertim")
         self.view = ConcertimOpenstackView()
         self.populate_view()
         self.update_concertim()
         self.save_view()
-        self.__LOGGER.info(f"Finished - Full Openstack Concertim Sync")
+        self.__LOGGER.info(f"Finished - Full Openstack Concertim Sync\n")
 
     def update_concertim(self):
         self.__LOGGER.info(f"Starting - Updating Concertim with new Openstack data")
@@ -53,11 +53,11 @@ class BulkUpdateHandler(UpdateHandler):
                 self.create_template_in_concertim(openstack_flavors[flavor_key])
             # End new template creation
 
-            self.__LOGGER.debug(f"Checking for stale Templates that are mapped to a non-existing Flavor in Openstack")
+            self.__LOGGER.debug(f"--- Checking for stale Templates that are mapped to a non-existing Flavor in Openstack")
             stale_templates_ids = [id_tup for id_tup, con_temp in self.view.templates.items() if id_tup[1] not in in_openstack]
             # Start stale template deletion
             if stale_templates_ids:
-                self.__LOGGER.warning(f"Stale templates found - IDs:{stale_templates_ids} - Deleting from Concertim")
+                self.__LOGGER.warning(f"--- Stale templates found - IDs:{stale_templates_ids} - Deleting from Concertim")
                 for stale_temp_id in stale_templates_ids:
                     try:
                         self.concertim_service.delete_template(stale_temp_id[0])
@@ -66,7 +66,7 @@ class BulkUpdateHandler(UpdateHandler):
                         self.__LOGGER.warning(f"Unhandled Exception when deleting template {stale_temp_id[0]} - Skipping - {type(e).__name__} - {e}")
                         continue
             else:
-                self.__LOGGER.debug("No stale Templates found")
+                self.__LOGGER.debug("--- No stale Templates found")
             # End stale template deletion
             self.__LOGGER.debug(f"Finished - Updating templates in Concertim based on Flavors in Openstack")
         except Exception as e:
@@ -84,33 +84,40 @@ class BulkUpdateHandler(UpdateHandler):
                 openstack_stacks = self.openstack_service.list_stacks(project_id=self.view.users[user_id_tup].openstack_project_id)
                 for heat_stack_obj in openstack_stacks:
                     in_openstack.append(heat_stack_obj.id)
-                    matching_racks = [id_tup for id_tup, con_rack in self.view.racks.items() if id_tup[1] == heat_stack_obj.id]
+                    matching_racks = [con_rack for id_tup, con_rack in self.view.racks.items() if id_tup[1] == heat_stack_obj.id]
                     if matching_racks:
                         self.__LOGGER.debug(f"Matching Rack found")
+                        temp_rack = matching_racks[0]
+                        if not temp_rack.name[1]:
+                            self.view.racks[temp_rack.id].name = (temp_rack.name[0], heat_stack_obj.stack_name)
                         # Existing device found, check if it needs to update
-                        if heat_stack_obj.stack_status not in UpdateHandler.CONCERTIM_STATE_MAP['RACK'][self.view.racks[matching_racks[0]].status]:
+                        if heat_stack_obj.stack_status not in UpdateHandler.CONCERTIM_STATE_MAP['RACK'][temp_rack.status]:
                             self.__LOGGER.debug(f"Matching Rack needs updated status - Updating")
-                            self.update_rack_status(heat_stack_obj, matching_racks[0])
+                            self.update_rack_status(heat_stack_obj, temp_rack.id)
                         # Check rack output
-                        if self.__empty_output_data(self.view.racks[matching_racks[0]]):
+                        if self.__empty_output_data(temp_rack):
                             self.__LOGGER.debug(f"Matching Rack has empty output values in ConcertimRack - Attempting to update")
-                            self.update_rack_output(heat_stack_obj, matching_racks[0])
+                            self.update_rack_output(heat_stack_obj, temp_rack.id)
+                        # Check rack network details
+                        #if not temp_rack.network_details:
+                        #    self.__LOGGER.debug(f"Matching Rack has empty network data in ConcertimRack - Attempting to update")
+                        #    self.update_rack_network(heat_stack_obj, temp_rack.id)
                         # Check rack metadata
-                        for m_key, m_val in self.view.racks[matching_racks[0]].metadata.items():
+                        for m_key, m_val in self.view.racks[temp_rack.id].metadata.items():
                             if not m_val and m_key:
                                 self.__LOGGER.debug(f"Matching Rack has empty metadata in ConcertimRack - Attempting to update")
-                                self.update_rack_metadata(heat_stack_obj, matching_racks[0])
+                                self.update_rack_metadata(heat_stack_obj, temp_rack.id)
                                 break
                         continue
                     self.__LOGGER.debug(f"No Rack found for Openstack Stack[ID:{heat_stack_obj.id},Name:{heat_stack_obj.stack_name}] - Creating in Concertim")
                     self.create_rack_in_concertim(heat_stack_obj, user_id_tup)
             # End new rack creation
 
-            self.__LOGGER.debug(f"Checking for stale Racks that are mapped to a non-existing Stacks in Openstack")
+            self.__LOGGER.debug(f"--- Checking for stale Racks that are mapped to a non-existing Stacks in Openstack")
             stale_racks_ids = [id_tup for id_tup, con_rack in self.view.racks.items() if id_tup[1] not in in_openstack]
             # Start stale rack deletion
             if stale_racks_ids:
-                self.__LOGGER.warning(f"Stale racks found - IDs:{stale_racks_ids} - Deleting from Concertim")
+                self.__LOGGER.warning(f"--- Stale racks found - IDs:{stale_racks_ids} - Deleting from Concertim")
                 for stale_rack_id in stale_racks_ids:
                     try:
                         self.concertim_service.delete_rack(stale_rack_id[0], recurse=True)
@@ -122,7 +129,7 @@ class BulkUpdateHandler(UpdateHandler):
                         self.__LOGGER.warning(f"Unhandled Exception when deleting rack {stale_rack_id[0]} - Skipping - {type(e).__name__} - {e}")
                         continue
             else:
-                self.__LOGGER.debug("No stale Racks found")
+                self.__LOGGER.debug("--- No stale Racks found")
             # End stale rack deletion
             self.__LOGGER.debug(f"Finished - Updating racks in Concertim based on stacks in Openstack")
         except Exception as e:
@@ -141,25 +148,28 @@ class BulkUpdateHandler(UpdateHandler):
                 # Instance device creation
                 for nova_server in nova_servers_list:
                     in_openstack.append(nova_server.id)
-                    matching_devices = [id_tup for id_tup, con_dev in self.view.devices.items() if id_tup[1] == nova_server.id]
+                    matching_devices = [con_dev for id_tup, con_dev in self.view.devices.items() if id_tup[1] == nova_server.id]
                     if matching_devices:
+                        temp_device = matching_devices[0]
+                        if not temp_device.name[1]:
+                            self.view.devices[temp_device.id].name = (temp_device.name[0], nova_server.name)
                         # Existing device found, check if it needs to update
-                        if nova_server._info['OS-EXT-STS:vm_state'] not in UpdateHandler.CONCERTIM_STATE_MAP['DEVICE'][self.view.devices[matching_devices[0]].status]:
+                        if nova_server._info['OS-EXT-STS:vm_state'] not in UpdateHandler.CONCERTIM_STATE_MAP['DEVICE'][temp_device.status]:
                             self.__LOGGER.debug(f"Matching Device found - Needs updated status - Updating")
-                            self.update_device_status(nova_server, matching_devices[0])
-                        if not (self.view.devices[matching_devices[0]].ips and self.view.devices[matching_devices[0]].ssh_key and self.view.devices[matching_devices[0]].volumes_attached):
+                            self.update_device_status(nova_server, temp_device.id)
+                        if not (temp_device.ips and temp_device.ssh_key and temp_device.volume_details):
                             self.__LOGGER.debug(f"Matching Device found - Empty metadata in ConcertimDevice - Attempting to update")
-                            self.update_device_metadata(nova_server, matching_devices[0])
+                            self.update_device_metadata(nova_server, temp_device.id)
                         continue
                     self.__LOGGER.debug(f"No Device found for Openstack Server[ID:{nova_server.id},Name:{nova_server.name}] - Creating in Concertim")
                     self.create_device_in_concertim(nova_server, rack_id_tup)
             # End new device creation
 
-            self.__LOGGER.debug(f"Checking for stale Devices that are mapped to a non-existing Instances in Openstack")
+            self.__LOGGER.debug(f"--- Checking for stale Devices that are mapped to a non-existing Instances in Openstack")
             stale_device_ids = [id_tup for id_tup, con_device in self.view.devices.items() if id_tup[1] not in in_openstack]
             # Start stale device deletion
             if stale_device_ids:
-                self.__LOGGER.warning(f"Stale devices found - IDs:{stale_device_ids} - Deleting from Concertim")
+                self.__LOGGER.warning(f"--- Stale devices found - IDs:{stale_device_ids} - Deleting from Concertim")
                 for stale_device_id in stale_device_ids:
                     try:
                         self.concertim_service.delete_device(stale_device_id[0])
@@ -171,7 +181,7 @@ class BulkUpdateHandler(UpdateHandler):
                         self.__LOGGER.warning(f"Unhandled Exception when deleting device {stale_device_id[0]} - Skipping - {type(e).__name__} - {e}")
                         continue
             else:
-                self.__LOGGER.debug("No stale Devices found")
+                self.__LOGGER.debug("--- No stale Devices found")
             # End stale device deletion
             self.__LOGGER.debug(f"Finished - Updating Devices in Concertim based on Instances in Openstack")
         except Exception as e:
@@ -228,6 +238,8 @@ class BulkUpdateHandler(UpdateHandler):
                                     user_id=user_id_tup[0], height=self.default_rack_height, 
                                     description='Heat Stack in Openstack', status=con_state)
             new_rack.output = self.openstack_service.get_stack_output(os_stack.id)
+            new_rack._creation_output = self._get_output_as_string(new_rack.output)
+            new_rack.network_details = {} ## TODO: ADD GETTING NETWORK DETAILS FOR STACK
             # ADD EXISTING METADATA
             if hasattr(os_stack, 'stack_status_reason') and os_stack.stack_status_reason:
                 new_rack.add_metadata(openstack_stack_status_reason=os_stack.stack_status_reason)
@@ -242,6 +254,8 @@ class BulkUpdateHandler(UpdateHandler):
                                                                 'u_height': new_rack.height,
                                                                 'openstack_stack_id' : new_rack.id[1],
                                                                 'status' : new_rack.status,
+                                                                'network_details' : new_rack.network_details,
+                                                                'creation_output' : new_rack._creation_output,
                                                                 'openstack_stack_output': new_rack.output,
                                                                 'openstack_stack_status_reason':os_stack.stack_status_reason,
                                                                 'openstack_stack_owner':os_stack.stack_owner,
@@ -280,16 +294,22 @@ class BulkUpdateHandler(UpdateHandler):
                                         rack_id=rack_id_tup[0], template=template_for_inst, 
                                         location=loc_for_inst, description='Nova Server in Openstack', status=con_state)
             # ADD EXISTING METADATA
-            if hasattr(os_instance, 'accessIPv4') and os_instance.accessIPv4:
-                new_device.ips.append(os_instance.accessIPv4)
-            if hasattr(os_instance, 'accessIPv6') and os_instance.accessIPv6:
-                new_device.ips.append(os_instance.accessIPv6)
+            #if hasattr(os_instance, 'accessIPv4') and os_instance.accessIPv4:
+            #    new_device.ips.append(os_instance.accessIPv4)
+            #if hasattr(os_instance, 'accessIPv6') and os_instance.accessIPv6:
+            #    new_device.ips.append(os_instance.accessIPv6)
             if hasattr(os_instance, 'addresses') and os_instance.addresses:
-                new_device.ips.append(os_instance.addresses)
+                new_device.ips = os_instance.addresses
+                ips_as_dict = self._get_ips_as_dict(os_instance.addresses)
+                if 'public_ips' in ips_as_dict:
+                    new_device.public_ips = ips_as_dict['public_ips']
+                if 'private_ips' in ips_as_dict:
+                    new_device.private_ips = ips_as_dict['private_ips']
             if hasattr(os_instance, 'key_name') and os_instance.key_name:
                 new_device.ssh_key = os_instance.key_name
             if hasattr(os_instance, 'os-extended-volumes:volumes_attached') and os_instance._info['os-extended-volumes:volumes_attached']:
-                new_device.volumes_attached = os_instance._info['os-extended-volumes:volumes_attached']
+                new_device.volume_details = os_instance._info['os-extended-volumes:volumes_attached']
+            new_device.login_user = '' ## TODO: ADD GETTING LOGIN USER
             # CREATE DEVICE IN CONCERTIM
             concertim_response_device = None
             try:
@@ -300,10 +320,13 @@ class BulkUpdateHandler(UpdateHandler):
                                                                     'rack_id': new_device.rack_id, 
                                                                     'start_u': new_device.location.start_u, 
                                                                     'openstack_instance_id' : new_device.id[1],
-                                                                    'status' : con_state, 
+                                                                    'status' : con_state,
+                                                                    'login_user' : new_device.login_user, 
+                                                                    'private_ips' : new_device.private_ips, 
+                                                                    'public_ips' : new_device.public_ips, 
                                                                     'openstack_ips' : new_device.ips,
-                                                                    'openstack_ssh_key': new_device.ssh_key,
-                                                                    'volumes_attached': new_device.volumes_attached})
+                                                                    'ssh_key': new_device.ssh_key,
+                                                                    'volume_details': new_device.volume_details})
                 new_device.id = (concertim_response_device['id'], new_device.id[1])
                 self.__LOGGER.debug(f"Successfully created new Device: {new_device}")
                 self.view.add_device(new_device)
@@ -344,10 +367,13 @@ class BulkUpdateHandler(UpdateHandler):
                                 'openstack_stack_id': os_stack.id, 
                                 **curr_md}
             new_output = self.openstack_service.get_stack_output(os_stack.id)
+            new_creation_output = self._get_output_as_string(new_output)
             vars_dict_to_send['openstack_stack_output'] = new_output
+            vars_dict_to_send['creation_output'] = new_creation_output
             try:
                 self.concertim_service.update_rack(rack_id_tup[0], vars_dict_to_send)
                 self.view.racks[rack_id_tup].output = new_output
+                self.view.racks[rack_id_tup]._creation_output = new_creation_output
                 self.__LOGGER.debug(f"Output Updated")
             except Exception as e:
                 self.__LOGGER.error(f"Unhandled Exception when output metadata for Rack {rack_id_tup[0]} - Skipping - {type(e).__name__} - {e}")
@@ -412,26 +438,35 @@ class BulkUpdateHandler(UpdateHandler):
     def update_device_metadata(self, os_instance, device_id_tup):
         try:
             os_ips = []
+            os_private_ips = ''
+            os_public_ips = ''
             os_ssh_key = ''
-            os_vols_att = []
-            if hasattr(os_instance, 'accessIPv4') and os_instance.accessIPv4:
-                os_ips.append(os_instance.accessIPv4)
-            if hasattr(os_instance, 'accessIPv6') and os_instance.accessIPv6:
-                os_ips.append(os_instance.accessIPv6)
+            os_vols_att = {}
+            if hasattr(os_instance, 'addresses') and os_instance.addresses:
+                os_ips = (os_instance.addresses)
+                ips_as_dict = self._get_ips_as_dict(os_instance.addresses)
+                if 'public_ips' in ips_as_dict:
+                    os_public_ips = ips_as_dict['public_ips']
+                if 'private_ips' in ips_as_dict:
+                    os_private_ips = ips_as_dict['private_ips']
             if hasattr(os_instance, 'key_name') and os_instance.key_name:
                 os_ssh_key = os_instance.key_name
             if hasattr(os_instance, 'os-extended-volumes:volumes_attached') and os_instance._info['os-extended-volumes:volumes_attached']:
                 os_vols_att = os_instance._info['os-extended-volumes:volumes_attached']
+            new_device.login_user = '' ## TODO: ADD GETTING LOGIN USER
             if not (os_ips or os_ssh_key or os_vols_att):
                 try:
                     self.concertim_service.update_device(device_id_tup[0], {'name':self.view.devices[device_id_tup].name[0], 
-                                                                            'openstack_ips': os_ips,
-                                                                            'openstack_ssh_key': os_ssh_key,
-                                                                            'volumes_attached': os_vols_att,
-                                                                            'openstack_instance_id': os_instance.id})
+                                                                            'private_ips' : os_private_ips, 
+                                                                            'public_ips' : os_public_ips, 
+                                                                            'openstack_ips' : os_ips,
+                                                                            'ssh_key': os_ssh_key,
+                                                                            'volume_details': os_vols_att})
                     self.view.devices[device_id_tup].ips = os_ips
+                    self.view.devices[device_id_tup].private_ips = os_private_ips
+                    self.view.devices[device_id_tup].public_ips = os_public_ips
                     self.view.devices[device_id_tup].ssh_key = os_ssh_key
-                    self.view.devices[device_id_tup].volumes_attached = os_vols_att
+                    self.view.devices[device_id_tup].volume_details = os_vols_att
                     self.__LOGGER.debug(f"Metadata Updated")
                 except Exception as e:
                     self.__LOGGER.error(f"Unhandled Exception when updating metadata for Device {device_id_tup[0]} - Skipping - {type(e).__name__} - {e}")

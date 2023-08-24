@@ -75,3 +75,4 @@ class BaseHandler(object):
             self.concertim_service.disconnect()
         self.openstack_service = None
         self.concertim_service = None
+        self.__LOGGER.info("Disconnect complete\n")

@@ -56,9 +56,9 @@ class MqUpdateHandler(UpdateHandler):
 
     def start_listener(self):
         try:
-            self.__LOGGER.info(f"Starting RabbitMQ Channel Consumer")
+            self.__LOGGER.info(f"\nStarting RabbitMQ Channel Consumer")
             self.channel.start_consuming()
-            self.__LOGGER.info(f"Stopped RabbitMQ Channel Consumer")
+            self.__LOGGER.info(f"Stopped RabbitMQ Channel Consumer\n")
             return False
         except Exception as e:
             self.__LOGGER.error(f"Cound not start listener - {type(e).__name__} - {e}")
@@ -85,7 +85,7 @@ class MqUpdateHandler(UpdateHandler):
                 function = function_list[0]
                 self.__LOGGER.debug(f"Loading latest View data")
                 self.load_view()
-                self.__LOGGER.info(f"Sending message to function:'{function}'")
+                self.__LOGGER.info(f"Sending message to function:'{function.__name__}'")
                 function(message)
             else:
                 self.__LOGGER.info(f"Message event type '{message['event_type']}' not found in supported event types - Ignoring")
@@ -101,6 +101,9 @@ class MqUpdateHandler(UpdateHandler):
         inst_state = payload['state']
         inst_state_desc = payload['state_description']
         device = None
+        if msg['event_type'].split('.')[-1] not in ['start', 'end', 'update']:
+            self.__LOGGER.info(f"Event '{msg['event_type']}' is not a ['start', 'end', 'update'] event - skipping")
+            return
         # Look for matching instance/device in self.view
         for id_tup in self.view.devices:
             if id_tup[1] == instance_id:
@@ -142,6 +145,9 @@ class MqUpdateHandler(UpdateHandler):
         stack_id = payload['stack_identity']
         stack_state = payload['state']
         rack = None
+        if msg['event_type'].split('.')[-1] not in ['start', 'end', 'update']:
+            self.__LOGGER.info(f"Event '{msg['event_type']}' is not a ['start', 'end', 'update'] event - skipping")
+            return
         # Look for matching stack/rack in self.view
         for id_tup in self.view.racks:
             if id_tup[1] == stack_id:

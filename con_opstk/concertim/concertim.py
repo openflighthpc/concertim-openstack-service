@@ -18,6 +18,7 @@ class ConcertimService(object):
         self.__LOGGER = create_logger(__name__, self._LOG_FILE, self._CONFIG['log_level'])
         self._URL = self._CONFIG['concertim']['concertim_url']
         self.__AUTH_TOKEN = self.__get_auth_token()
+        self.__retry_count = 0
     
     def __get_auth_token(self):
         login = self._CONFIG['concertim']['concertim_username']
@@ -168,11 +169,20 @@ class ConcertimService(object):
             # Send the token if it is the login endpoint, else return the response.json
             if endpoint_name == 'LOGIN_AUTH':
                 return response.headers.get("Authorization")
+            self.__retry_count = 0
             return response.json()
         elif response.status_code == 422:
             e = ConcertimItemConflict(f"The item you are trying to add already exists - {response.json()}")
             self.__LOGGER.warning(f"{type(e).__name__} - {e}")
             raise e
+        elif response.status_code in [401,403,405,407,408]:
+            if self.__retry_count == 0:
+                self.__LOGGER.warning(f"API call failed due to one of the following codes '[401,403,405,407,408]' - retrying once - {type(e).__name__} - {e}")
+                self.__retry(method, endpoint_name, variables_dict=variables_dict, endpoint_var=endpoint_var)
+            else:
+                self.__LOGGER.error('Unhandled REST request error.')
+                self.__retry_count = 0
+                response.raise_for_status()
         else:
             self.__LOGGER.error('Unhandled REST request error.')
             response.raise_for_status()
@@ -209,6 +219,13 @@ class ConcertimService(object):
             self.__LOGGER.error(f"{type(e).__name__} - {e}")
             raise e
         return True
+
+    def __retry(self, *args, **kwargs):
+        self.__LOGGER.debug(f"Retrying API call after re-authenticating")
+        self.__retry_count += 1
+        self.__AUTH_TOKEN = self.__get_auth_token()
+        self.__LOGGER.debug(f"Retry count : {self.__retry_count}")
+        self._api_call(*args, **kwargs)
 
     def disconnect(self):
         self.__LOGGER.info("Disconnecting Concertim Services")

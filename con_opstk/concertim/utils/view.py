@@ -6,7 +6,7 @@ class ConcertimOpenstackView(object):
         self.templates = {}
 
     def __repr__(self):
-        return f"ConcertimOpenstackView{{racks:{repr(self.racks)}, devices:{repr(self.devices)}, users:{repr(self.users)}, templates:{repr(self.templates)}}}"
+        return f"<ConcertimOpenstackView:{{racks:{repr(self.racks)}, devices:{repr(self.devices)}, users:{repr(self.users)}, templates:{repr(self.templates)}}}>"
 
     def add_device(self, device):
         self.devices[device.id] = device

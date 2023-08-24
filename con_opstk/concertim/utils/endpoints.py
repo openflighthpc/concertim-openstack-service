@@ -23,13 +23,15 @@ ENDPOINTS = {
                                         "rack_id": '{rack_id}',
                                         "start_u": '{start_u}'
                                     },
+                                    "public_ips": '{public_ips}',
+                                    "private_ips": '{private_ips}',
+                                    "ssh_key": '{ssh_key}',
+                                    "volume_details": '{volume_details}',
+                                    "login_user": '{login_user}',
                                     "metadata" : {
-                                        "ips": "{openstack_ips}",
-                                        "ssh_key": "{openstack_ssh_key}",
-                                        "volumes": "{volumes_attached}",
+                                        "net_interfaces": "{openstack_ips}",
                                         "openstack_instance_id" : "{openstack_instance_id}"
                                     }
-
                                 }}
                     },
                     'CREATE_RACK':{
@@ -40,12 +42,14 @@ ENDPOINTS = {
                                     "name": '{name}',
                                     "u_height": '{u_height}',
                                     "status" : "{status}",
+                                    "network_details": '{network_details}',
+                                    "creation_output": '{creation_output}',
                                     "metadata" : {
-                                        "output": "{openstack_stack_output}",
                                         "openstack_stack_id" : "{openstack_stack_id}",
                                         "openstack_stack_owner" : "{openstack_stack_owner}",
                                         "openstack_stack_owner_id" : "{openstack_stack_owner_id}",
-                                        "stack_status_reason": "{openstack_stack_status_reason}"
+                                        "stack_status_reason": "{openstack_stack_status_reason}",
+                                        'openstack_stack_output': '{openstack_stack_output}'
                                     }
                                 }}
                     },
@@ -136,10 +140,13 @@ ENDPOINTS = {
                                     "description": '{description}',
                                     "cost": '{cost}',
                                     "status" : '{status}',
-                                    "metadata": {
-                                        "ips": "{openstack_ips}",
-                                        "ssh_key": "{openstack_ssh_key}",
-                                        "volumes": "{volumes_attached}",
+                                    "public_ips": '{public_ips}',
+                                    "private_ips": '{private_ips}',
+                                    "ssh_key": '{ssh_key}',
+                                    "volume_details": '{volume_details}',
+                                    "login_user": '{login_user}',
+                                    "metadata" : {
+                                        "net_interfaces": "{openstack_ips}",
                                         'openstack_instance_id': '{openstack_instance_id}'
                                     }
                                 }}
@@ -152,10 +159,14 @@ ENDPOINTS = {
                                     "u_height": '{u_height}',
                                     "cost": '{cost}',
                                     "status" : '{status}',
-                                    "metadata": {
-                                        "output": "{openstack_stack_output}",
+                                    "network_details": '{network_details}',
+                                    "creation_output": '{openstack_stack_output}',
+                                    "metadata" : {
                                         "openstack_stack_id" : "{openstack_stack_id}",
-                                        "openstack_stack_info" : "{openstack_stack_info}"
+                                        "openstack_stack_owner" : "{openstack_stack_owner}",
+                                        "openstack_stack_owner_id" : "{openstack_stack_owner_id}",
+                                        "stack_status_reason": "{openstack_stack_status_reason}",
+                                        'openstack_stack_output': '{openstack_stack_output}'
                                     }
                                 }}
                     },

@@ -42,13 +42,13 @@ class UpdateHandler(BaseHandler):
 
     # Controller method for populating self.view with data from concertim app
     def populate_view(self):
-        self.__LOGGER.info(f"Starting - Populating Concertim View")
+        self.__LOGGER.info(f"\nStarting - Populating Concertim View")
         self.fetch_concertim_users()
         self.fetch_concertim_templates()
         self.fetch_concertim_racks()
         self.fetch_concertim_devices()
         self.map_view_components()
-        self.__LOGGER.info(f"Finished - Populating Concertim View")
+        self.__LOGGER.info(f"Finished - Populating Concertim View\n")
 
     # Map related View component objects
     def map_view_components(self):
@@ -74,7 +74,7 @@ class UpdateHandler(BaseHandler):
                                         concertim_name=user['login'], 
                                         openstack_name=f"CM_{user['login']}", 
                                         full_name=user['fullname'], 
-                                        email=None,
+                                        email=user['email'],
                                         openstack_project_id=user['project_id'],
                                         description='')
                 self.view.add_user(new_user)
@@ -128,7 +128,7 @@ class UpdateHandler(BaseHandler):
                 new_rack = ConcertimRack(concertim_id=rack['id'], 
                                         openstack_id=opsk_stack_id, 
                                         concertim_name=rack['name'], 
-                                        openstack_name=rack['name'], 
+                                        openstack_name=None, 
                                         user_id=rack['owner']['id'], 
                                         height=rack['u_height'], 
                                         description='Stack in Openstack',
@@ -136,6 +136,10 @@ class UpdateHandler(BaseHandler):
                 for k,v in rack['metadata'].items():
                     if k != 'openstack_stack_id':
                         new_rack.metadata[k] = v
+                if 'network_details' in rack and rack['network_details']:
+                    new_rack.network_details = rack['network_details']
+                if 'creation_output' in rack and rack['creation_output']:
+                    new_rack._creation_output = rack['creation_output']
                 self.view.add_rack(new_rack)
                 self.__LOGGER.debug(f"New ConcertimRack created in View : {new_rack}")                
             self.__LOGGER.debug(f"Finished - Fetching Concertim Racks")
@@ -155,25 +159,27 @@ class UpdateHandler(BaseHandler):
                 if device['id'] in [id_tup[0] for id_tup in self.view.devices]:
                     continue
                 self.__LOGGER.debug(f"Device '{device['id']}' not found in View - creating new ConcertimDevice")
-                device_info = self.concertim_service.show_device(ID=device['id'])
-                opsk_instance_id = device_info['metadata']['openstack_instance_id'] if 'openstack_instance_id' in device_info['metadata'] else ''
-                device_location = Location(device_info['location']['start_u'], device_info['location']['end_u'], device_info['location']['facing'])
+                opsk_instance_id = device['metadata']['openstack_instance_id'] if 'openstack_instance_id' in device['metadata'] else ''
+                device_location = Location(device['location']['start_u'], device['location']['end_u'], device['location']['facing'])
                 device_template = None
                 for template_id_tup in self.view.templates:
-                    if device_info['template']['id'] == template_id_tup[0]:
+                    if device['template_id'] == template_id_tup[0]:
                         device_template = self.view.templates[template_id_tup]
-                new_device = ConcertimDevice(concertim_id=device_info['id'], 
+                new_device = ConcertimDevice(concertim_id=device['id'], 
                                         openstack_id=opsk_instance_id, 
-                                        concertim_name=device_info['name'], 
-                                        openstack_name=device_info['name'], 
-                                        rack_id=device_info['location']['rack_id'], 
+                                        concertim_name=device['name'], 
+                                        openstack_name=None, 
+                                        rack_id=device['location']['rack_id'], 
                                         template=device_template, 
                                         location=device_location, 
-                                        description=device_info['description'], 
-                                        status=device_info['status'])
-                new_device.ips = device_info['metadata']['ips'] if 'ips' in device_info['metadata'] else []
-                new_device.ssh_key = device_info['metadata']['ssh_key'] if 'ssh_key' in device_info['metadata'] else ''
-                new_device.volumes_attached = device_info['metadata']['volumes'] if 'volumes' in device_info['metadata'] else []
+                                        description=device['description'], 
+                                        status=device['status'])
+                new_device.ips = device['metadata']['net_interfaces'] if 'net_interfaces' in device['metadata'] and device['metadata']['net_interfaces'] else []
+                new_device.ssh_key = device['ssh_key'] if 'ssh_key' in device and device['ssh_key'] else ''
+                new_device.volume_details = device['volume_details'] if 'volume_details' in device and device['volume_details'] else {}
+                new_device.public_ips = device['public_ips'] if 'public_ips' in device and device['public_ips'] else ''
+                new_device.private_ips = device['private_ips'] if 'private_ips' in device and device['private_ips'] else ''
+                new_device.login_user = device['login_user'] if 'login_user' in device and device['login_user'] else ''
                 self.view.add_device(new_device)
                 self.__LOGGER.debug(f"New ConcertimDevice created in View : {new_device}")  
             self.__LOGGER.debug(f"Finished - Fetching Concertim Devices")
@@ -314,6 +320,12 @@ class UpdateHandler(BaseHandler):
         except Exception as e:
             self.__LOGGER.error(f"Could not load View from '{UpdateHandler.VIEW_PICKLE_FILE}' - {type(e).__name__} - {e} - {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
             raise e
+
+    def _get_ips_as_dict(self, addresses):
+        return {}
+    
+    def _get_output_as_string(self, output_list):
+        return ''
 
     def disconnect(self):
         self.__LOGGER.info(f"Destroying Updater data - {UpdateHandler.__DATA}")
