@@ -9,7 +9,7 @@ def create_logger(name, log_file, level):
     levels = {'DEBUG': logging.DEBUG, 'INFO': logging.INFO, 'WARNING': logging.WARNING, 'ERROR': logging.ERROR, 'CRITICAL': logging.CRITICAL}
     lvl = (levels[level.upper()])
     logger.setLevel(lvl)
-    formatter = SensitiveFormatter('%(asctime)s - [%(levelname)s] (%(module)s:%(funcName)-40s) - %(message)s')
+    formatter = SensitiveFormatter('%(asctime)s - [%(levelname)s] - %(module)s::%(funcName)-30s %(message)s')
     dir_name = os.path.dirname(log_file)
     try:
         # Create directories if they don't exist
@@ -48,5 +48,6 @@ class SensitiveFormatter(logging.Formatter):
         return s
 
     def format(self, record):
-        filtered = self._filter(record)
+        filtered = record
+        filtered.message = self._filter(record.getMessage())
         return logging.Formatter.format(self, filtered)
