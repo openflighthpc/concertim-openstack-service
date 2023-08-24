@@ -20,7 +20,7 @@ class BulkUpdateHandler(UpdateHandler):
         self.default_rack_height=self._CONFIG['concertim']['default_rack_height']
 
     def full_update_sync(self):
-        self.__LOGGER.info(f"\nStarting - Full Openstack Concertim Sync")
+        self.__LOGGER.info(f"Starting - Full Openstack Concertim Sync")
         self.__LOGGER.debug(f"Pulling View data directly from Concertim")
         self.view = ConcertimOpenstackView()
         self.populate_view()

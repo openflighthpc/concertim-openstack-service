@@ -56,7 +56,7 @@ class MqUpdateHandler(UpdateHandler):
 
     def start_listener(self):
         try:
-            self.__LOGGER.info(f"\nStarting RabbitMQ Channel Consumer")
+            self.__LOGGER.info(f"Starting RabbitMQ Channel Consumer")
             self.channel.start_consuming()
             self.__LOGGER.info(f"Stopped RabbitMQ Channel Consumer\n")
             return False

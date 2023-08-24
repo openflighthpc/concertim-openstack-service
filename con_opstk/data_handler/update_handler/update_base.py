@@ -42,7 +42,7 @@ class UpdateHandler(BaseHandler):
 
     # Controller method for populating self.view with data from concertim app
     def populate_view(self):
-        self.__LOGGER.info(f"\nStarting - Populating Concertim View")
+        self.__LOGGER.info(f"Starting - Populating Concertim View")
         self.fetch_concertim_users()
         self.fetch_concertim_templates()
         self.fetch_concertim_racks()

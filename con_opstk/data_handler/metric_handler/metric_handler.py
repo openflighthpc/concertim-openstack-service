@@ -18,7 +18,7 @@ class MetricHandler(BaseHandler):
         self.granularity = granularity if granularity else MetricHandler.DEFAULT_GRANULARITY
 
     def run(self):
-        self.__LOGGER.info("\nMETRICS - BEGIN SENDING METRICS")
+        self.__LOGGER.info("METRICS - BEGIN SENDING METRICS")
         try:
             self.__LOGGER.debug(f"Getting concertim:watcher project_ids list")
             concertim_projects_list = self.openstack_service.get_concertim_projects()

@@ -42,8 +42,8 @@ def create_logger(name, log_file, level):
 class SensitiveFormatter(logging.Formatter):
 
     def format(self, record):
-        filtered = logging.Formatter.format(self, record)
-        if 'password' in filtered.message:
-            filtered.msg = "<< Message contains a 'password' string redacting >>"
-            filtered.message = "<< Message contains a 'password' string redacting >>"
-        return filtered
+        original = logging.Formatter.format(self, record)
+        if 'password' in original:
+            filtered = original.split("===>")[0] + "===>  << Message contains a 'password' string - REDACTING >>"
+            return filtered
+        return original
