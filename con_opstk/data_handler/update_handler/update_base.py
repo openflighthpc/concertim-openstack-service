@@ -322,10 +322,20 @@ class UpdateHandler(BaseHandler):
             raise e
 
     def _get_ips_as_dict(self, addresses):
-        return {}
+        ips_dict = {'public_ips': '', 'private_ips': ''}
+        for net in addresses:
+            for ip_interface in addresses[net]:
+                if ip_interface["OS-EXT-IPS:type"] == 'fixed':
+                    ips_dict['private_ips'] += f", {net}:{ip_interface['addr']}" if ips_dict['private_ips'] else f"{net}:{ip_interface['addr']}"
+                if ip_interface["OS-EXT-IPS:type"] == 'floating':
+                    ips_dict['public_ips'] += f", {net}:{ip_interface['addr']}" if ips_dict['public_ips'] else f"{net}:{ip_interface['addr']}"
+        return ips_dict
     
     def _get_output_as_string(self, output_list):
-        return ''
+        output_str = ''
+        for output_tup in output_list:
+            output_str += f", {output_tup[0]}={output_tup[1]}" if output_str else f"{output_tup[0]}={output_tup[1]}"
+        return output_str
 
     def disconnect(self):
         self.__LOGGER.info(f"Destroying Updater data - {UpdateHandler.__DATA}")
