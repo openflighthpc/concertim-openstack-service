@@ -23,13 +23,13 @@ class UpdateHandler(BaseHandler):
             'ACTIVE': ['active', 'running'],
             'STOPPED': ['stopped'],
             'SUSPENDED': ['suspended'],
-            'IN_PROGRESS': ['building', 'deleting', 'scheduling', 'networking', 'block_device_mapping', 'spawning', 'deleted'],
+            'IN_PROGRESS': ['building', 'deleting', 'scheduling', 'networking', 'block_device_mapping', 'spawning', 'deleted', 'powering-on', 'powering-off'],
             'FAILED': []
         },
         'RACK':{
             'ACTIVE': ['CREATE_COMPLETE','RESUME_COMPLETE'],
             'STOPPED': ['SUSPEND_COMPLETE'],
-            'IN_PROGRESS': ['CREATE_IN_PROGRESS','SUSPEND_IN_PROGRESS','DELETE_IN_PROGRESS'],
+            'IN_PROGRESS': ['CREATE_IN_PROGRESS','SUSPEND_IN_PROGRESS','DELETE_IN_PROGRESS', 'DELETE_COMPLETE'],
             'FAILED': ['CREATE_FAILED','DELETE_FAILED']
         }
     }
