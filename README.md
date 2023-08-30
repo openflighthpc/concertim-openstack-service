@@ -1,11 +1,11 @@
 # Concertim Openstack Service
 
-The Concertim-Openstack Service is a package of python modules that is intended to facilitate the communication between an Openstack cloud and an Alces Flight Ltd. Concertim application. Concertim-Openstack package handles multiple aspects of the data communication between Openstack and Concertim. 
+The Concertim-Openstack Service is a package of python modules that is intended to facilitate the communication between an Openstack cloud and an Alces Flight Ltd. Concertim application. Concertim-Openstack package handles multiple aspects of the data communication pipeline between Openstack and Concertim including data retrieval, data transfomation, and manipulation of both Concertim and Openstack objects.
 
 There are 3 main components within the Concertim-Openstack Service package: User Handler, Mertics Handler, and Update Handler.
-- [User Handler](/docs/user_handler.md) - Manages the user and project lifecycle between Openstack and Concertim.
+- [API Server/Handler](/docs/api_handler.md) - Resposible for receiving REST requests from other services and performing back end actions in Openstack and Concertim
 - [Metrics Handler](/docs/metrics.md) - Manages polling, calculating, and sending of Openstack resource metrics to the Concertim app
-- [Update Handler](/docs/updater.md) - Manages collecting, transforming, and sending Openstack updates to the Concertim front-end UI
+- [Update Handler](/docs/update_handler.md) - Manages collecting, transforming, and sending Openstack updates to the Concertim front-end UI - a two part service that contains both the `bulk_update_handler` and the `mq_update_handler`
 
 Each individual component is **highly recommended** to run in seperate Docker containers on the Openstack host, however admins that are familiar with these types of environments may wish to alter the setup. This README assumes the recommended setup method. 
 
@@ -24,9 +24,10 @@ These instructions assume the recommended way of setting up the Concertim-Openst
 For Non-Docker ENVs:
 
 3. Install `python3.x` if not already installed
-4. Install any required packages
+4. Install the package
     ```
-    pip3 install -r <path_to_concertim_service>/requirements.txt
+    python3 setup.py build
+	python3 setup.py install
     ```
 
 ## Configuration
@@ -39,6 +40,11 @@ Each component in the Concertim-Openstack sesrvice makes use of various openstac
 
 - Openstack Role : `watcher`
 - Openstack User : `concertim`
+
+If the Openstack-Billing-API is also installed and being used:
+
+- Openstack Role : `rating`
+- Openstack User : `cloudkitty`
 
 ### Host Server Env
 
@@ -114,50 +120,91 @@ Note that any changes made to the configuration file will only take effect when 
 The recommended method for using the Concertim-Openstack service is by deploying each individual component in a seperate docker container. All service related Dockerfiles are stored in `../Dockerfiles/Dockerfile.<service_type>`. Users will need to build and run the containers on their Openstack host server.
 
 
-##### User Handler setup
+##### API Handler/Server setup
+
+- BUILD - from concertim-openstack-service root directory
+	``````
+	docker build --network=host --tag concertim_api_server:<version> -f Dockerfiles/Dockerfile.api_server .
+	``````
+
+- RUN - mounts the config file, data dir, and log dir as a vol, publish port 42356 on host net
+	``````
+	docker run -d --name concertim_api_server \
+		--network=host \
+		-v /etc/concertim-openstack-service/config.yaml:/etc/concertim-openstack-service/config.yaml \
+		-v /var/log/concertim-openstack-service/:/app/var/log/ \
+		-v /var/lib/concertim-openstack-service/data/:/app/var/data/ \
+		--publish <Host>:42356:42356 \
+		concertim_api_server
+	``````
+
+- LOGS - tail 50 with follow (also in log dir on localhost, or by `docker logs`)
+	``````
+	docker exec concertim_api_server tail -50f /app/var/log/api_server.log
+    ``````
+
+##### Update Handler(s) setup
+
+Bulk Updates Handler
 
 - BUILD - from concertim-openstack-service root directory
     ``````
-     docker build --network=host --tag concertim-user-handler:<version> -f Dockerfiles/Dockerfile.user_handler .
+     docker build --network=host --tag concertim_bulk_updates:<version> -f Dockerfiles/Dockerfile.updates_bulk .
     ``````
-- RUN - mounts the config file as a vol, publish port 42356 on host net
+- RUN - mounts the config file, data dir, and log dir as a vol
     ``````
-    docker run -d --name concertim-user-handler --network=host -v /etc/concertim-openstack-service/config.yaml:/etc/concertim-openstack-service/config.yaml --publish <ip>:42356:42356 concertim-user-handler
+    docker run -d --name concertim_bulk_updates \
+		--network=host \
+		-v /etc/concertim-openstack-service/config.yaml:/etc/concertim-openstack-service/config.yaml \
+		-v /var/log/concertim-openstack-service/:/app/var/log/ \
+		-v /var/lib/concertim-openstack-service/data/:/app/var/data/ \
+		concertim_bulk_updates
     ``````
-- LOGS - tail 50 with follow
+- LOGS - tail 50 with follow (also in log dir on localhost, or by `docker logs`)
     ``````
-     docker exec concertim-metrics tail -50f /var/log/concertim-openstack-service/user-handler.log
-     ``````
-
-##### Update Handler setup
+    docker exec concertim_bulk_updates tail -50f /app/var/log/updates_bulk.log
+    ``````
+	
+Messaging Queue Updates Handler
 
 - BUILD - from concertim-openstack-service root directory
     ``````
-     docker build --network=host --tag concertim-updates:<version> -f Dockerfiles/Dockerfile.updates .
+     docker build --network=host --tag concertim_mq_listener:<version> -f Dockerfiles/Dockerfile.updates_mq .
     ``````
-- RUN - mounts the config file as a vol
+- RUN - mounts the config file, data dir, and log dir as a vol
     ``````
-     docker run -d --name concertim-updates --network=host -v /etc/concertim-openstack-service/config.yaml:/etc/concertim-openstack-service/config.yaml concertim-updates
-     ``````
-- LOGS - tail 50 with follow
+    docker run -d --name concertim_mq_listener \
+		--network=host \
+		-v /etc/concertim-openstack-service/config.yaml:/etc/concertim-openstack-service/config.yaml \
+		-v /var/log/concertim-openstack-service/:/app/var/log/ \
+		-v /var/lib/concertim-openstack-service/data/:/app/var/data/ \
+		concertim_mq_listener
     ``````
-     docker exec concertim-updates tail -50f /var/log/concertim-openstack-service/updates.log
-     ``````
+- LOGS - tail 50 with follow (also in log dir on localhost, or by `docker logs`)
+    ``````
+    docker exec concertim_mq_listener tail -50f /app/var/log/updates_mq.log
+    ``````
+
 
 ##### Metric Handler setup
 
 - BUILD - from concertim-openstack-service root directory
     ``````
-     docker build --network=host --tag concertim-metrics:<version> -f Dockerfiles/Dockerfile.metrics .
+    docker build --network=host --tag concertim_metrics:<version> -f Dockerfiles/Dockerfile.metrics .
     ``````
-- RUN - mounts the config file as a vol
+- RUN - mounts the config file, data dir, and log dir as a vol
     ``````
-     docker run -d --name concertim-metrics --network=host -v /etc/concertim-openstack-service/config.yaml:/etc/concertim-openstack-service/config.yaml concertim-metrics
-     ``````
-- LOGS - tail 50 with follow
+    docker run -d --name concertim_metrics \
+		--network=host \
+		-v /etc/concertim-openstack-service/config.yaml:/etc/concertim-openstack-service/config.yaml \
+		-v /var/log/concertim-openstack-service/:/app/var/log/ \
+		-v /var/lib/concertim-openstack-service/data/:/app/var/data/ \
+		concertim_metrics
     ``````
-     docker exec concertim-metrics tail -50f /var/log/concertim-openstack-service/metrics.log
-     ``````
+- LOGS - tail 50 with follow (also in log dir on localhost, or by `docker logs`)
+    ``````
+    docker exec concertim_metrics tail -50f /app/var/log/metrics.log
+    ``````
 
 
 ### Systemd
@@ -175,7 +222,7 @@ After=network.target
 User=<user>
 Group=<group>
 WorkingDirectory=<path_to_concertim_service>
-ExecStart=<path_to_python3> <path_to_concertim_service>/<component_driver>.py
+ExecStart=<path_to_python3> <path_to_concertim_service>/<driver>.py run=<component>
 Restart=always
 RestartSec=5s
 
@@ -183,7 +230,7 @@ RestartSec=5s
 WantedBy=multi-user.target
 ```
 
-2. Replace `<user>`, `<group>`, `<path_to_concertim_service>`, `<component_driver>`, and `<path_to_python3>` with the appropriate values for your system. Note that `<path_to_python3>` should be the path to your Python3 executable.
+2. Replace `<user>`, `<group>`, `<path_to_concertim_service>`, `<component>`, and `<path_to_python3>` with the appropriate values for your system. Note that `<path_to_python3>` should be the path to your Python3 executable.
 3. Reload the systemd daemon: `sudo systemctl daemon-reload`
 4. Start the Concertim Openstack Service: `sudo systemctl start concertim.service`
 5. Verify that the service is running: `sudo systemctl status concertim.service`
@@ -191,9 +238,13 @@ WantedBy=multi-user.target
 7. To stop the service, run: `sudo systemctl stop concertim.service`
 8. To disable the service from starting on boot, run: `sudo systemctl disable concertim.service`
 
-Note that the Concertim Openstack Service logs will be written to the `/var/logs/concertim-openstack-service/` directory.
+Note that the Concertim Openstack Service logs will be written to the `<app_root>/var/log/` directory.
 
 The service will run indefinitely, sending metric data to the Concertim API repeatedly every 30 second (can be changed).
+
+## Importing Package For Use in Other Modules
+
+The Concertim-Openstack-Service contains many components and modules that can be used in developent of other packages. To import, follow the installation instruction to build and install the package so that is availbale in your python environment. Then in the code import the module that is needed - like `from con_opstk.concertim.components.rack import ConcertimRack`
 
 ## Development
 
