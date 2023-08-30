@@ -128,9 +128,9 @@ Running
 }   
 ``````
 
-- <type> - The type of component to be updated ("racks", "devices")
-- <id> - The openstack ID for the component
-- <action> - The action to perform (Racks: 'destroy'; Devices: 'on', 'off', 'suspend', 'resume', 'destroy')
+- `<type>` - The type of component to be updated ("racks", "devices")
+- `<id>` - The openstack ID for the component
+- `<action>` - The action to perform (Racks: 'destroy'; Devices: 'on', 'off', 'suspend', 'resume', 'destroy')
 
 ###### Example response:
 
