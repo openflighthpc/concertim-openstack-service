@@ -269,11 +269,11 @@ def delete_keypairs():
         api_handler = APIHandler(config, log_file, clients=['nova'])
         app.logger.debug(f"Successfully created APIHandler")
 
-        result = api_handler.delete_keypair()
+        result = api_handler.delete_keypair(req_data['keypair_name'])
 
         app.logger.debug(f"Successfully deleted key pair {req_data['keypair_name']}")
 
-        resp = {"success": True, 'key_pairs': result}
+        resp = {"success": True, 'key_pair_name': req_data['keypair_name']}
         return jsonify(resp), 202
     except APIServerDefError as e:
         response = {"error": type(e).__name__, "message": str(e)}
