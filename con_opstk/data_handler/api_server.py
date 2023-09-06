@@ -67,8 +67,11 @@ def create_user_project():
     finally:
         app.logger.info(f"Finished - Creating new CM_ project and user in Openstack")
         app.logger.debug("Disconnecting Handler")
-        api_handler.disconnect()
-        api_handler = None
+        try:
+            api_handler.disconnect()
+            api_handler = None
+        except NameError:
+            api_handler = None
 
 @app.route('/update_status/<type>/<id>', methods=['POST'])
 def update_status(type, id):
@@ -130,10 +133,10 @@ def update_status(type, id):
         app.logger.info(f"Finished - Updating status")
         app.logger.debug("Disconnecting Handler")
         try:
-          api_handler.disconnect()
-          api_handler = None
+            api_handler.disconnect()
+            api_handler = None
         except NameError:
-          api_handler = None
+            api_handler = None
 
 @app.route('/key_pairs', methods=['POST'])
 def create_keypair():
@@ -190,10 +193,10 @@ def create_keypair():
         app.logger.info(f"Finished - Creating keypair in Openstack")
         app.logger.debug("Disconnecting Handler")
         try:
-          api_handler.disconnect()
-          api_handler = None
+            api_handler.disconnect()
+            api_handler = None
         except NameError:
-          api_handler = None
+            api_handler = None
 
 @app.route('/key_pairs', methods=['GET'])
 def list_keypairs():
@@ -247,10 +250,10 @@ def list_keypairs():
         app.logger.info(f"Finished - Listing keypairs")
         app.logger.debug("Disconnecting Handler")
         try:
-          api_handler.disconnect()
-          api_handler = None
+            api_handler.disconnect()
+            api_handler = None
         except NameError:
-          api_handler = None
+            api_handler = None
 
 @app.route('/key_pairs', methods=['DELETE'])
 def delete_keypairs():
@@ -306,10 +309,10 @@ def delete_keypairs():
         app.logger.info(f"Finished - Deleting keypair")
         app.logger.debug("Disconnecting Handler")
         try:
-          api_handler.disconnect()
-          api_handler = None
+            api_handler.disconnect()
+            api_handler = None
         except NameError:
-          api_handler = None
+            api_handler = None
 
 @app.route('/')
 def running():
