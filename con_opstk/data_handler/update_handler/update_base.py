@@ -254,21 +254,14 @@ class UpdateHandler(BaseHandler):
     # Method to search the view for an object that has a matching id
     # Returns a dict of the matching {id_tup:component} in the view, returns empty dict if none found
     # The matching ID tuple(s) are the keys in the view object
-    def search_view(self, list_type, service, id_to_find, filters=None):
+    def search_view(self, list_type, service, id_to_find):
         '''
         'list_type'     - the view list of objects to search in 
                         ("racks", "devices", "users", "templates")
         'service'       - the service that the ID is coming from 
                         ("openstack","concertim")
         'id_to_find'    - id of the object in the service
-        'filters'       - optional filters to search by 
-                        NOTE: must be a valid if statement and must reference fields by the search method attr names
-                        basic ex. 
-                            "if id_to_find == 123467" or "if id_to_find not in [1,2,4,5,6]"
-                        full inline variable ex. (use f-sting for arg replacement)
-                            search_view('devices', 'openstack', '7fsdh7-978erfs-jnfae73-32498t', filters=f"if id_to_find not in {openstack_instance_id_list}")
         '''
-        filter_result = None
         __valid_list_types = ['racks','devices','users','templates']
         __valid_services = ['openstack', 'concertim']
         if list_type.lower() not in __valid_list_types:
@@ -277,16 +270,6 @@ class UpdateHandler(BaseHandler):
             raise InvalidSearchAttempt(f"Invalid service name - '{service.lower()}' - valid options {__valid_services}")
         tup_index = 0 if service.lower() == 'concertim' else 1 
         list_to_search = getattr(self.view, list_type)
-        if filters:
-            try:
-                filter_result = eval(filters)
-            except Exception as e:
-                msg = f"Search failed due to filter: filter=[{filters}] - {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}"
-                self.__LOGGER.error(msg)
-                raise InvalidSearchAttempt(msg)
-        if filter_result is not None:
-            if not filter_result:
-                return {}
         return {id_tup:comp for (id_tup,comp) in list_to_search.items() if id_tup[tup_index] == id_to_find}
         
 
