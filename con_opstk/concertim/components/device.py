@@ -13,11 +13,12 @@ class ConcertimDevice(ConcertimComponent):
         self.ssh_key = ''
         self.volume_details = {}
         self.login_user = ''
+        self.cost = 0.0
 
     def __repr__(self):
         return (f"<ConcertimDevice:{{id:{repr(self.id)}, name:{repr(self.name)}, description:{repr(self.description)}, status:{repr(self.status)}, "
                 f"rack_id:{repr(self.rack_id)}, template:{repr(self.template)}, location:{repr(self.location)}, ips:{repr(self.ips)}, private_ips:{repr(self.private_ips)}, "
-                f"public_ips:{repr(self.public_ips)}, ssh_key:{repr(self.ssh_key)}, login_user:{repr(self.login_user)}, volume_details:{repr(self.volume_details)}}}>")
+                f"public_ips:{repr(self.public_ips)}, ssh_key:{repr(self.ssh_key)}, login_user:{repr(self.login_user)}, volume_details:{repr(self.volume_details)}, cost:{repr(self.cost)}}}>")
 
     def __eq__(self, other):
         if isinstance(other, ConcertimDevice):

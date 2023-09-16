@@ -77,6 +77,9 @@ class UpdateHandler(BaseHandler):
                                         email=user['email'],
                                         openstack_project_id=user['project_id'],
                                         description='')
+                new_user.cost = float(user['cost'] if 'cost' in user and user['cost'] else 0.0)
+                new_user.billing_period_start = user['billing_period_start'] if 'billing_period_start' in user and user['billing_period_start'] else ''
+                new_user.billing_period_end = user['billing_period_end'] if 'billing_period_end' in user and user['billing_period_end'] else ''
                 self.view.add_user(new_user)
                 self.__LOGGER.debug(f"New ConcertimUser created in View : {new_user}")
             self.__LOGGER.debug(f"Finished - Fetching Concertim Users")
@@ -140,6 +143,7 @@ class UpdateHandler(BaseHandler):
                     new_rack.network_details = rack['network_details']
                 if 'creation_output' in rack and rack['creation_output']:
                     new_rack._creation_output = rack['creation_output']
+                new_rack.cost = float(rack['cost'] if 'cost' in rack and rack['cost'] else 0.0)
                 self.view.add_rack(new_rack)
                 self.__LOGGER.debug(f"New ConcertimRack created in View : {new_rack}")                
             self.__LOGGER.debug(f"Finished - Fetching Concertim Racks")
@@ -180,6 +184,7 @@ class UpdateHandler(BaseHandler):
                 new_device.public_ips = device['public_ips'] if 'public_ips' in device and device['public_ips'] else ''
                 new_device.private_ips = device['private_ips'] if 'private_ips' in device and device['private_ips'] else ''
                 new_device.login_user = device['login_user'] if 'login_user' in device and device['login_user'] else ''
+                new_device.cost = float(device['cost'] if 'cost' in device and device['cost'] else 0.0)
                 self.view.add_device(new_device)
                 self.__LOGGER.debug(f"New ConcertimDevice created in View : {new_device}")  
             self.__LOGGER.debug(f"Finished - Fetching Concertim Devices")

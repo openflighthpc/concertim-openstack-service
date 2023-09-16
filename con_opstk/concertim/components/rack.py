@@ -12,11 +12,12 @@ class ConcertimRack(ConcertimComponent):
         self._creation_output = ''
         self.network_details = {}
         self.metadata = {}
+        self.cost = 0.0
 
     def __repr__(self):
         return (f"<ConcertimRack:{{id:{repr(self.id)}, name:{repr(self.name)}, description:{repr(self.description)}, status:{repr(self.status)}, "
                 f"user_id:{repr(self.user_id)}, height:{repr(self.height)}, devices:{repr(self.devices)}, output:{repr(self.output)}, "
-                f"network_details:{repr(self.network_details)}, metadata:{repr(self.metadata)}, _occupied:{repr(self._occupied)}, _creation_output:{repr(self._creation_output)}}}>")
+                f"network_details:{repr(self.network_details)}, metadata:{repr(self.metadata)}, cost:{repr(self.cost)}, _occupied:{repr(self._occupied)}, _creation_output:{repr(self._creation_output)}}}>")
 
     def __eq__(self, other):
         if isinstance(other, ConcertimRack):

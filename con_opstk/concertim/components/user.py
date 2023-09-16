@@ -7,10 +7,14 @@ class ConcertimUser(ConcertimComponent):
         self.email = email
         self.openstack_project_id = openstack_project_id
         self.racks = []
+        self.billing_period_start = ''
+        self.billing_period_end = ''
+        self.cost = 0.0
 
     def __repr__(self):
         return (f"<ConcertimUser:{{id:{repr(self.id)}, name:{repr(self.name)}, description:{repr(self.description)}, "
-                f"full_name:{repr(self.full_name)}, email:{repr(self.email)}, openstack_project_id:{repr(self.openstack_project_id)}, racks:{repr(self.racks)}}}>")
+                f"full_name:{repr(self.full_name)}, email:{repr(self.email)}, openstack_project_id:{repr(self.openstack_project_id)}, "
+                f"billing_period_start:{repr(self.billing_period_start)}, billing_period_end:{repr(self.billing_period_end)}, cost:{repr(self.cost)}, racks:{repr(self.racks)}}}>")
 
     def __eq__(self, other):
         if isinstance(other, ConcertimUser):

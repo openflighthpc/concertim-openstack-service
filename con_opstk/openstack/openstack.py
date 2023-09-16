@@ -59,6 +59,12 @@ class OpenstackService(object):
                 self.__LOGGER.debug(f"Successfully added GnocchiHandler to OpenstackService")
                 self._handlers_key_map['gnocchi'] = client_name
                 return gh
+            elif client_name.lower() in ["cloudkitty", "cloudkittyclient", "cloudkitty_client", "cloudkittyhandler", "cloudkitty_handler"]:
+                from con_opstk.openstack.client_handlers.cloudkitty import CloudkittyHandler
+                ckh = CloudkittyHandler(sess, self._LOG_FILE, self._CONFIG['log_level'])
+                self.__LOGGER.debug(f"Successfully added CloudkittyHandler to OpenstackService")
+                self._handlers_key_map['cloudkitty'] = client_name
+                return ckh
             else:
                 self.__LOGGER.error(f"Attempted to add an unknown handler : '{client_name}'")
                 raise UnknownOpenstackHandler(f"Unknown Handler : {client_name}")
@@ -502,6 +508,27 @@ class OpenstackService(object):
         except Exception as e:
             self.__LOGGER.error(f"An unexpected error : {type(e).__name__} - {e}")
             raise e
+
+    def get_ratings_all(self, project_ids, kwargs**):
+        self.__LOGGER.debug(f"Getting ratings for projects: [{project_ids}] - args[{kwargs**}]")
+        self.__check_handlers('cloudkitty')
+        cloudkitty = self.handlers[self._handlers_key_map['cloudkitty']]
+        # TODO
+        return
+
+    def get_ratings_project(self, project_id, kwargs**):
+        self.__LOGGER.debug(f"Getting rating for project: '{project_id}' - args[{kwargs**}]")
+        self.__check_handlers('cloudkitty')
+        cloudkitty = self.handlers[self._handlers_key_map['cloudkitty']]
+        # TODO
+        return
+
+    def get_ratings_resource(self, resource_type, resource_id, kwargs**):
+        self.__LOGGER.debug(f"Getting rating for resource: '{resource_type}:{resource_id}' - args[{kwargs**}]")
+        self.__check_handlers('cloudkitty')
+        cloudkitty = self.handlers[self._handlers_key_map['cloudkitty']]
+        # TODO
+        return
 
     def disconnect(self):
         self.__LOGGER.info("Disconnecting Openstack Services")
