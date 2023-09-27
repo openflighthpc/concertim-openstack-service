@@ -216,6 +216,31 @@ def run_api_server():
     logger.info("STARTING API SERVER")
     run_app()
 
+def run_billing_server():
+
+    from con_opstk.billing.killbill import killbill
+    from con_opstk.billing.hostbill import hostbill
+
+
+    config = load_config(CONFIG_FILE)
+    billing_backend = config["billing_platform"].lower()
+
+    billers = {"hostbill": hostbill.HostbillService, "killbill": killbill.KillbillService}
+
+
+    billing_service = BillingFactory(billing_backend, config)
+
+    while True:
+
+        billing_service.trigger_driver()
+
+        break
+            
+        if int(self.config["sleep_timer"]) > 0:
+            time.sleep(int(self.config["sleep_timer"]))
+        else:
+            time.sleep(10)
+
 
 ### COMMON METHODS ###
 
@@ -242,7 +267,8 @@ def main(args):
         'updates_bulk': run_bulk_updates,
         'updates_mq': run_mq_updates,
         #'updates_aio': run_updates_aio,
-        'api': run_api_server
+        'api': run_api_server,
+        'billing': run_billing_server
     }
     for arg in args:
         comm, value = arg.split('=')
