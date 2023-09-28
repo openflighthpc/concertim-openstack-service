@@ -218,21 +218,26 @@ def run_api_server():
 
 def run_billing_server():
 
-    from con_opstk.billing.killbill import killbill
-    from con_opstk.billing.hostbill import hostbill
+    from  con_opstk.data_handler.billing_handler.killbill.killbill_handler import KillbillHandler 
+    from  con_opstk.data_handler.billing_handler.hostbill.hostbill_handler import HostbillHandler 
+    
 
+    log_file = LOG_DIR + 'billing.log'
+    config = load_config(CONFIG_FILE)
+    logger = create_logger(__name__, log_file, config['log_level'])
+    logger.info(f"Log File: {log_file}")
 
     config = load_config(CONFIG_FILE)
     billing_backend = config["billing_platform"].lower()
+    
 
-    billers = {"hostbill": hostbill.HostbillService, "killbill": killbill.KillbillService}
+    billers = {"hostbill": HostbillHandler, "killbill": KillbillHandler}
+    billing_handler = billers[config["billing_platform"]](config, log_file)
 
-
-    billing_service = BillingFactory(billing_backend, config)
 
     while True:
 
-        billing_service.trigger_driver()
+        billing_handler.update_cost()
 
         break
             

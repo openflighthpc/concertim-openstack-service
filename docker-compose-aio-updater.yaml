@@ -1,7 +1,7 @@
 version: '3'
 services:
-  network_mode: "host"
   con_opstk_api_server:
+    network_mode: "host"
     build: 
       context: .
       dockerfile: ./Dockerfiles/Dockerfile.api_server
@@ -14,6 +14,7 @@ services:
       - /etc/concertim-openstack-service/config.yaml:/etc/concertim-openstack-service/config.yaml
 
   con_opstk_metrics:
+    network_mode: "host"
     build: 
       context: .
       dockerfile: ./Dockerfiles/Dockerfile.metrics
@@ -22,10 +23,32 @@ services:
       - data_vol:/app/var/data
       - /etc/concertim-openstack-service/config.yaml:/etc/concertim-openstack-service/config.yaml
 
-  con_opstk_updates_aio:
+#  con_opstk_updates_aio:
+#    network_mode: "host"
+#    build: 
+#      context: .
+#      dockerfile: ./Dockerfiles/Dockerfile.updates_aio
+#    volumes:
+#      - /var/log/concertim-openstack-service:/app/var/log
+#      - data_vol:/app/var/data
+#      - /etc/concertim-openstack-service/config.yaml:/etc/concertim-openstack-service/config.yaml
+
+  con_opstk_updates_bulk:
+    network_mode: "host"
     build: 
       context: .
-      dockerfile: ./Dockerfiles/Dockerfile.updates_aio
+      dockerfile: ./Dockerfiles/Dockerfile.updates_bulk
+    volumes:
+      - /var/log/concertim-openstack-service:/app/var/log
+      - data_vol:/app/var/data
+      - /etc/concertim-openstack-service/config.yaml:/etc/concertim-openstack-service/config.yaml
+
+
+  con_opstk_billing:
+    network_mode: "host"
+    build:
+      context: .
+      dockerfile: ./Dockerfiles/Dockerfile.billing
     volumes:
       - /var/log/concertim-openstack-service:/app/var/log
       - data_vol:/app/var/data

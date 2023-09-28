@@ -3,7 +3,7 @@ import logging
 
 # Parent Class for all Billing Drivers
 class BillingService:
-    def __init__(self, billing_backend):
+    def __init__(self):
         pass
 
     def trigger_driver(self):

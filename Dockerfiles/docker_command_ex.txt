@@ -76,3 +76,22 @@ sudo docker run -d --name concertim_mq_listener \
 
 # LOGS - tail 50 with follow (also in log dir on localhost)
 sudo docker exec concertim_mq_listener tail -50f /var/log/concertim-openstack-service/updates_mq.log
+
+
+############################
+# BILLING HANDLER SETUP #
+############################
+
+# BUILD - from concertim-openstack-service root directory
+sudo docker build --network=host --tag concertim_billing:latest -f Dockerfiles/Dockerfile.billing .
+
+# RUN - mounts the config file, data dir, and log dir as a vol
+sudo docker run -d --name concertim_billing \
+    --network=host \
+    -v /etc/concertim-openstack-service/config.yaml:/etc/concertim-openstack-service/config.yaml \
+    -v /var/log/concertim-openstack-service/:/app/var/log/ \
+    -v /var/lib/concertim-openstack-service/data/:/app/var/data/ \
+    concertim_billing
+
+# LOGS - tail 50 with follow (also in log dir on localhost)
+sudo docker exec concertim_billing tail -50f /var/log/concertim-openstack-service/billing.log
