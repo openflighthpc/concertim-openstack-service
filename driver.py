@@ -214,7 +214,7 @@ def run_api_server():
     logger.info(f"Log File: {log_file}")
     logger.info("------- START -------")
     logger.info("STARTING API SERVER")
-    run_app()
+    run_app(config)
 
 def run_billing_server():
 
