@@ -1,1 +1,2 @@
-con_opstk/billing/killbill/killbill-client-python
+./con_opstk/billing/killbill/killbill_fork
+#git+https://github.com/alces-flight/killbill_fork.git

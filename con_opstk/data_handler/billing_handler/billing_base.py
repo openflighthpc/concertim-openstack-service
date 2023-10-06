@@ -2,7 +2,6 @@
 from con_opstk.utils.service_logger import create_logger
 from con_opstk.data_handler.base import BaseHandler
 from con_opstk.data_handler.exceptions import ViewNotFound
-from con_opstk.data_handler.update_handler.update_base import UpdateHandler.search_view
 
 import con_opstk.app_definitions as app_paths
 # Py Packages
@@ -85,7 +84,7 @@ class BillingHandler(BaseHandler):
 
         # Update User Cost in Concertim
         try:
-            self.update_handler.concertim_service.update_user(ID=user.id[0], variables_dict ={'cost' : project_cost, 'billing_period_start' : begin, 'billing_period_end' : end})
+            self.concertim_service.update_user(ID=user.id[0], variables_dict ={'cost' : project_cost, 'billing_period_start' : begin, 'billing_period_end' : end})
         except Exception as e:
             self.__LOGGER.debug(f" Exception Occurred : {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
 
@@ -117,7 +116,7 @@ class BillingHandler(BaseHandler):
 
             # Updating Rack Cost in Concertim
             try:
-                self.update_handler.concertim_service.update_rack(ID=rack.id[0], variables_dict ={'cost' : rack_cost})
+                self.concertim_service.update_rack(ID=rack.id[0], variables_dict ={'cost' : rack_cost})
             except Exception as e:
                 self.__LOGGER.debug(f" Exception Occurred : {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
                 
@@ -151,7 +150,7 @@ class BillingHandler(BaseHandler):
         
         # Updating Device Cost in Concertim
         try:
-            self.update_handler.concertim_service.update_device(ID=concertim_device_id, variables_dict ={'cost' : device_cost})
+            self.concertim_service.update_device(ID=concertim_device_id, variables_dict ={'cost' : device_cost})
         except Exception as e:
             self.__LOGGER.debug(f" Exception Occurred : {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
         return device_cost

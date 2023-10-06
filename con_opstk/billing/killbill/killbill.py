@@ -96,51 +96,124 @@ class KillbillService(BillingService):
         return kb_usage_response
 
     # Create account
-    def create_new_account(self, name, email):
+    def create_new_account(self, name,  **kwargs):
         self.__LOGGER.debug(f"Creating new account for {name}")
         accountApi = killbill.AccountApi(self.kb_api_client)
-        body = Account(name=name, 
-               email=email)
-        acct = accountApi.create_account(body,created_by='KillbillHandler')
-        return acct
+        body = killbill.Account(name=name, **kwargs)
+        
+        account = accountApi.create_account(body,created_by='KillbillHandler')
+        
+        self.__LOGGER.debug(account)
 
+        return self.__transform_response(account)
+
+    def __transform_response(self, raw_response):
+        response = {}
+        
+        response['data'] = raw_response[0]
+        response['status'] = raw_response[1]
+        response['headers'] = raw_response[2]
+
+        return response
+    
     # Add subscription
-    def create_order(self, acct_id, cluster_type):
+    def create_subscription(self, acct_id, plan_name):
         self.__LOGGER.debug(f"Creating new order for account: {acct_id}")
         subscriptionApi = killbill.api.SubscriptionApi(self.kb_api_client)
-        body = Subscription(account_id=acct_id, plan_name=cluster_type)
+        body = killbill.Subscription(account_id=acct_id, plan_name=plan_name)
         order = subscriptionApi.create_subscription(body, created_by='KillbillHandler')
-        return order
+
+        self.__LOGGER.debug(order)
+
+        return self.__transform_response(order)
 
     # Get account(s) info
     def get_account_info(self, acct_id=None):
         accountApi = killbill.AccountApi(self.kb_api_client)
         if acct_id:
             self.__LOGGER.debug(f"Getting account info for account: {acct_id}")
-            accounts = accountApi.search_accounts(account_id)
+            accounts = accountApi.search_accounts(acct_id)
         else:
             self.__LOGGER.debug(f"Getting account info for all accounts")
             accounts = accountApi.get_accounts()
-        return accounts
+        return self.__transform_response(accounts)
+
+
+    def generate_invoice(self, acct_id, target_date):
+        invoiceApi = killbill.api.InvoiceApi(self.kb_api_client)
+        
+        ret = invoiceApi.create_future_invoice(acct_id, 
+                                 created_by='KillbillHandler',  
+                                 target_date=target_date)
+        
+        self.__LOGGER.debug(ret)
+
+        return self.__transform_response(ret)
 
     # Get invoice (raw)
 
+    def get_invoice_raw(self, invoice_id):
+
+        invoiceApi = killbill.api.InvoiceApi(self.kb_api_client)
+
+        invoice = invoiceApi.get_invoice(invoice_id)
+
+        self.__LOGGER.debug(f"{invoice}")
+
+        return self.__transform_response(invoice)
+
     # Get invoice (html)
+
+    def get_invoice_html(self, invoice_id):
+
+        invoiceApi = killbill.api.InvoiceApi(self.kb_api_client)
+
+        invoice = invoiceApi.get_invoice_as_html(invoice_id)
+
+        self.__LOGGER.debug(f"{invoice}")
+
+
+        return self.__transform_response(invoice)
 
     # Add to invoice
 
     # List invoices (all)
 
+    def list_invoice(self):
+        invoiceApi = killbill.api.InvoiceApi(self.kb_api_client)
+
+        invoices = invoiceApi.get_invoices()
+
+        return self.__transform_response(invoices)
+    
+
+
     # List invoices for user (acct_id)
+
+    def search_invoices(self, search_key):
+        invoiceApi = killbill.api.InvoiceApi(self.kb_api_client)
+
+        result = invoiceApi.search_invoices(search_key)
+
+        self.__LOGGER.debug(f"{result}")
+
+        return self.__transform_response(result)
+
+
 
     # Close account (not delete)
     def close_account(self, acct_id):
         self.__LOGGER.debug(f"Closing account: {acct_id}")
         accountApi = killbill.AccountApi(self.kb_api_client)
         close = accountApi.close_account(acct_id)
-        return close
+        return self.__transform_response(close)
     
     # Get subscriptions
+
+    def list_bundles(self):
+        bundleApi = killbill.BundleApi(self.kb_api_client)
+        bundles = bundleApi.get_bundles()
+        return self.__transform_response(bundles)
 
     # Email invoice
 
