@@ -13,9 +13,9 @@ import sys
 
 
 class BulkUpdateHandler(UpdateHandler):
-    def __init__(self, config_obj, log_file, clients=None):
+    def __init__(self, config_obj, log_file, clients=None, billing_enabled=False):
         self.clients = clients if clients else UpdateHandler.DEFAULT_CLIENTS
-        super().__init__(config_obj, log_file, self.clients)
+        super().__init__(config_obj, log_file, self.clients, billing_enabled=billing_enabled)
         self.__LOGGER = create_logger(__name__, self._LOG_FILE, self._CONFIG['log_level'])
         self.default_rack_height=self._CONFIG['concertim']['default_rack_height']
         self.__resync_count = 0
@@ -284,12 +284,21 @@ class BulkUpdateHandler(UpdateHandler):
             if hasattr(os_stack, 'stack_user_project_id') and os_stack.stack_user_project_id:
                 new_rack.add_metadata(openstack_stack_owner_id=os_stack.stack_user_project_id)
             concertim_response_rack = None
+            # CREATE BILLNIG ORDER FOR STACK
+            try:
+                billing_acct = self.view.users[user_id_tup].billing_acct_id
+                order_id = self.billing_service.create_order(billing_acct)['headers']['Location'].split('/')[-1]
+                new_rack.order_id = order_id
+            except Exception as e:
+                self.__LOGGER.error(f"Failed to create Rack - {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
+                raise e
             try:
                 concertim_response_rack = self.concertim_service.create_rack({'name': new_rack.name[0],
                                                                 'user_id' : new_rack.user_id,
                                                                 'u_height': new_rack.height,
                                                                 'openstack_stack_id' : new_rack.id[1],
                                                                 'status' : new_rack.status,
+                                                                'order_id': new_rack.order_id
                                                                 'network_details' : new_rack.network_details,
                                                                 'creation_output' : new_rack._creation_output,
                                                                 'openstack_stack_output': new_rack.output,

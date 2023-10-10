@@ -8,6 +8,7 @@ import con_opstk.app_definitions as app_paths
 import sys
 import pickle
 import time
+from dateutil.parser import parse as dt_parse
 
 class BillingHandler(BaseHandler):
     DEFAULT_CLIENTS = ['keystone','cloudkitty']
@@ -154,6 +155,9 @@ class BillingHandler(BaseHandler):
         except Exception as e:
             self.__LOGGER.debug(f" Exception Occurred : {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
         return device_cost
+
+    def _convert_date(self, date_string):
+        return dt_parse(date_string)
 
     def disconnect(self):
         self.__LOGGER.info(f"Disconnecting Billing base connections")

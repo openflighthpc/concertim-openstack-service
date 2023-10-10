@@ -7,6 +7,8 @@ from con_opstk.utils.service_logger import SensitiveFormatter
 from flask import Flask, request, jsonify, make_response
 from flask import Response
 import logging
+import importlib
+# Openstack
 import keystoneauth1.exceptions.http
 import novaclient.exceptions
 
@@ -24,6 +26,10 @@ app.logger.setLevel(logging.DEBUG)
 # Env config file
 config_file = None
 
+# Billing Handlers
+BILLING_HANDLERS = {'killbill': 'con_opstk.data_handler.billing_handler.killbill.killbill_handler.KillbillHandler', 
+                    'hostbill': 'con_opstk.data_handler.billing_handler.hostbill.hostbill_handler.HostbillHandler'}
+
 @app.route('/create_user_project', methods=['POST'])
 def create_user_project():
     config = {'log_level': config_file['log_level'], 'openstack': {}}
@@ -38,7 +44,8 @@ def create_user_project():
 
         # Setup Config
         config['openstack'] = req_data['cloud_env']
-        #config[config_file['billing_platform']] = config_file[config_file['billing_platform']]
+        config['billing_platform'] = config_file['billing_platform']
+        config[config_file['billing_platform']] = config_file[config_file['billing_platform']]
 
         username = req_data['username']
         password = req_data['password']
@@ -47,23 +54,13 @@ def create_user_project():
         api_handler = APIHandler(config, log_file, billing_enabled=True)
         app.logger.debug(f"Successfully created APIHandler")
 
-        #billing_handler = None
-        #if config_file['billing_platform'] == 'killbill':
-        #    from con_opstk.data_handler.billing_handler.killbill.killbill_handler import KillbillHandler
-        #    billing_handler = KillbillHandler(config, log_file)
-        #elif config_file['billing_platform'] =='hostbill':
-        #    from con_opstk.data_handler.billing_handler.hostbill.hostbill_handler import HostbillHandler
-        #    billing_handler = HostbillHandler(config, log_file)
-        #app.logger.debug(f"Successfully created {config_file['billing_platform']} handler")
-
         user, project = api_handler.create_user_project(username, password, email)
         app.logger.debug(f"Successfully created new User and Project in Openstack")
 
-        # TODO:
-        # Create account in billing app and add to resp
-        # billing_handler.create_new_user()
+        billing_acct_id = api_handler.create_new_billing_acct(username, email)
+        app.logger.debug(f"Successfully created new Account in {config['billing_platform']}")
 
-        resp = {"username": username, "user_id": user.id, "project_id": project.id}
+        resp = {"username": username, "user_id": user.id, "project_id": project.id, "billing_acct_id": account.id}
         return make_response(resp,201)
     except APIServerDefError as e:
         response = {"error": type(e).__name__, "message": str(e)}
@@ -330,35 +327,25 @@ def delete_keypairs():
         except NameError:
             api_handler = None
 
-'''
-@app.route('/create_billing_order', methods=['POST'])
-def create_billing_order():
-    config = {'log_level': config_file['log_level'], 'openstack': {}}
-    app.logger.info(f"Starting - Creating new 'CM_' project and user in Openstack")
+
+@app.route('/get_user_invoice', methods=['POST'])
+def get_user_invoice():
+    app.logger.info(f"Starting - Getting user current invoice")
     try:
         req_data = request.get_json()
         app.logger.debug(req_data)
-        if 'cloud_env' not in req_data:
-            raise APIServerDefError("No Authentication data recieved.", 400)
-        if 'username' not in req_data or 'password' not in req_data:
-            raise APIServerDefError("Invalid user data. 'username' and 'password' are required.", 400)
+        if 'billing_acct_id' not in req_data:
+            raise APIServerDefError("No Billling Account data recieved.", 400)
+        if 'target_date' not in req_data:
+            raise APIServerDefError("No Invoice Date data recieved.", 400)
 
-        # Setup Config
-        config['openstack'] = req_data['cloud_env']
-        config[config_file['billing_platform']] = config_file[config_file['billing_platform']]
-
-        billing_handler = None
-        if config_file['billing_platform'] == 'killbill':
-            from con_opstk.data_handler.billing_handler.killbill.killbill_handler import KillbillHandler
-            billing_handler = KillbillHandler(config, log_file)
-        elif config_file['billing_platform'] =='hostbill':
-            from con_opstk.data_handler.billing_handler.hostbill.hostbill_handler import HostbillHandler
-            billing_handler = HostbillHandler(config, log_file)
+        ImportedHandler = importlib.import_module(BILLING_HANDLERS[config_file['billing_platform']])
+        billing_handler = ImportedHandler(config_file, log_file)
         app.logger.debug(f"Successfully created {config_file['billing_platform']} handler")
 
-        order = billing_handler.create_order()
+        invoice = billing_handler.generate_invoice_html(req_data['billing_acct_id'], req_data['target_date'])
 
-        resp = {"order_id": order}
+        resp = {"invoice_html": invoice}
         return make_response(resp,201)
     except APIServerDefError as e:
         response = {"error": type(e).__name__, "message": str(e)}
@@ -376,14 +363,14 @@ def create_billing_order():
             stat_code = e.http_status
         return jsonify(response), stat_code
     finally:
-        app.logger.info(f"Finished - Creating new order in Billing App")
+        app.logger.info(f"Finished - Getting user invoice")
         app.logger.debug("Disconnecting Handler")
         try:
-            api_handler.disconnect()
-            api_handler = None
+            billing_handler.disconnect()
+            billing_handler = None
         except NameError:
-            api_handler = None
-'''
+            billing_handler = None
+
 
 @app.route('/')
 def running():

@@ -33,9 +33,9 @@ class UpdateHandler(BaseHandler):
             'FAILED': ['CREATE_FAILED','DELETE_FAILED']
         }
     }
-    def __init__(self, config_obj, log_file, clients=None):
+    def __init__(self, config_obj, log_file, clients=None, billing_enabled=False):
         self.clients = clients if clients else UpdateHandler.DEFAULT_CLIENTS
-        super().__init__(config_obj, log_file, self.clients)
+        super().__init__(config_obj, log_file, self.clients, billing_enabled=billing_enabled)
         self.__LOGGER = create_logger(__name__, self._LOG_FILE, self._CONFIG['log_level'])
         self.view = ConcertimOpenstackView()
         self._default_rack_height = int(self._CONFIG['concertim']['default_rack_height']) if 'default_rack_height' in self._CONFIG['concertim'] else 42
@@ -76,7 +76,8 @@ class UpdateHandler(BaseHandler):
                                         full_name=user['fullname'], 
                                         email=user['email'],
                                         openstack_project_id=user['project_id'],
-                                        description='')
+                                        description='',
+                                        billing_acct_id=user['billing_acct_id'])
                 new_user.cost = float(user['cost'] if 'cost' in user and user['cost'] else 0.0)
                 new_user.billing_period_start = user['billing_period_start'] if 'billing_period_start' in user and user['billing_period_start'] else ''
                 new_user.billing_period_end = user['billing_period_end'] if 'billing_period_end' in user and user['billing_period_end'] else ''
@@ -135,7 +136,8 @@ class UpdateHandler(BaseHandler):
                                         user_id=rack['owner']['id'], 
                                         height=rack['u_height'], 
                                         description='Stack in Openstack',
-                                        status=rack['status'])
+                                        status=rack['status'],
+                                        order_id=rack['order_id'])
                 for k,v in rack['metadata'].items():
                     if k != 'openstack_stack_id':
                         new_rack.metadata[k] = v

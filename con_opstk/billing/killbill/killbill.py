@@ -1,6 +1,7 @@
 # Local Imports
 from con_opstk.utils.service_logger import create_logger
 from con_opstk.billing.billing_service import BillingService
+from con_opstk.billing.exceptions import BillingAPIError
 # Py Packages
 import sys
 import json
@@ -12,9 +13,9 @@ requests.packages.urllib3.disable_warnings()
 import killbill
 
 
-# KillBill Driver
+# KillBill Service
 class KillbillService(BillingService):
-    # Init Killbill clients
+    DEFAULT_SUB_PLAN = "openstack-standard-monthly"
     def __init__(self, config_obj, log_file):
         super().__init__(config_obj, log_file)
         self.__LOGGER = create_logger(__name__, self._LOG_FILE, self._CONFIG['log_level'])
@@ -89,7 +90,7 @@ class KillbillService(BillingService):
         kb_usage_instance = killbill.UsageApi(self.kb_api_client)
 
         kb_usage_response = kb_usage_instance.record_usage(
-            body=post_body, created_by="KillbillHandler"
+            body=post_body, created_by="KillbillService"
         )
         self.__LOGGER.debug(kb_usage_response)
 
@@ -101,31 +102,42 @@ class KillbillService(BillingService):
         accountApi = killbill.AccountApi(self.kb_api_client)
         body = killbill.Account(name=name, **kwargs)
         
-        account = accountApi.create_account(body,created_by='KillbillHandler')
+        account = accountApi.create_account(body,created_by='KillbillService')
         
         self.__LOGGER.debug(account)
 
-        return self.__transform_response(account)
+        return self._transform_response(account)
 
-    def __transform_response(self, raw_response):
+    def _transform_response(self, raw_response):
         response = {}
         
         response['data'] = raw_response[0]
         response['status'] = raw_response[1]
         response['headers'] = raw_response[2]
 
-        return response
+        if self._check_response(response):
+            return response
+        raise BillingAPIError(f"API Call returned unexpected respose - {raw_response}")
+
+
+    def _check_response(self, response):
+        if 'data' not in response:
+            return False
+        if 'status' not in response:
+            return False
+        if 'headers' not in response:
+            return False
+        return True
     
     # Add subscription
-    def create_subscription(self, acct_id, plan_name):
+    def create_order(self, acct_id, plan_name=None):
         self.__LOGGER.debug(f"Creating new order for account: {acct_id}")
         subscriptionApi = killbill.api.SubscriptionApi(self.kb_api_client)
-        body = killbill.Subscription(account_id=acct_id, plan_name=plan_name)
-        order = subscriptionApi.create_subscription(body, created_by='KillbillHandler')
-
+        plan = plan_name if plan_name else KillbillService.DEFAULT_SUB_PLAN
+        body = killbill.Subscription(account_id=acct_id, plan_name=plan)
+        order = subscriptionApi.create_subscription(body, created_by='KillbillService')
         self.__LOGGER.debug(order)
-
-        return self.__transform_response(order)
+        return self._transform_response(order)
 
     # Get account(s) info
     def get_account_info(self, acct_id=None):
@@ -136,60 +148,48 @@ class KillbillService(BillingService):
         else:
             self.__LOGGER.debug(f"Getting account info for all accounts")
             accounts = accountApi.get_accounts()
-        return self.__transform_response(accounts)
+        return self._transform_response(accounts)
 
 
     def generate_invoice(self, acct_id, target_date):
         invoiceApi = killbill.api.InvoiceApi(self.kb_api_client)
         
         ret = invoiceApi.create_future_invoice(acct_id, 
-                                 created_by='KillbillHandler',  
+                                 created_by='KillbillService',  
                                  target_date=target_date)
         
         self.__LOGGER.debug(ret)
-
-        return self.__transform_response(ret)
+        return self._transform_response(ret)
 
     # Get invoice (raw)
-
     def get_invoice_raw(self, invoice_id):
-
         invoiceApi = killbill.api.InvoiceApi(self.kb_api_client)
-
         invoice = invoiceApi.get_invoice(invoice_id)
-
         self.__LOGGER.debug(f"{invoice}")
-
-        return self.__transform_response(invoice)
+        return invoice
 
     # Get invoice (html)
-
     def get_invoice_html(self, invoice_id):
-
         invoiceApi = killbill.api.InvoiceApi(self.kb_api_client)
-
         invoice = invoiceApi.get_invoice_as_html(invoice_id)
-
         self.__LOGGER.debug(f"{invoice}")
-
-
-        return self.__transform_response(invoice)
+        return invoice
 
     # Add to invoice
 
     # List invoices (all)
-
     def list_invoice(self):
         invoiceApi = killbill.api.InvoiceApi(self.kb_api_client)
 
         invoices = invoiceApi.get_invoices()
 
-        return self.__transform_response(invoices)
+        return self._transform_response(invoices)
     
 
 
     # List invoices for user (acct_id)
 
+    # Search Invoices
     def search_invoices(self, search_key):
         invoiceApi = killbill.api.InvoiceApi(self.kb_api_client)
 
@@ -197,7 +197,7 @@ class KillbillService(BillingService):
 
         self.__LOGGER.debug(f"{result}")
 
-        return self.__transform_response(result)
+        return self._transform_response(result)
 
 
 
@@ -206,14 +206,13 @@ class KillbillService(BillingService):
         self.__LOGGER.debug(f"Closing account: {acct_id}")
         accountApi = killbill.AccountApi(self.kb_api_client)
         close = accountApi.close_account(acct_id)
-        return self.__transform_response(close)
+        return self._transform_response(close)
     
     # Get subscriptions
-
     def list_bundles(self):
         bundleApi = killbill.BundleApi(self.kb_api_client)
         bundles = bundleApi.get_bundles()
-        return self.__transform_response(bundles)
+        return self._transform_response(bundles)
 
     # Email invoice
 

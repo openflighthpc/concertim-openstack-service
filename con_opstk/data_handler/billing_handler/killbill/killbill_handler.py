@@ -1,31 +1,29 @@
 # Local Imports
 from con_opstk.utils.service_logger import create_logger
 from con_opstk.data_handler.billing_handler.billing_base import BillingHandler
-from con_opstk.billing.killbill.killbill import KillbillService
 # Py Packages
 import sys
 import json
 import datetime
+from dateutil.parser import parse as dt_parse
 
 class KillbillHandler(BillingHandler):
     def __init__(self, config_obj, log_file, clients=None):
         self.clients = clients if clients else BillingHandler.DEFAULT_CLIENTS
-        super().__init__(config_obj, log_file, self.clients)
+        super().__init__(config_obj, log_file, self.clients, billing_enabled=True)
         self.__LOGGER = create_logger(__name__, self._LOG_FILE, self._CONFIG['log_level'])
-        self.killbill_service = KillbillService(self._CONFIG, self._LOG_FILE)
-        self.plan_name = "openstack-standard-monthly"
 
     def update_cost(self):
         self.__LOGGER.info("KillBill driver triggered")
         self.read_view()
-        bundles = self.killbill_service.get_bundles()
+        bundles = self.billing_service.get_bundles()
         self.__LOGGER.debug(bundles)
         for bundle in bundles:
             # Cycle through all subscriptions in the current tenant
             for subscription in bundle.subscriptions:
                 self.__LOGGER.debug("Found subscription " + subscription.subscription_id )
                 #self.__LOGGER.debug("subscription : %s", subscription)
-                customFields = self.killbill_service.search_custom_fields_subscription(subscription.subscription_id) 
+                customFields = self.billing_service.search_custom_fields_subscription(subscription.subscription_id) 
                 #self.__LOGGER.debug(kb_cf_response)
 
                 openstack_enabled = False
@@ -67,7 +65,7 @@ class KillbillHandler(BillingHandler):
                         start_date=subscription.billing_start_date.strftime("%Y-%m-%d")
                         end_date=(datetime.date.today() + datetime.timedelta(days=1)).strftime("%Y-%m-%d")
 
-                        kb_usage_response = self.killbill_service.get_usage(kb_metric, subscription.subscription_id, start_date, end_date)
+                        kb_usage_response = self.billing_service.get_usage(kb_metric, subscription.subscription_id, start_date, end_date)
 
                         if len(kb_usage_response.rolled_up_units) > 0:
                             openstack_billed_units = kb_usage_response.rolled_up_units[0].amount
@@ -80,51 +78,25 @@ class KillbillHandler(BillingHandler):
                             amount_to_post = 0
                         self.__LOGGER.debug("Amount to post : %s", amount_to_post)
 
-                        self.killbill_service.post_metric(kb_metric, subscription.subscription_id, amount_to_post)
+                        self.billing_service.post_metric(kb_metric, subscription.subscription_id, amount_to_post)
                     self.__LOGGER.debug("completed metric: %s", kb_metric)
     
-
-    def __check_response(self, response):
-
-        if 'data' not in response:
-            return False
-        
-        if 'status' not in response:
-            return False
-        
-        if 'headers' not in response:
-            return False
-        
-        if response['status'] not in {200, 201}:
-            return False
-        
-        return True
-        
 
 
     # New user setup function
     def create_kb_account(self, name, **kwargs):
 
-        response = self.killbill_service.create_new_account(name, **kwargs)
+        response = self.billing_service.create_new_account(name, **kwargs)
 
-        if not self.__check_response(response):
-            self.__LOGGER.debug(response)
-            return False
-        
         location_header = response['headers']['Location']       
         account_id = location_header.split('/')[-1]
 
         return account_id
 
 
-
     # Create order for cluster
     def create_order(self, acct_id):
-        response = self.killbill_service.create_subscription(acct_id=acct_id, plan_name=self.plan_name)
-
-        if not self.__check_response(response):
-            self.__LOGGER.debug(response)
-            return False
+        response = self.billing_service.create_order(acct_id=acct_id)
 
         location_header = response['headers']['Location']       
         subscription_id = location_header.split('/')[-1]
@@ -133,51 +105,32 @@ class KillbillHandler(BillingHandler):
 
 
     def generate_invoice(self, acct_id, target_date):
-        response = self.killbill_service.generate_invoice(acct_id=acct_id, target_date=target_date)
+        tar_date = self._convert_date(target_date)
+        new_invoice = self.billing_service.generate_invoice(acct_id=acct_id, target_date=tar_date)
 
-        if not self.__check_response(response):
-            self.__LOGGER.debug(response)
-            return False
-        
-        location_header = response['headers']['Location']       
+        location_header = new_invoice['headers']['Location']       
         invoice_id = location_header.split('/')[-1]
 
-        return invoice_id
+        invoice = self.billing_service.get_invoice(invoice_id)
+
+        return invoice
      
         
-
     #Generate invoice html
-    def get_invoice_html(self, acct_id):
+    def generate_invoice_html(self, acct_id, target_date):
+        tar_date = self._convert_date(target_date)
+        new_invoice = self.billing_service.generate_invoice(acct_id=acct_id, target_date=tar_date)
+
+        location_header = new_invoice['headers']['Location']       
+        invoice_id = location_header.split('/')[-1]
+
+        invoice_html = self.billing_service.get_invoice_html(invoice_id)
         
-        response = self.killbill_service.search_invoices(search_key=acct_id)
-
-        if not self.__check_response(response):
-            self.__LOGGER.debug(response)
-            return False
-        
-        invoices = response['data']
-
-        invoice_html_response = {}
-
-        for invoice in invoices:
-
-            self.__LOGGER.debug(f"{invoice}")
-
-            ret = self.killbill_service.get_invoice_html(invoice_id=invoice.invoice_id)
-
-            if not self.__check_response(ret):
-                self.__LOGGER.debug(ret)
-                return False
-            
-            invoice_html_response[invoice.invoice_id] = ret['data']
-            
-
-        return invoice_html_response
-
+        return invoice_html
 
 
     def disconnect(self):
         self.__LOGGER.info(f"Disconnecting Killbill connections")
-        self.killbill_service.disconnect()
+        self.billing_service.disconnect()
         super().disconnect()
 

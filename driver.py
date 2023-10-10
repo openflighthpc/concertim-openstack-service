@@ -93,7 +93,7 @@ def run_bulk_updates(test=False):
     logger.info("------- START -------")
     logger.info("CONNECTING SERVICES")
     try:
-        bulk_update_handler = BulkUpdateHandler(config, log_file)
+        bulk_update_handler = BulkUpdateHandler(config, log_file, billing_enabled=True)
         logger.info("BEGINNING COMMUNICATION")
         ## MAIN LOOP
         while True:
@@ -216,7 +216,7 @@ def run_api_server():
     logger.info("STARTING API SERVER")
     run_app(config)
 
-def run_billing_server():
+def run_billing_handler():
 
     from  con_opstk.data_handler.billing_handler.killbill.killbill_handler import KillbillHandler 
     from  con_opstk.data_handler.billing_handler.hostbill.hostbill_handler import HostbillHandler 
@@ -273,7 +273,7 @@ def main(args):
         'updates_mq': run_mq_updates,
         #'updates_aio': run_updates_aio,
         'api': run_api_server,
-        'billing': run_billing_server
+        'billing': run_billing_handler
     }
     for arg in args:
         comm, value = arg.split('=')
