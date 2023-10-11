@@ -27,8 +27,9 @@ app.logger.setLevel(logging.DEBUG)
 config_file = None
 
 # Billing Handlers
-BILLING_HANDLERS = {'killbill': 'con_opstk.data_handler.billing_handler.killbill.killbill_handler.KillbillHandler', 
-                    'hostbill': 'con_opstk.data_handler.billing_handler.hostbill.hostbill_handler.HostbillHandler'}
+BILLING_HANDLERS = {'killbill': 'KillbillHandler', 'hostbill': 'HostbillHandler'}
+BILLING_IMPORT_PATH = {'killbill': 'con_opstk.data_handler.billing_handler.killbill.killbill_handler', 'hostbill': 'con_opstk.data_handler.billing_handler.hostbill.hostbill_handler'}
+    
 
 @app.route('/create_user_project', methods=['POST'])
 def create_user_project():
@@ -60,7 +61,7 @@ def create_user_project():
         billing_acct_id = api_handler.create_new_billing_acct(username, email)
         app.logger.debug(f"Successfully created new Account in {config['billing_platform']}")
 
-        resp = {"username": username, "user_id": user.id, "project_id": project.id, "billing_acct_id": account.id}
+        resp = {"username": username, "user_id": user.id, "project_id": project.id, "billing_acct_id": billing_acct_id}
         return make_response(resp,201)
     except APIServerDefError as e:
         response = {"error": type(e).__name__, "message": str(e)}
@@ -334,16 +335,19 @@ def get_user_invoice():
     try:
         req_data = request.get_json()
         app.logger.debug(req_data)
-        if 'billing_acct_id' not in req_data:
+        if 'invoice' not in req_data or 'billing_acct_id' not in req_data['invoice']:
             raise APIServerDefError("No Billling Account data recieved.", 400)
-        if 'target_date' not in req_data:
+        if 'invoice' not in req_data or 'target_date' not in req_data['invoice']:
             raise APIServerDefError("No Invoice Date data recieved.", 400)
 
-        ImportedHandler = importlib.import_module(BILLING_HANDLERS[config_file['billing_platform']])
+        #ImportedHandler = importlib.import_module(BILLING_HANDLERS[config_file['billing_platform']])
+        billing_app = config_file['billing_platform']
+        ImportedHandler = getattr(importlib.import_module(BILLING_IMPORT_PATH[billing_app]), BILLING_HANDLERS[billing_app])
+
         billing_handler = ImportedHandler(config_file, log_file)
         app.logger.debug(f"Successfully created {config_file['billing_platform']} handler")
 
-        invoice = billing_handler.generate_invoice_html(req_data['billing_acct_id'], req_data['target_date'])
+        invoice = billing_handler.generate_invoice_html(req_data['invoice']['billing_acct_id'], req_data['invoice']['target_date'])
 
         resp = {"invoice_html": invoice}
         return make_response(resp,201)

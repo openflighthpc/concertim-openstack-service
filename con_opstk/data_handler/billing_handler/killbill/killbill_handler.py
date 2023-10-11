@@ -106,7 +106,7 @@ class KillbillHandler(BillingHandler):
 
     def generate_invoice(self, acct_id, target_date):
         tar_date = self._convert_date(target_date)
-        new_invoice = self.billing_service.generate_invoice(acct_id=acct_id, target_date=tar_date)
+        new_invoice = self.billing_service.generate_invoice(acct_id=acct_id, target_date=target_date)
 
         location_header = new_invoice['headers']['Location']       
         invoice_id = location_header.split('/')[-1]
@@ -119,7 +119,7 @@ class KillbillHandler(BillingHandler):
     #Generate invoice html
     def generate_invoice_html(self, acct_id, target_date):
         tar_date = self._convert_date(target_date)
-        new_invoice = self.billing_service.generate_invoice(acct_id=acct_id, target_date=tar_date)
+        new_invoice = self.billing_service.generate_invoice(acct_id=acct_id, target_date=target_date)
 
         location_header = new_invoice['headers']['Location']       
         invoice_id = location_header.split('/')[-1]

@@ -286,9 +286,11 @@ class BulkUpdateHandler(UpdateHandler):
             concertim_response_rack = None
             # CREATE BILLNIG ORDER FOR STACK
             try:
+
                 billing_acct = self.view.users[user_id_tup].billing_acct_id
-                order_id = self.billing_service.create_order(billing_acct)['headers']['Location'].split('/')[-1]
-                new_rack.order_id = order_id
+                if billing_acct is not None:
+                    order_id = self.billing_service.create_order(billing_acct)['headers']['Location'].split('/')[-1]
+                    new_rack.order_id = order_id
             except Exception as e:
                 self.__LOGGER.error(f"Failed to create Rack - {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
                 raise e
@@ -298,7 +300,7 @@ class BulkUpdateHandler(UpdateHandler):
                                                                 'u_height': new_rack.height,
                                                                 'openstack_stack_id' : new_rack.id[1],
                                                                 'status' : new_rack.status,
-                                                                'order_id': new_rack.order_id
+                                                                'order_id': new_rack.order_id,
                                                                 'network_details' : new_rack.network_details,
                                                                 'creation_output' : new_rack._creation_output,
                                                                 'openstack_stack_output': new_rack.output,
