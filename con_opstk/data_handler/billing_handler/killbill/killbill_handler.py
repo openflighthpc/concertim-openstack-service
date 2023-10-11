@@ -10,7 +10,7 @@ from dateutil.parser import parse as dt_parse
 class KillbillHandler(BillingHandler):
     def __init__(self, config_obj, log_file, clients=None):
         self.clients = clients if clients else BillingHandler.DEFAULT_CLIENTS
-        super().__init__(config_obj, log_file, self.clients, billing_enabled=True)
+        super().__init__(config_obj, log_file, self.clients)
         self.__LOGGER = create_logger(__name__, self._LOG_FILE, self._CONFIG['log_level'])
 
     def update_cost(self):

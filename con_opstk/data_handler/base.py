@@ -75,7 +75,7 @@ class BaseHandler(object):
     def __get_billing_service(self):
         self.__LOGGER.debug("Creating configured billing service")
         billing_app = self._CONFIG['billing_platform']
-        ImportedService = importlib.import_module(BaseHandler.BILLING_SERVICES[billing_app], BaseHandler.BILLING_IMPORT_PATH[billing_app])
+        ImportedService = getattr(importlib.import_module(BaseHandler.BILLING_IMPORT_PATH[billing_app]), BaseHandler.BILLING_SERVICES[billing_app])
         billing_service = ImportedService(self._CONFIG, self._LOG_FILE)
         return billing_service
 

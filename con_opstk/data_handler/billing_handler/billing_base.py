@@ -16,7 +16,7 @@ class BillingHandler(BaseHandler):
 
     def __init__(self, config_obj, log_file, clients=None):
         self.clients = clients if clients else BillingHandler.DEFAULT_CLIENTS
-        super().__init__(config_obj, log_file, self.clients, enable_concertim=True)
+        super().__init__(config_obj, log_file, self.clients, enable_concertim=True, billing_enabled=True)
         self.__LOGGER = create_logger(__name__, self._LOG_FILE, self._CONFIG['log_level'])
         self.view = None
 
