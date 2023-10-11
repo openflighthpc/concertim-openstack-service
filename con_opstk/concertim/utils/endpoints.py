@@ -44,6 +44,7 @@ ENDPOINTS = {
                                     "status" : "{status}",
                                     "network_details": '{network_details}',
                                     "creation_output": '{creation_output}',
+                                    "order_id": '{order_id}',
                                     "metadata" : {
                                         "openstack_stack_id" : "{openstack_stack_id}",
                                         "openstack_stack_owner" : "{openstack_stack_owner}",
