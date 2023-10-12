@@ -172,6 +172,17 @@ class ConcertimService(object):
             self.__retry_count = 0
             return response.json()
         elif response.status_code == 422:
+            ''' 
+            +++ TEMP FIX
+            '''
+            for k,v in response.json().items():
+                if "blank" in str(v):
+                    e = MissingRequiredField(f"Required value missing - {response.json()}")
+                    self.__LOGGER.warning(f"{type(e).__name__} - {e}")
+                    raise e
+            ''' 
+            --- TEMP FIX
+            '''
             e = ConcertimItemConflict(f"The item you are trying to add already exists - {response.json()}")
             self.__LOGGER.warning(f"{type(e).__name__} - {e}")
             raise e
