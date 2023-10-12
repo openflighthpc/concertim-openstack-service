@@ -135,8 +135,9 @@ class KillbillService(BillingService):
         subscriptionApi = killbill.api.SubscriptionApi(self.kb_api_client)
         plan = plan_name if plan_name else KillbillService.DEFAULT_SUB_PLAN
         body = killbill.Subscription(account_id=acct_id, plan_name=plan)
+        self.__LOGGER.debug(f"Order to create: {body}")
         order = subscriptionApi.create_subscription(body, created_by='KillbillService')
-        self.__LOGGER.debug(order)
+        self.__LOGGER.debug(f"Killbill response: {order}")
         return self._transform_response(order)
 
     # Get account(s) info
