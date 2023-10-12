@@ -7,7 +7,7 @@ from con_opstk.concertim.components.rack import ConcertimRack
 from con_opstk.concertim.components.template import ConcertimTemplate
 from con_opstk.concertim.components.user import ConcertimUser
 from con_opstk.concertim.components.location import Location
-from con_opstk.concertim.exceptions import ConcertimItemConflict, MissingRequiredArgs
+from con_opstk.concertim.exceptions import ConcertimItemConflict, MissingRequiredArgs, MissingRequiredField
 # Py Packages
 import sys
 
@@ -316,8 +316,11 @@ class BulkUpdateHandler(UpdateHandler):
                 self.__LOGGER.warning(f"The rack {new_rack.name[0]} already exists - Skipping - {type(e).__name__} - {e}")
                 self.view._needs_resync = True
                 return False
+            #except MissingRequiredField as e:
+            #    self.__LOGGER.warning(f"The rack {new_rack.name[0]} is missing a required field - Moving to next - {type(e).__name__} - {e}")
+            #    return False
             except Exception as e:
-                self.__LOGGER.error(f"Unhandled Exception when creating rack {new_rack.name[0]} - Skipping - {type(e).__name__} - {e}")
+                self.__LOGGER.error(f"Unhandled Exception when creating rack {new_rack.name[0]} - Moving to next - {type(e).__name__} - {e}")
                 self.view._needs_resync = True
                 return False
         except Exception as e:

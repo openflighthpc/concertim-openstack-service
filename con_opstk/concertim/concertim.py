@@ -2,7 +2,7 @@
 from con_opstk.utils.service_logger import create_logger
 # endpoints file containing info on all concertim endpoints
 from con_opstk.concertim.utils.endpoints import ENDPOINTS
-from con_opstk.concertim.exceptions import ConcertimItemConflict, MissingRequiredArgs
+from con_opstk.concertim.exceptions import ConcertimItemConflict, MissingRequiredArgs, MissingRequiredField
 
 # Py Packages
 import sys
@@ -175,6 +175,10 @@ class ConcertimService(object):
             e = ConcertimItemConflict(f"The item you are trying to add already exists - {response.json()}")
             self.__LOGGER.warning(f"{type(e).__name__} - {e}")
             raise e
+        #elif response.status_code == NUM:
+        #    e = MissingRequiredField(f"Required value missing - {response.json()}")
+        #    self.__LOGGER.warning(f"{type(e).__name__} - {e}")
+        #    raise e
         elif response.status_code in [401,403,405,407,408]:
             if self.__retry_count == 0:
                 self.__LOGGER.warning(f"API call failed due to one of the following codes '[401,403,405,407,408]' - retrying once - {type(e).__name__} - {e}")
