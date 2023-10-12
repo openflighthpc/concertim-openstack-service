@@ -33,6 +33,7 @@ class CloudkittyHandler(ClientHandler):
 
 
     def get_rating_summary(self, **kwargs):
+        self.__LOGGER.info(f"Getting rating summary - Extra Args: {kwargs.items()}")
         try:
             summary = self.client.summary.get_summary(**kwargs)
             return summary
@@ -43,28 +44,28 @@ class CloudkittyHandler(ClientHandler):
 
     # Function to get the detailed summary (openstack rating summary get) for each tenant in one dictionary
     def get_rating_summary_all(self, tenants):
-        logging.info("Getting rating summary for " + str(len(tenants)) + " tenants")
+        self.__LOGGER.info("Getting rating summary for " + str(len(tenants)) + " tenants")
         all_tenants_rating_summary = {}
 
         try:
             rating_summary_dict = self.cloudkitty_client.summary.get_summary(
                 all_tenants=True, groupby=["tenant_id", "res_type"]
             )["summary"]
-            logging.debug("rating_summary_dict: %s", rating_summary_dict)
+            self.__LOGGER.debug("rating_summary_dict: %s", rating_summary_dict)
             for tenant in tenants:
                 for usage in rating_summary_dict:
                     if usage["tenant_id"] == str(tenant):
-                        logging.debug(
+                        self.__LOGGER.debug(
                             "building usage: %s for tenant: %s", usage, str(tenant)
                         )
                         if str(tenant) in all_tenants_rating_summary:
                             all_tenants_rating_summary[str(tenant)].append(usage)
                         else:
                             all_tenants_rating_summary[str(tenant)] = [usage]
-            logging.debug("all_tenants_rating_summary: %s", all_tenants_rating_summary)
+            self.__LOGGER.debug("all_tenants_rating_summary: %s", all_tenants_rating_summary)
             return all_tenants_rating_summary
         except Exception as e:
-            logging.error("Error getting rating summary: %s", e)
+            self.__LOGGER.error("Error getting rating summary: %s", e)
             sys.exit(1)
 
 
@@ -72,9 +73,9 @@ class CloudkittyHandler(ClientHandler):
     def get_rating_summary_project(self, project_id, begin, end):
 
         if len(project_id) >= 1:
-            logging.info("Getting rating summary for project " + project_id)
+            self.__LOGGER.info("Getting rating summary for project " + project_id)
         else:
-            logging.info("Empty resource id passed to get_rating_summary_project")
+            self.__LOGGER.info("Empty resource id passed to get_rating_summary_project")
             return {}
 
         project_rating_summary = {}
@@ -84,7 +85,7 @@ class CloudkittyHandler(ClientHandler):
                 filters = {'project_id' : project_id}, \
                 groupby=['project_id', 'type'], begin=begin, end=end
             )
-            logging.debug("rating_summary_dict: %s", rating_summary_dict)
+            self.__LOGGER.debug("rating_summary_dict: %s", rating_summary_dict)
 
             rate_index = rating_summary_dict["columns"].index('rate')
             type_index = rating_summary_dict["columns"].index('type')
@@ -96,23 +97,23 @@ class CloudkittyHandler(ClientHandler):
             for result in rating_summary_dict["results"]:
                 project_rating_summary[result[type_index]] = result[rate_index]
 
-            logging.debug("Project rating summary: %s", project_rating_summary)
+            self.__LOGGER.debug("Project rating summary: %s", project_rating_summary)
 
             return project_rating_summary
 
         except ValueError:
-            logging.error("Cloudkitty rating empty for project %s", project_id)
+            self.__LOGGER.error("Cloudkitty rating empty for project %s", project_id)
         except Exception as e:
-            logging.error("Error getting rating summary: %s", e)
+            self.__LOGGER.error("Error getting rating summary: %s", e)
 
         return {}
 
     def get_rating_summary_resource(self, resource_id, begin, end, resource_type):
 
         if len(resource_id) >= 1:
-            logging.info("Getting rating summary for resource " + resource_id)
+            self.__LOGGER.info("Getting rating summary for resource " + resource_id)
         else:
-            logging.info("Empty resource id passed to get_rating_summary_resource")
+            self.__LOGGER.info("Empty resource id passed to get_rating_summary_resource")
             return {}
 
 
@@ -124,7 +125,7 @@ class CloudkittyHandler(ClientHandler):
                 groupby=['id', 'type'], begin=begin, end=end
             )
 
-            logging.debug("rating_summary_dict: %s", rating_summary_dict)
+            self.__LOGGER.debug("rating_summary_dict: %s", rating_summary_dict)
 
 
             rate_index = rating_summary_dict["columns"].index('rate')
@@ -137,14 +138,14 @@ class CloudkittyHandler(ClientHandler):
             for result in rating_summary_dict["results"]:
                 resource_rating_summary[result[type_index]] = result[rate_index]
 
-            logging.debug("Resource rating summary: %s", resource_rating_summary)
+            self.__LOGGER.debug("Resource rating summary: %s", resource_rating_summary)
 
             return resource_rating_summary
 
         except ValueError:
-            logging.error("Cloudkitty rating empty for resource %s", resource_id)
+            self.__LOGGER.error("Cloudkitty rating empty for resource %s", resource_id)
         except Exception as e:
-            logging.error("Error getting rating summary: %s", e)
+            self.__LOGGER.error("Error getting rating summary: %s", e)
 
         return {}
 

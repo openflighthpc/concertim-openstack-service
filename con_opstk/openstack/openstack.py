@@ -510,21 +510,21 @@ class OpenstackService(object):
             raise e
 
     def get_ratings_all(self, project_ids, **kwargs):
-        #self.__LOGGER.debug(f"Getting ratings for projects: [{project_ids}] - args[{**kwargs}]")
+        self.__LOGGER.debug(f"Getting ratings for projects: [{project_ids}] - args[{kwargs.items()}]")
         self.__check_handlers('cloudkitty')
         cloudkitty = self.handlers[self._handlers_key_map['cloudkitty']]
         # TODO
         return
 
     def get_ratings_project(self, project_id, **kwargs):
-        #self.__LOGGER.debug("Getting rating for project: '{project_id}' - " + args[**kwargs])
+        self.__LOGGER.debug(f"Getting rating for project: '{project_id}' -  args[{kwargs.items()}]")
         self.__check_handlers('cloudkitty')
         cloudkitty = self.handlers[self._handlers_key_map['cloudkitty']]
         # TODO
         return
 
     def get_ratings_resource(self, resource_type, resource_id, **kwargs):
-        #self.__LOGGER.debug(f"Getting rating for resource: '{resource_type}:{resource_id}' - args[{**kwargs}]")
+        self.__LOGGER.debug(f"Getting rating for resource: '{resource_type}:{resource_id}' - args[{kwargs.items()}]")
         self.__check_handlers('cloudkitty')
         cloudkitty = self.handlers[self._handlers_key_map['cloudkitty']]
         # TODO
