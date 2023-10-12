@@ -115,9 +115,9 @@ class BulkUpdateHandler(UpdateHandler):
                 self.__LOGGER.debug(f"Updating Racks for User[IDs:{user_id_tup},project_id:{self.view.users[user_id_tup].openstack_project_id}]")
                 openstack_stacks = self.openstack_service.list_stacks(project_id=self.view.users[user_id_tup].openstack_project_id)
                 for heat_stack_obj in openstack_stacks:
-                    self.__LOGGER.debug(f"Checking Stack: {heat_stack_obj.stack_name}={heat_stack_obj.id}")
+                    self.__LOGGER.debug(f"Checking Stack: {heat_stack_obj.stack_name} = {heat_stack_obj.id}")
                     if heat_stack_obj.stack_owner is not self.view.users[user_id_tup].name[1]:
-                        self.__LOGGER.debug(f"Stack belongs to different user - Skipping")
+                        self.__LOGGER.debug(f"Stack belongs to different user - Skipping - [current_user={self.view.users[user_id_tup].name[1]}, stack_owner={heat_stack_obj.stack_owner}]")
                         continue
                     in_openstack.append(heat_stack_obj.id)
                     matching_racks = [con_rack for id_tup, con_rack in self.view.racks.items() if id_tup[1] == heat_stack_obj.id]

@@ -69,7 +69,7 @@ class UpdateHandler(BaseHandler):
                 if user['login'] == 'admin' or user['id'] in [id_tup[0] for id_tup in self.view.users]:
                     continue
                 if not user['cloud_user_id']:
-                    self.__LOGGER.debug(f"User '{user['id']}' has no Cloud ID - Skipping")
+                    self.__LOGGER.debug(f"User '{user['id']}' has no Cloud ID - Skipping - {user}")
                     continue
                 self.__LOGGER.debug(f"User '{user['id']}' not found in View - creating new ConcertimUser")
                 new_user = ConcertimUser(concertim_id=user['id'], 

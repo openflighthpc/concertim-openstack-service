@@ -338,13 +338,14 @@ class OpenstackService(object):
         self.__check_handlers('heat')
         heat = self.handlers[self._handlers_key_map['heat']]
 
-        stack_list = heat.list_stacks()
         final_list = []
         if project_id:
+            stack_list = heat.list_stacks(project_id=project_id)
             for stack in stack_list:
                 if stack.project == project_id:
                     final_list.append(stack)
             return final_list
+        stack_list = heat.list_stacks()
         return stack_list
 
     def get_stack(self, stack_id):
