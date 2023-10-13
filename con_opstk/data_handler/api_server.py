@@ -26,10 +26,10 @@ app.logger.setLevel(logging.DEBUG)
 # Env config file
 config_file = None
 
-# Billing Handlers
-BILLING_HANDLERS = {'killbill': 'KillbillHandler', 'hostbill': 'HostbillHandler'}
-BILLING_IMPORT_PATH = {'killbill': 'con_opstk.data_handler.billing_handler.killbill.killbill_handler', 'hostbill': 'con_opstk.data_handler.billing_handler.hostbill.hostbill_handler'}
-    
+# Billing Services
+BILLING_SERVICES = {'killbill': 'KillbillService', 'hostbill': 'HostbillService'}
+BILLING_IMPORT_PATH = {'killbill': 'con_opstk.billing.killbill.killbill', 'hostbill': 'con_opstk.billing.hostbill.hostbill'}
+        
 
 @app.route('/create_user_project', methods=['POST'])
 def create_user_project():
@@ -342,12 +342,12 @@ def get_user_invoice():
 
         #ImportedHandler = importlib.import_module(BILLING_HANDLERS[config_file['billing_platform']])
         billing_app = config_file['billing_platform']
-        ImportedHandler = getattr(importlib.import_module(BILLING_IMPORT_PATH[billing_app]), BILLING_HANDLERS[billing_app])
+        ImportedService = getattr(importlib.import_module(BILLING_IMPORT_PATH[billing_app]), BILLING_SERVICES[billing_app])
 
-        billing_handler = ImportedHandler(config_file, log_file)
-        app.logger.debug(f"Successfully created {config_file['billing_platform']} handler")
+        billing_service = ImportedService(config_file, log_file)
+        app.logger.debug(f"Successfully created {config_file['billing_platform']} service")
 
-        invoice = billing_handler.generate_invoice_html(req_data['invoice']['billing_acct_id'], req_data['invoice']['target_date'])
+        invoice = billing_service.generate_invoice_html(req_data['invoice']['billing_acct_id'], req_data['invoice']['target_date'])
 
         resp = {"invoice_html": invoice}
         return make_response(resp,201)

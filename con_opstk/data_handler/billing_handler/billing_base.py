@@ -11,7 +11,7 @@ import time
 from dateutil.parser import parse as dt_parse
 
 class BillingHandler(BaseHandler):
-    DEFAULT_CLIENTS = ['keystone','cloudkitty']
+    DEFAULT_CLIENTS = ['keystone','cloudkitty','heat','nova']
     VIEW_PICKLE_FILE = app_paths.DATA_DIR + 'view.pickle'
 
     def __init__(self, config_obj, log_file, clients=None):
@@ -156,8 +156,8 @@ class BillingHandler(BaseHandler):
             self.__LOGGER.debug(f" Exception Occurred : {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
         return device_cost
 
-    def _convert_date(self, date_string):
-        return dt_parse(date_string)
+    def _convert_date(self, datetime_str):
+        return dt_parse(datetime_str).strftime('%Y-%m-%d')
 
     def disconnect(self):
         self.__LOGGER.info(f"Disconnecting Billing base connections")

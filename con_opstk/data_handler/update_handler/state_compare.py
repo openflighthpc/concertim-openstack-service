@@ -293,7 +293,7 @@ class BulkUpdateHandler(UpdateHandler):
 
                 billing_acct = self.view.users[user_id_tup].billing_acct_id
                 if billing_acct is not None:
-                    order_id = self.billing_service.create_order(billing_acct)['headers']['Location'].split('/')[-1]
+                    order_id = self.billing_service.create_order(billing_acct, os_stack.id)['headers']['Location'].split('/')[-1]
                     new_rack.order_id = order_id
             except Exception as e:
                 self.__LOGGER.error(f"Failed to create Rack - {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")

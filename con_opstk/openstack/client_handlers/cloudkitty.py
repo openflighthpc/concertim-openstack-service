@@ -149,6 +149,12 @@ class CloudkittyHandler(ClientHandler):
 
         return {}
 
+
+    # Function to get the detailed summary (openstack rating summary get) for each tenant in one dictionary
+    def get_rating_summary_project(self, stack_id, begin, end):
+        return {}
+    
+
     def close(self):
         self.__LOGGER.debug("Closing CloudKitty Client Connection")
         self.client = None

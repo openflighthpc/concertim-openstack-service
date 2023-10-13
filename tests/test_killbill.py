@@ -26,14 +26,13 @@ killbillservice = KillbillService(config, log_file )
 killbillhandler = KillbillHandler(config, log_file)
 
 apihandler = APIHandler(config, log_file=log_file, enable_concertim=True, billing_enabled=True)
-#ret = killbillservice.create_new_account("testaccount", "test@gmail.com")
-#logger.info(f"{ret['headers']['Location']}")
 
+#ret = killbillservice.create_new_account("testaccount")
 
 #ret = killbillservice.get_account_info(acct_id="a2f6a0aa-adf4-4abe-9745-eab09c82286e")
 
 
-#ret = killbillservice.create_subscription(acct_id="a2f6a0aa-adf4-4abe-9745-eab09c82286e", plan_name="openstack-standard-monthly")
+#ret = killbillservice.create_order(acct_id="a2f6a0aa-adf4-4abe-9745-eab09c82286e")
 
 #ret = killbillservice.generate_invoice(acct_id="6e5b776f-0e13-4266-aebf-941c35482f08", target_date=datetime.date(2023, 11, 5))
 
@@ -47,15 +46,26 @@ apihandler = APIHandler(config, log_file=log_file, enable_concertim=True, billin
 
 #ret = killbillservice.get_bundles()
 
+ret = killbillservice.get_custom_fields_subscription("917aeb66-9672-4ef0-b6b2-ffc0c2fffbfb")
 
+ret = killbillservice.remove_custom_field_subscription(subscription_id="c4ebe214-e1d0-4d85-b75f-c805a0eb3202", custom_fields=["e402c55f-7395-41ae-81b5-74c5da872345", "55181542-1c27-4001-a730-b74bc5c883b3", "53827a02-8242-4b89-8a31-4ae95ddabced"])
+
+#ret=killbillservice.delete_account()
+
+#ret=killbillservice.delete_subscription()
+
+# ****************
 #ret = killbillhandler.create_kb_account("testaccount-handler")
 
-#ret = killbillhandler.create_order(acct_id = "c4ebe214-e1d0-4d85-b75f-c805a0eb3202")
+#ret = killbillhandler.create_order(acct_id = "c4ebe214-e1d0-4d85-b75f-c805a0eb3202", os_stack_id = "placeholder-stack-id")
 
 #**
-# ret = killbillhandler.generate_invoice(acct_id = "6e5b776f-0e13-4266-aebf-941c35482f08", target_date=datetime.date(2023, 11, 5))
+#ret = killbillhandler.generate_invoice(acct_id = "6e5b776f-0e13-4266-aebf-941c35482f08", target_date="2013-11-05")
 
-#ret = killbillhandler.get_invoice_html(acct_id="6e5b776f-0e13-4266-aebf-941c35482f08")
+#ret = killbillhandler.generate_invoice_html(acct_id="6e5b776f-0e13-4266-aebf-941c35482f08", target_date="2013-11-05")
+
+
+
 
 #ret = apihandler.create_new_billing_acct("test-api", "api@gmail.com")
 
