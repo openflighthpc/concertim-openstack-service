@@ -46,9 +46,24 @@ apihandler = APIHandler(config, log_file=log_file, enable_concertim=True, billin
 
 #ret = killbillservice.get_bundles()
 
-ret = killbillservice.get_custom_fields_subscription("917aeb66-9672-4ef0-b6b2-ffc0c2fffbfb")
+#ret = killbillservice.get_custom_fields_subscription("917aeb66-9672-4ef0-b6b2-ffc0c2fffbfb")
 
-ret = killbillservice.remove_custom_field_subscription(subscription_id="c4ebe214-e1d0-4d85-b75f-c805a0eb3202", custom_fields=["e402c55f-7395-41ae-81b5-74c5da872345", "55181542-1c27-4001-a730-b74bc5c883b3", "53827a02-8242-4b89-8a31-4ae95ddabced"])
+#ret = killbillservice.remove_custom_field_subscription(subscription_id="c4ebe214-e1d0-4d85-b75f-c805a0eb3202", custom_fields=["e402c55f-7395-41ae-81b5-74c5da872345", "55181542-1c27-4001-a730-b74bc5c883b3", "53827a02-8242-4b89-8a31-4ae95ddabced"])
+
+#ret = killbillservice.post_metric(kb_metric="instance", subscription_id="73952906-5019-42b6-984e-f4eb08ffdf1c", amount="14" )
+
+#ret = killbillservice.get_all_usage("73952906-5019-42b6-984e-f4eb08ffdf1c", start_date="2023-01-01", end_date="2023-10-14")
+
+
+
+account = killbillservice.get_account_info(acct_id="06f0cab3-62d0-4920-a40b-27d99a53e834")['data'][0]
+
+account.currency = 'USD'
+
+killbillservice.update_account(account_id="06f0cab3-62d0-4920-a40b-27d99a53e83")
+
+
+#ret = killbillservice.get_all_usage("d2a0bdb1-3046-431a-bdfb-b8a0f9ee7361", start_date="2023-01-01", end_date="2023-10-13")
 
 #ret=killbillservice.delete_account()
 

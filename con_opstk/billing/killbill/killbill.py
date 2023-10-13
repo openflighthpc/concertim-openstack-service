@@ -62,6 +62,24 @@ class KillbillService(BillingService):
 
         return self._transform_response(kb_subscription_response)
     
+    def create_custom_field_account(self, account_id, field_name, field_value):
+        self.__LOGGER.debug(f"Creating Custom fields for {account_id} : {field_name} = {field_value}")
+
+        kb_subscription_api = killbill.AccountApi(self.kb_api_client)
+
+        body = killbill.CustomField(name=field_name, value=field_value)
+
+        kb_subscription_response = kb_subscription_api.create_account_custom_fields_with_http_info(account_id, [body], created_by="KillbillService")
+
+        return self._transform_response(kb_subscription_response)
+    
+    def get_custom_fields_account(self, account_id):
+
+        accountApi = killbill.AccountApi(self.kb_api_client)
+
+        allCustomFields = accountApi.get_all_custom_fields_with_http_info(account_id,object_type='ACCOUNT')
+
+        return self._transform_response(allCustomFields)
 
 
     def __create_killbill_client(self, config):
@@ -74,6 +92,15 @@ class KillbillService(BillingService):
         kb_api_client = killbill.ApiClient(configuration)
         return kb_api_client
 
+    def get_all_usage(self, subscription_id, **kwargs):
+        kb_usage_instance = killbill.UsageApi(self.kb_api_client)
+
+        kb_usage_response = kb_usage_instance.get_all_usage_with_http_info(subscription_id=subscription_id, **kwargs)
+
+        self.__LOGGER.debug(kb_usage_response)
+
+        return self._transform_response(kb_usage_response)
+    
 
     def get_usage(self, kb_metric, subscription_id, start_date, end_date):
 
@@ -127,16 +154,23 @@ class KillbillService(BillingService):
         return self._transform_response(kb_usage_response)
 
     # Create account
-    def create_new_account(self, name,  **kwargs):
+    def create_new_account(self, name, openstack_project_id,  **kwargs):
         self.__LOGGER.debug(f"Creating new account for {name}")
         accountApi = killbill.AccountApi(self.kb_api_client)
-        body = killbill.Account(name=name, **kwargs)
+        body = killbill.Account(name=name, currency='USD', **kwargs)
         
         account = accountApi.create_account(body,created_by='KillbillService')
         
         self.__LOGGER.debug(account)
 
-        return self._transform_response(account)
+        response = self._transform_response(account)
+
+        location_header = response['headers']['Location']       
+        account_id = location_header.split('/')[-1]
+
+        self.create_custom_field_account(account_id=account_id,field_name="openstack_project_id", field_value=openstack_project_id)
+
+        return self._transform_response(response)
 
     def _transform_response(self, raw_response):
         response = {}
@@ -200,6 +234,15 @@ class KillbillService(BillingService):
             accounts = accountApi.get_accounts()
         return self._transform_response(accounts)
 
+    def update_account(self, account_id):
+
+        self.__LOGGER.debug(f"Updating Account  {account_id}")  
+
+        accountApi = killbill.AccountApi(self.kb_api_client)
+        body = killbill.Account(name="test", currency="USD")
+
+        accountApi.update_account(account_id, body, created_by='KillbillService')
+
 
     def generate_invoice(self, acct_id, target_date):
 
@@ -207,7 +250,7 @@ class KillbillService(BillingService):
 
         invoiceApi = killbill.api.InvoiceApi(self.kb_api_client)
         
-        ret = invoiceApi.create_future_invoice(acct_id, 
+        ret = invoiceApi.create_future_invoice_with_http_info(acct_id, 
                                  created_by='KillbillService',  
                                  target_date=target_date)
         
@@ -229,7 +272,7 @@ class KillbillService(BillingService):
 
         invoiceApi = killbill.api.InvoiceApi(self.kb_api_client)
         
-        invoice_html = invoiceApi.get_invoice_as_html(invoice_id)
+        invoice_html = invoiceApi.get_invoice_as_html_with_http_info(invoice_id)
 
         self.__LOGGER.debug(f"{invoice_html}")
 
@@ -240,11 +283,14 @@ class KillbillService(BillingService):
 
 
     def generate_invoice_html(self, acct_id, target_date):
+
+        self.__LOGGER.debug(f"Genrating HTML invoice for {acct_id} , date : {target_date}")
         invoice_date = self._convert_date(target_date)
         new_invoice = self.generate_invoice(acct_id=acct_id, target_date=invoice_date)
 
+        self.__LOGGER.debug(f"New invoice  {new_invoice}")
         location_header = new_invoice['headers']['Location']       
-        invoice_id = location_header.split('/')[-1]
+        invoice_id = location_header.split('/')[-2]
 
         invoice_html = self.get_invoice_html(invoice_id)
         
