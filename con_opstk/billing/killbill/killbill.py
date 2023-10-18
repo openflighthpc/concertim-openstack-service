@@ -244,7 +244,7 @@ class KillbillService(BillingService):
         accountApi.update_account(account_id, body, created_by='KillbillService')
 
 
-    def generate_invoice(self, acct_id, target_date):
+    """ def generate_invoice(self, acct_id, target_date):
 
         self.__LOGGER.debug(f"Generating invoice for {acct_id} : {target_date}")
 
@@ -255,7 +255,7 @@ class KillbillService(BillingService):
                                  target_date=target_date)
         
         self.__LOGGER.debug(ret)
-        return self._transform_response(ret)
+        return self._transform_response(ret) """
 
     # Get invoice (raw)
     def get_invoice_raw(self, invoice_id):
@@ -264,6 +264,39 @@ class KillbillService(BillingService):
         invoice = invoiceApi.get_invoice(invoice_id)
         self.__LOGGER.debug(f"{invoice}")
         return self._transform_response(invoice)
+
+    def get_latest_invoice(self, account_id):
+
+        self.__LOGGER.debug(f"Getting latest invoice for account {account_id}")
+        accountInvoices = self.list_account_invoice(account_id)
+
+        latest_date = datetime.date(1970, 1, 1)
+        latest_invoice_id = None
+        for invoice in accountInvoices['data']:
+
+            if invoice.target_date >= latest_date:
+                latest_invoice_id = invoice.invoice_id
+                latest_date = invoice.target_date
+
+        self.__LOGGER.debug(f"Latest invoice found for date {latest_date}")
+        
+        if latest_invoice_id != None:
+            return self.get_invoice_html(latest_invoice_id)['data']
+        
+        else:
+            raise BillingAPIError(f"No latest invoice found for account {account_id}")
+            
+    def list_account_invoice(self, account_id):
+
+        self.__LOGGER.debug(f"Listing invoices for account {account_id}")
+        accountApi = killbill.api.AccountApi(self.kb_api_client)
+
+        accountInvoices = accountApi.get_invoices_for_account_with_http_info(account_id)
+        
+        self.__LOGGER.debug(f"{accountInvoices}")
+
+        return self._transform_response(accountInvoices)
+
 
     # Get invoice (html)
     def get_invoice_html(self, invoice_id):

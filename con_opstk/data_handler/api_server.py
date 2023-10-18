@@ -347,7 +347,7 @@ def get_user_invoice():
         billing_service = ImportedService(config_file, log_file)
         app.logger.debug(f"Successfully created {config_file['billing_platform']} service")
 
-        invoice = billing_service.generate_invoice_html(req_data['invoice']['billing_acct_id'], req_data['invoice']['target_date'])
+        invoice = billing_service.get_latest_invoice(req_data['invoice']['billing_acct_id'])
 
         resp = {"invoice_html": invoice}
         return make_response(resp,201)
