@@ -65,11 +65,11 @@ class KillbillService(BillingService):
     def create_custom_field_account(self, account_id, field_name, field_value):
         self.__LOGGER.debug(f"Creating Custom fields for {account_id} : {field_name} = {field_value}")
 
-        kb_subscription_api = killbill.AccountApi(self.kb_api_client)
+        kb_account_api = killbill.AccountApi(self.kb_api_client)
 
         body = killbill.CustomField(name=field_name, value=field_value)
 
-        kb_subscription_response = kb_subscription_api.create_account_custom_fields_with_http_info(account_id, [body], created_by="KillbillService")
+        kb_subscription_response = kb_account_api.create_account_custom_fields_with_http_info(account_id, [body], created_by="KillbillService")
 
         return self._transform_response(kb_subscription_response)
     
@@ -154,10 +154,10 @@ class KillbillService(BillingService):
         return self._transform_response(kb_usage_response)
 
     # Create account
-    def create_new_account(self, name, openstack_project_id,  **kwargs):
+    def create_new_account(self, name, email, openstack_project_id,  **kwargs):
         self.__LOGGER.debug(f"Creating new account for {name}")
         accountApi = killbill.AccountApi(self.kb_api_client)
-        body = killbill.Account(name=name, currency='USD', **kwargs)
+        body = killbill.Account(name=name, email=email, currency='USD', **kwargs)
         
         account = accountApi.create_account(body,created_by='KillbillService')
         
@@ -170,7 +170,7 @@ class KillbillService(BillingService):
 
         self.create_custom_field_account(account_id=account_id,field_name="openstack_project_id", field_value=openstack_project_id)
 
-        return self._transform_response(response)
+        return response
 
     def _transform_response(self, raw_response):
         response = {}

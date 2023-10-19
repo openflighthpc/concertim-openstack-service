@@ -58,7 +58,7 @@ def create_user_project():
         user, project = api_handler.create_user_project(username, password, email)
         app.logger.debug(f"Successfully created new User and Project in Openstack")
 
-        billing_acct_id = api_handler.create_new_billing_acct(username, email)
+        billing_acct_id = api_handler.create_new_billing_acct(username, email, project.id)
         app.logger.debug(f"Successfully created new Account in {config['billing_platform']}")
 
         resp = {"username": username, "user_id": user.id, "project_id": project.id, "billing_acct_id": billing_acct_id}

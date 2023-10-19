@@ -88,10 +88,10 @@ class APIHandler(BaseHandler):
             self.__LOGGER.error(f"Encountered error when completing key pair deletion : {e.__class__.__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
             raise e
 
-    def create_new_billing_acct(self, name, email):
+    def create_new_billing_acct(self, name, email, openstack_project_id):
         self.__LOGGER.info(f"Starting creation of new billing account for {name}")
         try:
-            response = self.billing_service.create_new_account(name=name, email=email)
+            response = self.billing_service.create_new_account(name=name, email=email, openstack_project_id=openstack_project_id)
             location_header = response['headers']['Location']       
             billing_acct_id = location_header.split('/')[-1]
             return billing_acct_id
