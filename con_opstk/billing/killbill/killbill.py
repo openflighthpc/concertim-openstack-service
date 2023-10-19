@@ -108,7 +108,7 @@ class KillbillService(BillingService):
 
         kb_usage_instance = killbill.UsageApi(self.kb_api_client)
 
-        kb_usage_response = kb_usage_instance.get_usage(
+        kb_usage_response = kb_usage_instance.get_usage_with_http_info(
             subscription_id=subscription_id,
             unit_type=str("openstack-billed-" + kb_metric),
             start_date=start_date,
@@ -228,11 +228,19 @@ class KillbillService(BillingService):
         accountApi = killbill.AccountApi(self.kb_api_client)
         if acct_id:
             self.__LOGGER.debug(f"Getting account info for account: {acct_id}")
-            accounts = accountApi.search_accounts(acct_id)
+            accounts = accountApi.get_account_with_http_info(acct_id)
         else:
             self.__LOGGER.debug(f"Getting account info for all accounts")
-            accounts = accountApi.get_accounts()
+            accounts = accountApi.get_accounts_with_http_info()
         return self._transform_response(accounts)
+
+    def get_account_bundles(self, account_id):
+        self.__LOGGER.debug(f"Getting Bundles for account {account_id}")
+
+        accountApi = killbill.AccountApi(self.kb_api_client)
+        bundles = accountApi.get_account_bundles_with_http_info(account_id)
+
+        return self._transform_response(bundles)
 
     def update_account(self, account_id):
 
