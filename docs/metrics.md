@@ -1,6 +1,6 @@
 # Metric Handler Component
 
-The main functionality of the Concertim-Openstack-Service Metric Handler component is to gather, calculate, transform, and send metrics polled from Openstack resource metric data stored in a Gnocchi database. MetricHandler maps Openstack resources with the corresponding Concertim objects and gathers useful metrics by querying the Gnocchi database at a set interval. Calcualtions are done against the retrieved metrics and then the data is transformed and send to the Concertim Application via REST.
+The main functionality of the Concertim-Openstack-Service Metric Handler component is to gather, calculate, transform, and send metrics polled from Openstack resource metric data stored in a [Gnocchi](https://gnocchi.osci.io/) database. MetricHandler maps Openstack resources with the corresponding Concertim objects and gathers useful metrics by querying the Gnocchi database at a set interval. Calcualtions are done against the retrieved metrics and then the data is transformed and send to the Concertim Application via REST.
 
 MetricHandler is intended to be run in a dedicated Docker container. Scaling / multithreading is to be added in future releases to help with larger clouds and HA requirements.
 
