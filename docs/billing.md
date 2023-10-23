@@ -15,10 +15,10 @@ The default Billing application that the package uses is KillBill, an opensource
 Currently supported billing applications:
 
 - [KillBill](https://killbill.io/)
-    - [KillBill reference](/doc/killbill_ref.md)
+    - [KillBill reference](/docs/killbill_ref.md)
     - [KillBill Official Docs](https://docs.killbill.io/latest/)
 - [HostBill](https://hostbillapp.com/)
-    - [HostBill reference](/doc/hostbill_ref.md)
+    - [HostBill reference](/docs/hostbill_ref.md)
     - [Hostbill Official Docs](https://hostbill.atlassian.net/wiki/spaces/DOCS/overview)
 
 ## Installation
