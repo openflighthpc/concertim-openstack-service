@@ -4,3 +4,5 @@ python-novaclient==17.7.0
 python-keystoneclient==4.4.0
 python-cloudkittyclient==4.7.0
 python-cinderclient==8.3.0
+
+-r con_opstk/billing/requirements-billing.txt
