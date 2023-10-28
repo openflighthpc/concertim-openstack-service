@@ -115,7 +115,7 @@ def run_bulk_updates(test=False):
                     bulk_update_handler._check_resync()
         stop(logger,bulk_update_handler)
     except Exception as e:
-        msg = f"Could not run All-In-One Updates process - {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}"
+        msg = f"Could not run Bulk Updates process - {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}"
         logger.error(msg)
         stop(logger,bulk_update_handler)
 
