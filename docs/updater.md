@@ -69,6 +69,8 @@ Each component in the Concertim-Openstack sesrvice makes use of various openstac
 
 - Openstack Role : `watcher`
 - Openstack User : `concertim`
+- Openstack Role : `rating`
+- Openstack User : `cloudkitty`
 
 ## Usage
 

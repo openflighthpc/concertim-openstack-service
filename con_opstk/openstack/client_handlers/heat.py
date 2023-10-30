@@ -31,7 +31,7 @@ class HeatHandler(ClientHandler):
 
     def list_stacks(self, **kwargs):
         try:
-            self.__LOGGER.debug(f"Getting stacks list - Extra Args: {kwargs}")
+            self.__LOGGER.debug(f"Getting stacks list - Extra Args: {kwargs.items()}")
             stacks = self.client.stacks.list(**kwargs)
             return stacks
         except Exception as e:
@@ -49,7 +49,7 @@ class HeatHandler(ClientHandler):
 
     def list_stack_resources(self, stack_id, **kwargs):
         try:
-            self.__LOGGER.debug(f"Getting resource(s) for stack : {stack_id} - Extra Args: {kwargs}")
+            self.__LOGGER.debug(f"Getting resource(s) for stack : {stack_id} - Extra Args: {kwargs.items()}")
             stack_resource = self.client.resources.list(stack_id=stack_id, **kwargs)
             return stack_resource
         except Exception as e:

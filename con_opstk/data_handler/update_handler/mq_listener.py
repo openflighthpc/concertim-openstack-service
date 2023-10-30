@@ -8,13 +8,13 @@ import pika
 
 class MqUpdateHandler(UpdateHandler):
     DEFAULT_QUEUE = 'notifications.info'
-    def __init__(self, config_obj, log_file, clients=None, queue=None, event_types=None):
+    def __init__(self, config_obj, log_file, clients=None, queue=None, event_types=None, billing_enabled=False):
         DEFAULT_EVENT_TYPES = {
             'compute.instance': self.handle_instance_message,
             'orchestration.stack': self.handle_stack_message
         }
         self.clients = clients if clients else UpdateHandler.DEFAULT_CLIENTS
-        super().__init__(config_obj, log_file, self.clients)
+        super().__init__(config_obj, log_file, self.clients, billing_enabled=billing_enabled)
         self.__LOGGER = create_logger(__name__, self._LOG_FILE, self._CONFIG['log_level'])
         self.queue = queue if queue else MqUpdateHandler.DEFAULT_QUEUE
         self.event_types = event_types if event_types else DEFAULT_EVENT_TYPES
@@ -111,7 +111,7 @@ class MqUpdateHandler(UpdateHandler):
                 self.__LOGGER.debug(f"Matching ConcertimDevice found in View: {id_tup} - {device}")
                 break
         if not device:
-            self.__LOGGER.warning(f"No matching ConcertimDevice found in View for instannce: {instance_id} - Skipping update")
+            self.__LOGGER.warning(f"No matching ConcertimDevice found in View for instannce: {instance_id} - Scheduling resync")
             self.view._needs_resync = True
             self.save_view()
             return
@@ -158,7 +158,7 @@ class MqUpdateHandler(UpdateHandler):
                 self.__LOGGER.debug(f"Matching ConcertimRack found in View: {id_tup} - {rack}")
                 break
         if not rack:
-            self.__LOGGER.warning(f"No matching ConcertimRack found in View for stack: {stack_id} - Skipping update")
+            self.__LOGGER.warning(f"No matching ConcertimRack found in View for stack: {stack_id} - Scheduling resync")
             self.view._needs_resync = True
             self.save_view()
             return

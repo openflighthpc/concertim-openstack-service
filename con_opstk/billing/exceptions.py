@@ -1,0 +1,2 @@
+class BillingAPIError(Exception):
+    pass

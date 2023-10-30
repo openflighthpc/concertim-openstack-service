@@ -33,9 +33,9 @@ class UpdateHandler(BaseHandler):
             'FAILED': ['CREATE_FAILED','DELETE_FAILED']
         }
     }
-    def __init__(self, config_obj, log_file, clients=None):
+    def __init__(self, config_obj, log_file, clients=None, billing_enabled=False):
         self.clients = clients if clients else UpdateHandler.DEFAULT_CLIENTS
-        super().__init__(config_obj, log_file, self.clients)
+        super().__init__(config_obj, log_file, self.clients, billing_enabled=billing_enabled)
         self.__LOGGER = create_logger(__name__, self._LOG_FILE, self._CONFIG['log_level'])
         self.view = ConcertimOpenstackView()
         self._default_rack_height = int(self._CONFIG['concertim']['default_rack_height']) if 'default_rack_height' in self._CONFIG['concertim'] else 42
@@ -68,6 +68,9 @@ class UpdateHandler(BaseHandler):
             for user in concertim_users:
                 if user['login'] == 'admin' or user['id'] in [id_tup[0] for id_tup in self.view.users]:
                     continue
+                if not user['cloud_user_id']:
+                    self.__LOGGER.debug(f"User '{user['id']}' has no Cloud ID - Skipping - {user}")
+                    continue
                 self.__LOGGER.debug(f"User '{user['id']}' not found in View - creating new ConcertimUser")
                 new_user = ConcertimUser(concertim_id=user['id'], 
                                         openstack_id=user['cloud_user_id'], 
@@ -76,7 +79,11 @@ class UpdateHandler(BaseHandler):
                                         full_name=user['fullname'], 
                                         email=user['email'],
                                         openstack_project_id=user['project_id'],
-                                        description='')
+                                        description='',
+                                        billing_acct_id=user['billing_acct_id'])
+                new_user.cost = float(user['cost'] if 'cost' in user and user['cost'] else 0.0)
+                new_user.billing_period_start = user['billing_period_start'] if 'billing_period_start' in user and user['billing_period_start'] else ''
+                new_user.billing_period_end = user['billing_period_end'] if 'billing_period_end' in user and user['billing_period_end'] else ''
                 self.view.add_user(new_user)
                 self.__LOGGER.debug(f"New ConcertimUser created in View : {new_user}")
             self.__LOGGER.debug(f"Finished - Fetching Concertim Users")
@@ -132,7 +139,8 @@ class UpdateHandler(BaseHandler):
                                         user_id=rack['owner']['id'], 
                                         height=rack['u_height'], 
                                         description='Stack in Openstack',
-                                        status=rack['status'])
+                                        status=rack['status'],
+                                        order_id=rack['order_id'])
                 for k,v in rack['metadata'].items():
                     if k != 'openstack_stack_id':
                         new_rack.metadata[k] = v
@@ -140,6 +148,7 @@ class UpdateHandler(BaseHandler):
                     new_rack.network_details = rack['network_details']
                 if 'creation_output' in rack and rack['creation_output']:
                     new_rack._creation_output = rack['creation_output']
+                new_rack.cost = float(rack['cost'] if 'cost' in rack and rack['cost'] else 0.0)
                 self.view.add_rack(new_rack)
                 self.__LOGGER.debug(f"New ConcertimRack created in View : {new_rack}")                
             self.__LOGGER.debug(f"Finished - Fetching Concertim Racks")
@@ -180,6 +189,7 @@ class UpdateHandler(BaseHandler):
                 new_device.public_ips = device['public_ips'] if 'public_ips' in device and device['public_ips'] else ''
                 new_device.private_ips = device['private_ips'] if 'private_ips' in device and device['private_ips'] else ''
                 new_device.login_user = device['login_user'] if 'login_user' in device and device['login_user'] else ''
+                new_device.cost = float(device['cost'] if 'cost' in device and device['cost'] else 0.0)
                 self.view.add_device(new_device)
                 self.__LOGGER.debug(f"New ConcertimDevice created in View : {new_device}")  
             self.__LOGGER.debug(f"Finished - Fetching Concertim Devices")
@@ -254,21 +264,14 @@ class UpdateHandler(BaseHandler):
     # Method to search the view for an object that has a matching id
     # Returns a dict of the matching {id_tup:component} in the view, returns empty dict if none found
     # The matching ID tuple(s) are the keys in the view object
-    def search_view(self, list_type, service, id_to_find, filters=None):
+    def search_view(self, list_type, service, id_to_find):
         '''
         'list_type'     - the view list of objects to search in 
                         ("racks", "devices", "users", "templates")
         'service'       - the service that the ID is coming from 
                         ("openstack","concertim")
         'id_to_find'    - id of the object in the service
-        'filters'       - optional filters to search by 
-                        NOTE: must be a valid if statement and must reference fields by the search method attr names
-                        basic ex. 
-                            "if id_to_find == 123467" or "if id_to_find not in [1,2,4,5,6]"
-                        full inline variable ex. (use f-sting for arg replacement)
-                            search_view('devices', 'openstack', '7fsdh7-978erfs-jnfae73-32498t', filters=f"if id_to_find not in {openstack_instance_id_list}")
         '''
-        filter_result = None
         __valid_list_types = ['racks','devices','users','templates']
         __valid_services = ['openstack', 'concertim']
         if list_type.lower() not in __valid_list_types:
@@ -277,16 +280,6 @@ class UpdateHandler(BaseHandler):
             raise InvalidSearchAttempt(f"Invalid service name - '{service.lower()}' - valid options {__valid_services}")
         tup_index = 0 if service.lower() == 'concertim' else 1 
         list_to_search = getattr(self.view, list_type)
-        if filters:
-            try:
-                filter_result = eval(filters)
-            except Exception as e:
-                msg = f"Search failed due to filter: filter=[{filters}] - {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}"
-                self.__LOGGER.error(msg)
-                raise InvalidSearchAttempt(msg)
-        if filter_result is not None:
-            if not filter_result:
-                return {}
         return {id_tup:comp for (id_tup,comp) in list_to_search.items() if id_tup[tup_index] == id_to_find}
         
 

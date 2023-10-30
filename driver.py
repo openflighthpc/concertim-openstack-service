@@ -93,7 +93,7 @@ def run_bulk_updates(test=False):
     logger.info("------- START -------")
     logger.info("CONNECTING SERVICES")
     try:
-        bulk_update_handler = BulkUpdateHandler(config, log_file)
+        bulk_update_handler = BulkUpdateHandler(config, log_file, billing_enabled=True)
         logger.info("BEGINNING COMMUNICATION")
         ## MAIN LOOP
         while True:
@@ -115,7 +115,7 @@ def run_bulk_updates(test=False):
                     bulk_update_handler._check_resync()
         stop(logger,bulk_update_handler)
     except Exception as e:
-        msg = f"Could not run All-In-One Updates process - {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}"
+        msg = f"Could not run Bulk Updates process - {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}"
         logger.error(msg)
         stop(logger,bulk_update_handler)
 
@@ -214,7 +214,37 @@ def run_api_server():
     logger.info(f"Log File: {log_file}")
     logger.info("------- START -------")
     logger.info("STARTING API SERVER")
-    run_app()
+    run_app(config)
+
+def run_billing_handler():
+
+    from  con_opstk.data_handler.billing_handler.killbill.killbill_handler import KillbillHandler 
+    from  con_opstk.data_handler.billing_handler.hostbill.hostbill_handler import HostbillHandler 
+    
+
+    log_file = LOG_DIR + 'billing.log'
+    config = load_config(CONFIG_FILE)
+    logger = create_logger(__name__, log_file, config['log_level'])
+    logger.info(f"Log File: {log_file}")
+
+    config = load_config(CONFIG_FILE)
+    billing_backend = config["billing_platform"].lower()
+    
+
+    billers = {"hostbill": HostbillHandler, "killbill": KillbillHandler}
+    billing_handler = billers[config["billing_platform"]](config, log_file)
+
+
+    while True:
+
+        billing_handler.update_cost()
+
+        break
+            
+        if int(self.config["sleep_timer"]) > 0:
+            time.sleep(int(self.config["sleep_timer"]))
+        else:
+            time.sleep(10)
 
 
 ### COMMON METHODS ###
@@ -242,7 +272,8 @@ def main(args):
         'updates_bulk': run_bulk_updates,
         'updates_mq': run_mq_updates,
         #'updates_aio': run_updates_aio,
-        'api': run_api_server
+        'api': run_api_server,
+        'billing': run_billing_handler
     }
     for arg in args:
         comm, value = arg.split('=')

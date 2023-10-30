@@ -5,12 +5,16 @@ from con_opstk.concertim.concertim import ConcertimService
 from con_opstk.openstack.exceptions import FailureToScrub, UnsupportedObject
 # Py Packages
 import sys
+import importlib
 
 class BaseHandler(object):
+    BILLING_SERVICES = {'killbill': 'KillbillService', 'hostbill': 'HostbillService'}
+    BILLING_IMPORT_PATH = {'killbill': 'con_opstk.billing.killbill.killbill', 'hostbill': 'con_opstk.billing.hostbill.hostbill'}
     def __init__(self, config_obj, log_file, openstack_client_list, enable_concertim=True, billing_enabled=False):
         self._CONFIG = config_obj
         self._LOG_FILE = log_file
         self.__LOGGER = create_logger(__name__, self._LOG_FILE, self._CONFIG['log_level'])
+        self.billing_service = self.__get_billing_service() if billing_enabled else None
         self.openstack_service = OpenstackService(self._CONFIG, self._LOG_FILE, client_list=openstack_client_list, billing_enabled=billing_enabled)
         self.concertim_service = ConcertimService(self._CONFIG, self._LOG_FILE) if enable_concertim else None
 
@@ -67,6 +71,13 @@ class BaseHandler(object):
         except Exception as e:
             self.__LOGGER.error(f"{type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
             raise e
+
+    def __get_billing_service(self):
+        self.__LOGGER.debug("Creating configured billing service")
+        billing_app = self._CONFIG['billing_platform']
+        ImportedService = getattr(importlib.import_module(BaseHandler.BILLING_IMPORT_PATH[billing_app]), BaseHandler.BILLING_SERVICES[billing_app])
+        billing_service = ImportedService(self._CONFIG, self._LOG_FILE)
+        return billing_service
 
     def disconnect(self):
         self.__LOGGER.info("Disconnecting and destroying all base services")

@@ -8,6 +8,7 @@ COPY . /app
 
 # REQUIREMENTS
 # Install any needed packages specified in requirements.txt
+RUN apt-get update -y && apt-get install gcc -y
 RUN pip install --no-cache-dir -r requirements.txt
 # Install component specific packages
 RUN pip install --no-cache-dir -r con_opstk/data_handler/requirements-api.txt

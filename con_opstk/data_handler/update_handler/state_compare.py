@@ -7,15 +7,15 @@ from con_opstk.concertim.components.rack import ConcertimRack
 from con_opstk.concertim.components.template import ConcertimTemplate
 from con_opstk.concertim.components.user import ConcertimUser
 from con_opstk.concertim.components.location import Location
-from con_opstk.concertim.exceptions import ConcertimItemConflict, MissingRequiredArgs
+from con_opstk.concertim.exceptions import ConcertimItemConflict, MissingRequiredArgs, MissingRequiredField
 # Py Packages
 import sys
 
 
 class BulkUpdateHandler(UpdateHandler):
-    def __init__(self, config_obj, log_file, clients=None):
+    def __init__(self, config_obj, log_file, clients=None, billing_enabled=False):
         self.clients = clients if clients else UpdateHandler.DEFAULT_CLIENTS
-        super().__init__(config_obj, log_file, self.clients)
+        super().__init__(config_obj, log_file, self.clients, billing_enabled=billing_enabled)
         self.__LOGGER = create_logger(__name__, self._LOG_FILE, self._CONFIG['log_level'])
         self.default_rack_height=self._CONFIG['concertim']['default_rack_height']
         self.__resync_count = 0
@@ -94,7 +94,7 @@ class BulkUpdateHandler(UpdateHandler):
                         self.concertim_service.delete_template(stale_temp_id[0])
                         del self.view.templates[stale_temp_id]
                     except Exception as e:
-                        self.__LOGGER.warning(f"Unhandled Exception when deleting template {stale_temp_id[0]} - Skipping - {type(e).__name__} - {e}")
+                        self.__LOGGER.warning(f"Unhandled Exception when deleting template {stale_temp_id[0]} - Moving to next - {type(e).__name__} - {e}")
                         self.view._needs_resync = True
                         continue
             else:
@@ -112,9 +112,13 @@ class BulkUpdateHandler(UpdateHandler):
             in_openstack = []
             # Start new rack creation
             for user_id_tup in self.view.users:
-                self.__LOGGER.debug(f"Updating Racks for User[IDs:{user_id_tup},project_id{self.view.users[user_id_tup].openstack_project_id}]")
+                self.__LOGGER.debug(f"Updating Racks for User[IDs:{user_id_tup},project_id:{self.view.users[user_id_tup].openstack_project_id}]")
                 openstack_stacks = self.openstack_service.list_stacks(project_id=self.view.users[user_id_tup].openstack_project_id)
                 for heat_stack_obj in openstack_stacks:
+                    self.__LOGGER.debug(f"Checking Stack: {heat_stack_obj.stack_name} = {heat_stack_obj.id}")
+                    if not (str(heat_stack_obj.stack_owner) == str(self.view.users[user_id_tup].name[1])):
+                        self.__LOGGER.debug(f"Stack belongs to different user - Skipping - [current_user={self.view.users[user_id_tup].name[1]}, stack_owner={heat_stack_obj.stack_owner}]")
+                        continue
                     in_openstack.append(heat_stack_obj.id)
                     matching_racks = [con_rack for id_tup, con_rack in self.view.racks.items() if id_tup[1] == heat_stack_obj.id]
                     if matching_racks:
@@ -158,7 +162,7 @@ class BulkUpdateHandler(UpdateHandler):
                             self.view.users[stale_rack_user[0]].remove_rack(stale_rack_id[0])
                         del self.view.racks[stale_rack_id]
                     except Exception as e:
-                        self.__LOGGER.warning(f"Unhandled Exception when deleting rack {stale_rack_id[0]} - Skipping - {type(e).__name__} - {e}")
+                        self.__LOGGER.warning(f"Unhandled Exception when deleting rack {stale_rack_id[0]} - Moving to next - {type(e).__name__} - {e}")
                         self.view._needs_resync = True
                         continue
             else:
@@ -211,7 +215,7 @@ class BulkUpdateHandler(UpdateHandler):
                             self.view.racks[stale_device_rack[0]].remove_device(stale_device_id[0], self.view.devices[stale_device_id].location)
                         del self.view.devices[stale_device_id]
                     except Exception as e:
-                        self.__LOGGER.warning(f"Unhandled Exception when deleting device {stale_device_id[0]} - Skipping - {type(e).__name__} - {e}")
+                        self.__LOGGER.warning(f"Unhandled Exception when deleting device {stale_device_id[0]} - Moving to next - {type(e).__name__} - {e}")
                         self.view._needs_resync = True
                         continue
             else:
@@ -254,7 +258,7 @@ class BulkUpdateHandler(UpdateHandler):
                 self.view._needs_resync = True
                 return False
             except Exception as e:
-                self.__LOGGER.error(f"Unhandled Exception when creating template {new_template.name[1]} - Skipping - {type(e).__name__} - {e}")
+                self.__LOGGER.error(f"Unhandled Exception when creating template {new_template.name[1]} - Moving to next - {type(e).__name__} - {e}")
                 self.view._needs_resync = True
                 return False
         except Exception as e:
@@ -284,12 +288,23 @@ class BulkUpdateHandler(UpdateHandler):
             if hasattr(os_stack, 'stack_user_project_id') and os_stack.stack_user_project_id:
                 new_rack.add_metadata(openstack_stack_owner_id=os_stack.stack_user_project_id)
             concertim_response_rack = None
+            # CREATE BILLNIG ORDER FOR STACK
+            try:
+
+                billing_acct = self.view.users[user_id_tup].billing_acct_id
+                if billing_acct is not None:
+                    order_id = self.billing_service.create_order(billing_acct, os_stack.id)['headers']['Location'].split('/')[-1]
+                    new_rack.order_id = order_id
+            except Exception as e:
+                self.__LOGGER.error(f"Failed to create Rack - {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
+                raise e
             try:
                 concertim_response_rack = self.concertim_service.create_rack({'name': new_rack.name[0],
                                                                 'user_id' : new_rack.user_id,
                                                                 'u_height': new_rack.height,
                                                                 'openstack_stack_id' : new_rack.id[1],
                                                                 'status' : new_rack.status,
+                                                                'order_id': new_rack.order_id,
                                                                 'network_details' : new_rack.network_details,
                                                                 'creation_output' : new_rack._creation_output,
                                                                 'openstack_stack_output': new_rack.output,
@@ -305,8 +320,11 @@ class BulkUpdateHandler(UpdateHandler):
                 self.__LOGGER.warning(f"The rack {new_rack.name[0]} already exists - Skipping - {type(e).__name__} - {e}")
                 self.view._needs_resync = True
                 return False
+            except MissingRequiredField as e:
+                self.__LOGGER.warning(f"The rack {new_rack.name[0]} is missing a required field - Moving to next - {type(e).__name__} - {e}")
+                return False
             except Exception as e:
-                self.__LOGGER.error(f"Unhandled Exception when creating rack {new_rack.name[0]} - Skipping - {type(e).__name__} - {e}")
+                self.__LOGGER.error(f"Unhandled Exception when creating rack {new_rack.name[0]} - Moving to next - {type(e).__name__} - {e}")
                 self.view._needs_resync = True
                 return False
         except Exception as e:
@@ -374,7 +392,7 @@ class BulkUpdateHandler(UpdateHandler):
                 self.view._needs_resync = True
                 return False
             except Exception as e:
-                self.__LOGGER.error(f"Unhandled Exception when creating device {new_device.name[0]} - Skipping - {type(e).__name__} - {e}")
+                self.__LOGGER.error(f"Unhandled Exception when creating device {new_device.name[0]} - Moving to next - {type(e).__name__} - {e}")
                 self.view._needs_resync = True
                 return False
         except Exception as e:
@@ -393,7 +411,7 @@ class BulkUpdateHandler(UpdateHandler):
                 self.view.racks[rack_id_tup].status = con_state
                 self.__LOGGER.debug(f"Status updated to {con_state}")
             except Exception as e:
-                self.__LOGGER.error(f"Unhandled Exception when updating status for Rack {rack_id_tup[0]} - Skipping - {type(e).__name__} - {e}")
+                self.__LOGGER.error(f"Unhandled Exception when updating status for Rack {rack_id_tup[0]} - Moving to next - {type(e).__name__} - {e}")
                 self.view._needs_resync = True
                 return 
         except Exception as e:
@@ -417,7 +435,7 @@ class BulkUpdateHandler(UpdateHandler):
                 self.view.racks[rack_id_tup]._creation_output = new_creation_output
                 self.__LOGGER.debug(f"Output Updated")
             except Exception as e:
-                self.__LOGGER.error(f"Unhandled Exception when output metadata for Rack {rack_id_tup[0]} - Skipping - {type(e).__name__} - {e}")
+                self.__LOGGER.error(f"Unhandled Exception when output metadata for Rack {rack_id_tup[0]} - Moving to next - {type(e).__name__} - {e}")
                 self.view._needs_resync = True
                 return 
         except Exception as e:
@@ -450,7 +468,7 @@ class BulkUpdateHandler(UpdateHandler):
                     self.view.racks[rack_id_tup].add_metadata(openstack_stack_status_reason=os_stk_status_reas,openstack_stack_owner=os_stk_owner,openstack_stack_owner_id=os_stk_owner_id)
                     self.__LOGGER.debug(f"Metadata Updated")
                 except Exception as e:
-                    self.__LOGGER.error(f"Unhandled Exception when updating metadata for Rack {rack_id_tup[0]} - Skipping - {type(e).__name__} - {e}")
+                    self.__LOGGER.error(f"Unhandled Exception when updating metadata for Rack {rack_id_tup[0]} - Moving to next - {type(e).__name__} - {e}")
                     self.view._needs_resync = True
                     return 
             else:
@@ -472,7 +490,7 @@ class BulkUpdateHandler(UpdateHandler):
                 self.view.devices[device_id_tup].status = con_state
                 self.__LOGGER.debug(f"Status updated to {con_state}")
             except Exception as e:
-                self.__LOGGER.error(f"Unhandled Exception when updating status for Device {device_id_tup[0]} - Skipping - {type(e).__name__} - {e}")
+                self.__LOGGER.error(f"Unhandled Exception when updating status for Device {device_id_tup[0]} - Moving to next - {type(e).__name__} - {e}")
                 self.view._needs_resync = True
                 return 
         except Exception as e:
@@ -515,7 +533,7 @@ class BulkUpdateHandler(UpdateHandler):
                     self.view.devices[device_id_tup].volume_details = os_vols_att
                     self.__LOGGER.debug(f"Metadata Updated")
                 except Exception as e:
-                    self.__LOGGER.error(f"Unhandled Exception when updating metadata for Device {device_id_tup[0]} - Skipping - {type(e).__name__} - {e}")
+                    self.__LOGGER.error(f"Unhandled Exception when updating metadata for Device {device_id_tup[0]} - Moving to next - {type(e).__name__} - {e}")
                     self.view._needs_resync = True
                     return 
             else:

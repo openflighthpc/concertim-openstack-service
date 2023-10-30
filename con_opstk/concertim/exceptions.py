@@ -2,6 +2,9 @@
 class ConcertimItemConflict(Exception):
     pass
 
+class MissingRequiredField(Exception):
+    pass
+
 class MissingRequiredArgs(Exception):
     def __init__(self, *args):
         self.missing = args

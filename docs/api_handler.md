@@ -173,6 +173,20 @@ Running
 }
 ``````
 
+##### `/get_user_invoice` - Retrieves a given user's most previous or current invoice
+
+###### Example request json:
+
+``````
+{
+"invoice":
+    {
+        "billing_acct_id":
+        "target_date":
+    }
+}   
+``````
+
 #### DELETE
 
 ##### `/key_pairs` - Delete a keypair in Openstack for a Concertim user
