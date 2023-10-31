@@ -15,7 +15,7 @@ class KillbillHandler(BillingHandler):
         self.__LOGGER = create_logger(__name__, self._LOG_FILE, self._CONFIG['log_level'])
 
     def update_cost(self):
-        self.__LOGGER.info("KillBill driver triggered")
+        self.__LOGGER.info("== KillBill driver triggered ==")
         self.read_view()
         
         accounts = self.billing_service.get_account_info()['data']
@@ -25,6 +25,8 @@ class KillbillHandler(BillingHandler):
 
         for account in accounts:
             self.update_cost_account(account.account_id, begin_date, end_date)
+        
+        self.__LOGGER.info("== KillBill Process Completed ==")
 
 
     def update_cost_account(self, account_id, begin_date, end_date):
@@ -91,7 +93,7 @@ class KillbillHandler(BillingHandler):
         for kb_metric in openstack_kb_metrics:
             self.__LOGGER.debug("Processing kb_metric : %s", kb_metric)
             for metric in rack_rating_summary:
-                # if the variable name from hostbill matches the metric res type from openstack in metrics.yaml
+                # if the variable name from killbill matches the metric res type from openstack in metrics.yaml
                 if metric != kb_metric:
                     continue
                 current_rate = float(rack_rating_summary[metric]) 

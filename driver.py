@@ -6,6 +6,7 @@ import signal
 import sys
 import yaml
 import time
+import importlib
 
 # GLOBAL VARS
 CONFIG_FILE = app_paths.CONFIG_FILE
@@ -216,10 +217,12 @@ def run_api_server():
     logger.info("STARTING API SERVER")
     run_app(config)
 
-def run_billing_handler():
+def run_billing_handler(test=False):
 
-    from  con_opstk.data_handler.billing_handler.killbill.killbill_handler import KillbillHandler 
-    from  con_opstk.data_handler.billing_handler.hostbill.hostbill_handler import HostbillHandler 
+    BILLING_HANDLERS = {'killbill': 'KillbillHandler', 
+                        'hostbill': 'HostbillHandler'}
+    BILLING_IMPORT_PATH = {'killbill': 'con_opstk.data_handler.billing_handler.killbill.killbill_handler', 
+                           'hostbill': 'con_opstk.data_handler.billing_handler.hostbill.hostbill_handler'}
     
 
     log_file = LOG_DIR + 'billing.log'
@@ -230,21 +233,33 @@ def run_billing_handler():
     config = load_config(CONFIG_FILE)
     billing_backend = config["billing_platform"].lower()
     
+    ImportedService = getattr(importlib.import_module(BILLING_IMPORT_PATH[billing_backend]), BILLING_HANDLERS[billing_backend])
+    billing_handler = ImportedService(config, log_file)
 
-    billers = {"hostbill": HostbillHandler, "killbill": KillbillHandler}
-    billing_handler = billers[config["billing_platform"]](config, log_file)
 
-
-    while True:
-
-        billing_handler.update_cost()
-
-        break
-            
-        if int(self.config["sleep_timer"]) > 0:
-            time.sleep(int(self.config["sleep_timer"]))
-        else:
-            time.sleep(10)
+    def signal_handler(sig, frame):
+        stop(logger,billing_handler)
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
+    try:
+        while True:
+            try:
+                billing_handler.update_cost()
+            except Exception as e:
+                logger.error(f"Unexpected exception has caused the billing loop to terminate : {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
+                logger.warning(f"Continuing loop at next interval.")
+                continue
+            finally:
+                if test:
+                    break
+                elif 'sleep_timer' in config and int(config["sleep_timer"]) > 0:
+                    time.sleep(int(self.config["sleep_timer"]))
+                else:
+                    time.sleep(10)
+    except Exception as e:
+        msg = f"Could not run Billing process - {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}"
+        logger.error(msg)
+        stop(logger,billing_handler)
 
 
 ### COMMON METHODS ###

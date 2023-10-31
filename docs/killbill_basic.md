@@ -1,6 +1,6 @@
 # Basic Working KillBill Configuration
 
-Our goal for this is to create a basic working KillBill service and configuration for the Openstack Billing API. To fulling process billing metrics, complete the openstack basic configuration section. We will be linking to the official documentation wherever possible. 
+Our goal for this is to create a basic working KillBill service and configuration for the Concertim-Openstack Service. To fulling process billing metrics, complete the openstack basic configuration section. We will be linking to the official documentation wherever possible. 
 
 ## KillBill Installation
 
@@ -62,8 +62,5 @@ After KillBill is up and running and KAUI is accessable, we can begin [setting u
 1. Login to KAUI with `admin/password`
 2. Create a new tenant when prompted using desired name, API secret and API key
 3. Create a [catalog](https://docs.killbill.io/latest/userguide_subscription.html#components-catalog) or use the example in this project
-4. Create an account
-5. Create the [custom fields](/docs/killbill_ref.md) 
-6. Setup the [subscription for the account](https://docs.killbill.io/latest/quick_start_with_kaui.html#step5)
 
-With all of the above configured, you should be able to the basic Openstack Billing API functionality.
+With all of the above configured, you should be able to use Killbill with your Concertim-Openstack Service

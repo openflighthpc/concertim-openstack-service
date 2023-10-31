@@ -11,7 +11,7 @@ sudo docker run -d --name concertim_api_server \
     -v /etc/concertim-openstack-service/config.yaml:/etc/concertim-openstack-service/config.yaml \
     -v /var/log/concertim-openstack-service/:/app/var/log/ \
     -v /var/lib/concertim-openstack-service/data/:/app/var/data/ \
-    --publish 10.151.0.184:42356:42356 \
+    --publish hostIP:42356:42356 \
     concertim_api_server
 
 # LOGS - tail 50 with follow (also in log dir on localhost)

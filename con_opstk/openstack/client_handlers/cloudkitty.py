@@ -68,11 +68,9 @@ class CloudkittyHandler(ClientHandler):
             self.__LOGGER.error("Error getting rating summary: %s", e)
             sys.exit(1)
 
-
     # Function to get the detailed summary (openstack rating summary get) for each tenant in one dictionary
     def get_rating_summary_project(self, project_id, begin, end):
-
-        if len(project_id) >= 1:
+        if project_id:
             self.__LOGGER.info("Getting rating summary for project " + project_id)
         else:
             self.__LOGGER.info("Empty resource id passed to get_rating_summary_project")
@@ -90,7 +88,7 @@ class CloudkittyHandler(ClientHandler):
             rate_index = rating_summary_dict["columns"].index('rate')
             type_index = rating_summary_dict["columns"].index('type')
 
-            if not(rate_index >=0 and type_index >=0) :
+            if not(rate_index >=0 and type_index >=0):
                 return {}
                 #raise Exception("rate and type not present in summary result")
 
@@ -98,14 +96,12 @@ class CloudkittyHandler(ClientHandler):
                 project_rating_summary[result[type_index]] = result[rate_index]
 
             self.__LOGGER.debug("Project rating summary: %s", project_rating_summary)
-
             return project_rating_summary
 
         except ValueError:
             self.__LOGGER.error("Cloudkitty rating empty for project %s", project_id)
         except Exception as e:
             self.__LOGGER.error("Error getting rating summary: %s", e)
-
         return {}
 
     def get_rating_summary_resource(self, resource_id, begin, end, resource_type):
@@ -147,11 +143,6 @@ class CloudkittyHandler(ClientHandler):
         except Exception as e:
             self.__LOGGER.error("Error getting rating summary: %s", e)
 
-        return {}
-
-
-    # Function to get the detailed summary (openstack rating summary get) for each tenant in one dictionary
-    def get_rating_summary_project(self, stack_id, begin, end):
         return {}
     
 

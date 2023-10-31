@@ -29,7 +29,21 @@ The Billing modules require the following to be installed and configured in the 
 - [Openstack Rating](https://docs.openstack.org/cloudkitty/yoga/) (Cloudkitty)
 - A time-seriese database for storing metrics (The default and **recommended** databse is [Gnocchi](https://gnocchi.osci.io/))
 
+If **Killbill** is being used as the Billing App (default), the Concertim-Openstack service will require another package to be installed in order to function properly - [the Killbill API Client](https://github.com/alces-flight/killbill_fork). When building the Docker images, the `requirements.txt` will look into the `concertim-openstack-service/con_opstk/billing/killbill/` directory for this package.
+
+Clone the Alces fork of the Killbill API Client into the Conceritm-Openstack billing directory
+    ```
+    cd concertim-openstack-service/con_opstk/billing/killbill/
+    git clone https://<user>@github.com/alces-flight/killbill_fork.git
+    ```
+
 ## Configuration
+
+### `congif.yaml`
+
+See the configured app's dedicated documentation
+
+### Openstack
 
 The billing automation makes use of various openstack objects for tracking Concertim-managed systems. To achieve this, the following need to be presesnt in Openstack:
 
