@@ -93,7 +93,7 @@ class KillbillHandler(BillingHandler):
         for kb_metric in openstack_kb_metrics:
             self.__LOGGER.debug("Processing kb_metric : %s", kb_metric)
             for metric in rack_rating_summary:
-                # if the variable name from hostbill matches the metric res type from openstack in metrics.yaml
+                # if the variable name from killbill matches the metric res type from openstack in metrics.yaml
                 if metric != kb_metric:
                     continue
                 current_rate = float(rack_rating_summary[metric]) 

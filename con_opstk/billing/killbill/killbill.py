@@ -284,12 +284,10 @@ class KillbillService(BillingService):
         latest_date = datetime.date(1970, 1, 1)
         latest_invoice_id = None
         for invoice in accountInvoices['data']:
-
             if invoice.target_date >= latest_date:
                 latest_invoice_id = invoice.invoice_id
                 latest_date = invoice.target_date
-
-        self.__LOGGER.debug(f"Latest invoice found for date {latest_date}")
+                self.__LOGGER.debug(f"Latest invoice found for date {latest_date}")
         
         if latest_invoice_id != None:
             return self.get_invoice_html(latest_invoice_id)['data']
