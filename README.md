@@ -18,7 +18,7 @@ These instructions assume the recommended way of setting up the Concertim-Openst
 
 1. Clone the repository
     ```
-    git clone https://github.com/<username>/concertim-service.git
+    git clone https://<user>@github.com/alces-flight/concertim-openstack-service.git
     ```
 2. Install `Docker` if not already installed
 
@@ -29,6 +29,14 @@ For Non-Docker ENVs:
     ```
     python3 setup.py build
     python3 setup.py install
+    ```
+
+If **Killbill** is being used as the Billing App (default):
+
+5. Clone the Alces fork of the Killbill API Client into the Conceritm-Openstack billing directory
+    ```
+    cd concertim-openstack-service/con_opstk/billing/killbill/
+    git clone https://<user>@github.com/alces-flight/killbill_fork.git
     ```
 
 ## Configuration
@@ -70,7 +78,8 @@ The minimum requirement of the Concertim-Openstack service calls for an Openstac
 
 Values with no header:
 
-- `log_level`: Desired logging level (debug, info, error... etc.)
+- `log_level` : Desired logging level (debug, info, error... etc.)
+- `billing_platform` : The configure billing app to use
 
 ##### **Openstack Values**
 
@@ -114,10 +123,15 @@ Values under the `concertim` header:
 - `concertim_url` : URL for the Concertim API endpoint
 - `concertim_username` : Admin Username for authenticating with Concertim
 - `concertim_password` : Admin Password for authenticating with Concertim
+- `default_rack_height` : Default rack height for newly created racks (racks will scale up if needed)
+
+##### **Billing Values**
+
+These will change depending on the configure billing application, please see the [billing](docs/billing.md) docs for the selected billing app for more information.
 
 ##### **Optional Values**
 
-TBD
+- `sleep_timer` : Override for the defulat sleep amount (10s) for the billing_handler
 
 ### Changing Configuration
 
@@ -238,41 +252,6 @@ Messaging Queue Updates Handler
     ```
     docker exec concertim_billing tail -50f /var/log/concertim-openstack-service/billing.log
     ```
-
-### Systemd
-
-To run the Concertim Openstack Service as a systemd service:
-
-1. Create a new file named `concertim_<component>.service` in the `/etc/systemd/system/` directory with the following contents:
-
-```
-[Unit]
-Description=Concertim Openstack Service - <component>
-After=network.target
-
-[Service]
-User=<user>
-Group=<group>
-WorkingDirectory=<path_to_concertim_service>
-ExecStart=<path_to_python3> <path_to_concertim_service>/<driver>.py run=<component>
-Restart=always
-RestartSec=5s
-
-[Install]
-WantedBy=multi-user.target
-```
-
-2. Replace `<user>`, `<group>`, `<path_to_concertim_service>`, `<component>`, and `<path_to_python3>` with the appropriate values for your system. Note that `<path_to_python3>` should be the path to your Python3 executable.
-3. Reload the systemd daemon: `sudo systemctl daemon-reload`
-4. Start the Concertim Openstack Service: `sudo systemctl start concertim.service`
-5. Verify that the service is running: `sudo systemctl status concertim.service`
-6. Enable the service to start on boot: `sudo systemctl enable concertim.service`
-7. To stop the service, run: `sudo systemctl stop concertim.service`
-8. To disable the service from starting on boot, run: `sudo systemctl disable concertim.service`
-
-Note that the Concertim Openstack Service logs will be written to the `<app_root>/var/log/` directory.
-
-The service will run indefinitely, sending metric data to the Concertim API repeatedly every 30 second (can be changed).
 
 ## Importing Package For Use in Other Modules
 
