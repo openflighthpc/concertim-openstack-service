@@ -100,6 +100,8 @@ class BillingHandler(BaseHandler):
             # Checking for existence of Openstack device id
             if device.id[0] == concertim_device_id and device.id[1] != None:
                 device_found = True
+                break
+            
         if device_found == False or device == None:
             return 0
         openstack_instance_id = device.id[1]
