@@ -15,7 +15,7 @@ class KillbillHandler(BillingHandler):
         self.__LOGGER = create_logger(__name__, self._LOG_FILE, self._CONFIG['log_level'])
 
     def update_cost(self):
-        self.__LOGGER.info("KillBill driver triggered")
+        self.__LOGGER.info("== KillBill driver triggered ==")
         self.read_view()
         
         accounts = self.billing_service.get_account_info()['data']
@@ -25,6 +25,8 @@ class KillbillHandler(BillingHandler):
 
         for account in accounts:
             self.update_cost_account(account.account_id, begin_date, end_date)
+        
+        self.__LOGGER.info("== KillBill Process Completed ==")
 
 
     def update_cost_account(self, account_id, begin_date, end_date):

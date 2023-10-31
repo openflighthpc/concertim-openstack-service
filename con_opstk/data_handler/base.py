@@ -3,13 +3,16 @@ from con_opstk.utils.service_logger import create_logger
 from con_opstk.openstack.openstack import OpenstackService
 from con_opstk.concertim.concertim import ConcertimService
 from con_opstk.openstack.exceptions import FailureToScrub, UnsupportedObject
+import con_opstk.app_definitions as app_paths
 # Py Packages
 import sys
 import importlib
+import pickle
 
 class BaseHandler(object):
     BILLING_SERVICES = {'killbill': 'KillbillService', 'hostbill': 'HostbillService'}
     BILLING_IMPORT_PATH = {'killbill': 'con_opstk.billing.killbill.killbill', 'hostbill': 'con_opstk.billing.hostbill.hostbill'}
+    VIEW_PICKLE_FILE = app_paths.DATA_DIR + 'view.pickle'
     def __init__(self, config_obj, log_file, openstack_client_list, enable_concertim=True, billing_enabled=False):
         self._CONFIG = config_obj
         self._LOG_FILE = log_file
@@ -17,6 +20,7 @@ class BaseHandler(object):
         self.billing_service = self.__get_billing_service() if billing_enabled else None
         self.openstack_service = OpenstackService(self._CONFIG, self._LOG_FILE, client_list=openstack_client_list, billing_enabled=billing_enabled)
         self.concertim_service = ConcertimService(self._CONFIG, self._LOG_FILE) if enable_concertim else None
+        self.view = None
 
     # Delete objects that were created before encountering an error ('orphans')
     # 'orphans' - Openstack objects to remove
@@ -70,6 +74,42 @@ class BaseHandler(object):
                 return True
         except Exception as e:
             self.__LOGGER.error(f"{type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
+            raise e
+
+    def read_view(self):
+        self.__LOGGER.debug(f"Loading View from '{BaseHandler.VIEW_PICKLE_FILE}'")
+        found = False
+        attempts = 0
+        while not found:
+            ret = self.__load_view()
+            if ret == True:
+                found = True
+                break
+            elif attempts > 10:
+                self.__LOGGER.error(f"Could not load '{BaseHandler.VIEW_PICKLE_FILE}'")
+                raise ViewNotFound(f"Max attempts exceeded")
+            else:
+                self.__LOGGER.debug(f"....")
+                attempts += 1
+                time.sleep(3)
+                continue
+        if found == True:
+            self.__LOGGER.info(f" View Loaded Successfully {self.view}")
+        else:
+            self.__LOGGER.error(f"Could not load View from '{BaseHandler.VIEW_PICKLE_FILE}' - {type(e).__name__} - {e} - {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
+            raise ViewNotFound(f"Could not load View from '{BaseHandler.VIEW_PICKLE_FILE}'")
+
+    def __load_view(self):
+        try:
+            with open(BaseHandler.VIEW_PICKLE_FILE, 'rb') as pkl_file:
+                self.view = pickle.load(pkl_file)
+            self.__LOGGER.debug(f"Success - View loaded from '{BaseHandler.VIEW_PICKLE_FILE}' and set to self.view")
+            return True
+        except FileNotFoundError as e:
+            self.__LOGGER.warning(f"No pickle file '{BaseHandler.VIEW_PICKLE_FILE}' found")
+            return False
+        except Exception as e:
+            self.__LOGGER.error(f"Could not load View from '{BaseHandler.VIEW_PICKLE_FILE}' - {type(e).__name__} - {e} - {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
             raise e
 
     def __get_billing_service(self):

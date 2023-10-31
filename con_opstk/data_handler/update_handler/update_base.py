@@ -16,8 +16,7 @@ import os
 
 class UpdateHandler(BaseHandler):
     DEFAULT_CLIENTS = ['keystone','nova','heat']
-    VIEW_PICKLE_FILE = app_paths.DATA_DIR + 'view.pickle'
-    __DATA = [VIEW_PICKLE_FILE]
+    __DATA = [BaseHandler.VIEW_PICKLE_FILE]
     CONCERTIM_STATE_MAP = {
         'DEVICE':{
             'ACTIVE': ['active', 'running'],
@@ -37,7 +36,7 @@ class UpdateHandler(BaseHandler):
         self.clients = clients if clients else UpdateHandler.DEFAULT_CLIENTS
         super().__init__(config_obj, log_file, self.clients, billing_enabled=billing_enabled)
         self.__LOGGER = create_logger(__name__, self._LOG_FILE, self._CONFIG['log_level'])
-        self.view = ConcertimOpenstackView()
+        self.view = None
         self._default_rack_height = int(self._CONFIG['concertim']['default_rack_height']) if 'default_rack_height' in self._CONFIG['concertim'] else 42
 
     # Controller method for populating self.view with data from concertim app
@@ -284,34 +283,34 @@ class UpdateHandler(BaseHandler):
         
 
     def save_view(self):
-        self.__LOGGER.info(f"Saving View to '{UpdateHandler.VIEW_PICKLE_FILE}'")
+        self.__LOGGER.info(f"Saving View to '{BaseHandler.VIEW_PICKLE_FILE}'")
         try:
-            if not os.path.exists(UpdateHandler.VIEW_PICKLE_FILE):
-                os.mknod(UpdateHandler.VIEW_PICKLE_FILE, mode = 0o660)
-            with open(UpdateHandler.VIEW_PICKLE_FILE, 'wb') as pkl_file:
+            if not os.path.exists(BaseHandler.VIEW_PICKLE_FILE):
+                os.mknod(BaseHandler.VIEW_PICKLE_FILE, mode = 0o660)
+            with open(BaseHandler.VIEW_PICKLE_FILE, 'wb') as pkl_file:
                 pickle.dump(self.view, pkl_file, protocol=pickle.HIGHEST_PROTOCOL)
-            self.__LOGGER.info(f"Success - View saved to '{UpdateHandler.VIEW_PICKLE_FILE}'")
+            self.__LOGGER.info(f"Success - View saved to '{BaseHandler.VIEW_PICKLE_FILE}'")
         except FileNotFoundError as e:
-            self.__LOGGER.error(f"No pickle file '{UpdateHandler.VIEW_PICKLE_FILE}' found - Please check path exists - {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
+            self.__LOGGER.error(f"No pickle file '{BaseHandler.VIEW_PICKLE_FILE}' found - Please check path exists - {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
             raise e
         except Exception as e:
-            self.__LOGGER.error(f"Could not save View to '{UpdateHandler.VIEW_PICKLE_FILE}' - {type(e).__name__} - {e} - {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
+            self.__LOGGER.error(f"Could not save View to '{BaseHandler.VIEW_PICKLE_FILE}' - {type(e).__name__} - {e} - {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
             raise e
 
     def load_view(self):
-        self.__LOGGER.info(f"Loading View from '{UpdateHandler.VIEW_PICKLE_FILE}'")
+        self.__LOGGER.info(f"Loading View from '{BaseHandler.VIEW_PICKLE_FILE}'")
         try:
-            with open(UpdateHandler.VIEW_PICKLE_FILE, 'rb') as pkl_file:
+            with open(BaseHandler.VIEW_PICKLE_FILE, 'rb') as pkl_file:
                 self.view = pickle.load(pkl_file)
-            self.__LOGGER.info(f"Success - View loaded from '{UpdateHandler.VIEW_PICKLE_FILE}' and set to self.view")
+            self.__LOGGER.info(f"Success - View loaded from '{BaseHandler.VIEW_PICKLE_FILE}' and set to self.view")
             return True
         except FileNotFoundError as e:
-            self.__LOGGER.warning(f"No pickle file '{UpdateHandler.VIEW_PICKLE_FILE}' found - populating View directly")
+            self.__LOGGER.warning(f"No pickle file '{BaseHandler.VIEW_PICKLE_FILE}' found - populating View directly")
             self.populate_view()
             self.save_view()
             return False
         except Exception as e:
-            self.__LOGGER.error(f"Could not load View from '{UpdateHandler.VIEW_PICKLE_FILE}' - {type(e).__name__} - {e} - {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
+            self.__LOGGER.error(f"Could not load View from '{BaseHandler.VIEW_PICKLE_FILE}' - {type(e).__name__} - {e} - {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
             raise e
 
     def _get_ips_as_dict(self, addresses):

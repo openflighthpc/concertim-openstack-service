@@ -174,27 +174,28 @@ class KillbillService(BillingService):
 
     def _transform_response(self, raw_response):
         response = {}
-        
+        self.__LOGGER.debug(f"Formatting response.... {raw_response}")
+
         response['data'] = raw_response[0]
         response['status'] = raw_response[1]
         response['headers'] = raw_response[2]
 
         if self._check_response(response):
             return response
-        raise BillingAPIError(f"API Call returned unexpected response - {raw_response}")
-
+        else:
+            raise BillingAPIError(f"API Call returned unexpected response - {raw_response}")
 
     def _check_response(self, response):
+        self.__LOGGER.debug(f"Verifying response....")
         if 'data' not in response:
             return False
         if 'status' not in response:
             return False
         if 'headers' not in response:
             return False
-        
-        if response['status'] not in [200 , 201]:
+        if int(response['status']) not in [200 , 201]:
             return False
-        
+        self.__LOGGER.debug(f"Valid Response")
         return True
     
     # Add subscription
@@ -229,10 +230,12 @@ class KillbillService(BillingService):
         if acct_id:
             self.__LOGGER.debug(f"Getting account info for account: {acct_id}")
             accounts = accountApi.get_account_with_http_info(acct_id)
-        else:
-            self.__LOGGER.debug(f"Getting account info for all accounts")
-            accounts = accountApi.get_accounts_with_http_info()
-        return self._transform_response(accounts)
+            return self._transform_response(accounts)
+
+        self.__LOGGER.debug(f"Getting account info for all accounts")
+        accounts = accountApi.get_accounts_with_http_info()
+        formatted = self._transform_response(accounts)
+        return formatted
 
     def get_account_bundles(self, account_id):
         self.__LOGGER.debug(f"Getting Bundles for account {account_id}")
