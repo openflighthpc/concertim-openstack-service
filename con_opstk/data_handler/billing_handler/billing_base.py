@@ -37,7 +37,7 @@ class BillingHandler(BaseHandler):
             return 0
 
         # Obtain usage details from cloudkitty
-        rating_summary = self.openstack_service.handlers['cloudkitty'].get_rating_summary_project(user.openstack_project_id, begin, end)
+        rating_summary = self.openstack_service.get_ratings_project(user.openstack_project_id, begin=begin, end=end)
 
         project_cost = 0
 

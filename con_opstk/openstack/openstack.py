@@ -521,8 +521,12 @@ class OpenstackService(object):
         self.__LOGGER.debug(f"Getting rating for project: '{project_id}' -  args[{kwargs.items()}]")
         self.__check_handlers('cloudkitty')
         cloudkitty = self.handlers[self._handlers_key_map['cloudkitty']]
-        # TODO
-        return
+        try:
+            result = cloudkitty.get_rating_summary_project(project_id, **kwargs)
+            return result
+        except Exception as e:
+            self.__LOGGER.error(f"An unexpected error : {type(e).__name__} - {e}")
+            raise e
 
     def get_ratings_resource(self, resource_type, resource_id, **kwargs):
         self.__LOGGER.debug(f"Getting rating for resource: '{resource_type}:{resource_id}' - args[{kwargs.items()}]")
