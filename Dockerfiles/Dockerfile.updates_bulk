@@ -1,6 +1,15 @@
 # Use an official Python runtime as a parent image
 FROM python:3.8-slim-buster
 
+ARG BUILD_DATE
+ARG BUILD_VERSION
+ARG BUILD_REVISION
+
+LABEL org.opencontainers.image.created=$BUILD_DATE
+LABEL org.opencontainers.image.version=$BUILD_VERSION
+LABEL org.opencontainers.image.revision=$BUILD_REVISION
+LABEL org.opencontainers.image.title="Concertim Openstack Bulk Updates"
+
 # Set the working directory in the container to /app
 WORKDIR /app
 # Copy the directory contents into the container at /app
