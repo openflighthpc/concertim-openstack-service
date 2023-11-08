@@ -192,7 +192,7 @@ class ConcertimService(object):
         #    raise e
         elif response.status_code in [401,403,405,407,408]:
             if self.__retry_count == 0:
-                self.__LOGGER.warning(f"API call failed due to one of the following codes '[401,403,405,407,408]' - retrying once - {type(e).__name__} - {e}")
+                self.__LOGGER.warning(f"API call failed due to one of the following codes '[401,403,405,407,408]' - retrying once")
                 self.__retry(method, endpoint_name, variables_dict=variables_dict, endpoint_var=endpoint_var)
             else:
                 self.__LOGGER.error('Unhandled REST request error.')
