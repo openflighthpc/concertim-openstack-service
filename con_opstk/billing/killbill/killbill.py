@@ -294,7 +294,24 @@ class KillbillService(BillingService):
         
         else:
             raise BillingAPIError(f"No latest invoice found for account {account_id}")
-            
+        
+    def get_draft_invoice(self, account_id):
+
+        self.__LOGGER.debug(f"Getting draft invoice for account {account_id}")
+        
+        invoiceApi = killbill.api.InvoiceApi(self.kb_api_client)
+
+        body = killbill.InvoiceDryRun(dry_run_type='UPCOMING_INVOICE')
+
+        invoice = invoiceApi.generate_dry_run_invoice_with_http_info(body,
+                                              account_id,
+                                              created_by='KillbillService')
+        
+        response = self._transform_response(invoice)
+
+        return json.loads(json.dumps(response['data'], default=str))
+        
+
     def list_account_invoice(self, account_id):
 
         self.__LOGGER.debug(f"Listing invoices for account {account_id}")

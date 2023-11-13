@@ -375,6 +375,52 @@ def get_user_invoice():
         except NameError:
             billing_handler = None
 
+@app.route('/get_draft_invoice', methods=['POST'])
+def get_draft_invoice():
+    app.logger.info(f"Starting - Getting user draft invoice")
+    try:
+        req_data = request.get_json()
+        app.logger.debug(req_data)
+        if 'invoice' not in req_data or 'billing_acct_id' not in req_data['invoice']:
+            raise APIServerDefError("No Billling Account data recieved.", 400)
+        if 'invoice' not in req_data or 'target_date' not in req_data['invoice']:
+            raise APIServerDefError("No Invoice Date data recieved.", 400)
+
+        #ImportedHandler = importlib.import_module(BILLING_HANDLERS[config_file['billing_platform']])
+        billing_app = config_file['billing_platform']
+        ImportedService = getattr(importlib.import_module(BILLING_IMPORT_PATH[billing_app]), BILLING_SERVICES[billing_app])
+
+        billing_service = ImportedService(config_file, log_file)
+        app.logger.debug(f"Successfully created {config_file['billing_platform']} service")
+
+        invoice_obj = billing_service.get_draft_invoice(req_data['invoice']['billing_acct_id'])
+
+        #resp = {"draft_invoice": invoice_obj}
+        return make_response(invoice_obj,201)
+    except APIServerDefError as e:
+        response = {"error": type(e).__name__, "message": str(e)}
+        app.logger.error(response)
+        return jsonify(response), 400
+    except OpStkAuthenticationError as e:
+        response = {"error": type(e).__name__, "message": str(e)}
+        app.logger.error(response)
+        return jsonify(response), 401
+    except Exception as e:
+        response = {"error": f"An unexpected error occurred: {e.__class__.__name__}", "message": str(e)}
+        stat_code = 500
+        app.logger.error(response)
+        if 'http_status' in dir(e):
+            stat_code = e.http_status
+        return jsonify(response), stat_code
+    finally:
+        app.logger.info(f"Finished - Getting user draft invoice")
+        app.logger.debug("Disconnecting Handler")
+        try:
+            billing_handler.disconnect()
+            billing_handler = None
+        except NameError:
+            billing_handler = None
+
 
 @app.route('/')
 def running():
