@@ -17,8 +17,8 @@ class ConcertimService(object):
         self._LOG_FILE = log_file
         self.__LOGGER = create_logger(__name__, self._LOG_FILE, self._CONFIG['log_level'])
         self._URL = self._CONFIG['concertim']['concertim_url']
-        self.__AUTH_TOKEN = self.__get_auth_token()
         self.__retry_count = 0
+        self.__AUTH_TOKEN = self.__get_auth_token()
     
     def __get_auth_token(self):
         login = self._CONFIG['concertim']['concertim_username']

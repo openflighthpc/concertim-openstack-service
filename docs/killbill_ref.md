@@ -31,7 +31,7 @@ The Concertim-Openstack package communicates with Killbill via the [Killbill API
 
 ## KillBill Configuration
 
-In order for the KillBill environment to work with the Concertim-Openstack Service you need to [create the catalog](https://docs.killbill.io/latest/catalog-examples.html) for the clusters built in Concertim to be track by. In our [example catalog](/openstack_billing/billingplatforms/killbill/catalog.xml) we setup a basic configuration for a billing model with 2 metrics being track for their individual contributuons to the invoice: `openstack-billed-instance` and `openstack-billed-vcpus`.
+In order for the KillBill environment to work with the Concertim-Openstack Service you need to [create the catalog](https://docs.killbill.io/latest/catalog-examples.html) for the clusters built in Concertim to be track by. In our [example catalog](/con_opstk/billing/killbill/catalog.xml) we setup a basic configuration for a billing model with 2 metrics being track for their individual contributuons to the invoice: `openstack-billed-instance` and `openstack-billed-vcpus`.
 
 - `openstack-billed-instance` - the amount to be billed for instance uptime
 - `openstack-billed-vcpus` - the amount to be billed for the amount of vcpus the instance is occupying
