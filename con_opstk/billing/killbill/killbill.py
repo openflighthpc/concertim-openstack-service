@@ -309,7 +309,11 @@ class KillbillService(BillingService):
         
         response = self._transform_response(invoice)
 
-        return json.loads(json.dumps(response['data'], default=str))
+        for item in response['data'].items:            
+            if item.item_details != None:
+                item.item_details = json.loads(item.item_details)
+
+        return json.loads(json.dumps(response['data'].to_dict(), default=str))
         
 
     def list_account_invoice(self, account_id):

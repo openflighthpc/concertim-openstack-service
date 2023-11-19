@@ -395,8 +395,9 @@ def get_draft_invoice():
 
         invoice_obj = billing_service.get_draft_invoice(req_data['invoice']['billing_acct_id'])
 
-        #resp = {"draft_invoice": invoice_obj}
-        return make_response(invoice_obj,201)
+        resp = {"draft_invoice": invoice_obj}
+        return make_response(resp,201)
+    
     except APIServerDefError as e:
         response = {"error": type(e).__name__, "message": str(e)}
         app.logger.error(response)
