@@ -235,9 +235,9 @@ class KillbillService(BillingService):
             return True
          """
         
-        draft_invoice = self.get_draft_invoice(account_id=acct_id)['response']
-        self.__LOGGER.debug(f"Draft invoice balance :  {draft_invoice.balance}")
-        if draft_invoice.balance > 0:
+        draft_invoice = self.get_draft_invoice(account_id=acct_id)
+        self.__LOGGER.debug(f"Draft invoice :  {draft_invoice['balance']}")
+        if draft_invoice['balance'] > 0:
             return False
         
 
