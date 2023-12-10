@@ -201,6 +201,10 @@ class KillbillService(BillingService):
     # Add subscription
     def create_order(self, acct_id, os_stack_id, plan_name=None):
         self.__LOGGER.debug(f"Creating new order for account {acct_id}, stack id {os_stack_id}")
+
+        if not self.__check_for_available_credits(acct_id=acct_id):
+            raise Exception(f"Not enough credits to create a new order for account {acct_id}")
+        
         subscriptionApi = killbill.api.SubscriptionApi(self.kb_api_client)
         plan = plan_name if plan_name else KillbillService.DEFAULT_SUB_PLAN
         body = killbill.Subscription(account_id=acct_id, plan_name=plan)
@@ -220,6 +224,24 @@ class KillbillService(BillingService):
         self.create_custom_field_subscription(subscription_id=subscription_id, field_name="openstack_cloudkitty_metrics", field_value=KillbillService.DEFAULT_CLOUDKITTY_METRICS)   
 
         return response
+
+    def __check_for_available_credits(self, acct_id):
+
+        self.__LOGGER.debug(f"Checking for available credits for account {acct_id}")
+        
+        """ account = self.get_account_info(acct_id=acct_id)
+        self.__LOGGER.debug(f"Available Credits :  {account.account_cba}")
+        if account.account_cba > 0:
+            return True
+         """
+        
+        draft_invoice = self.get_draft_invoice(account_id=acct_id)['response']
+        self.__LOGGER.debug(f"Draft invoice balance :  {draft_invoice.balance}")
+        if draft_invoice.balance > 0:
+            return False
+        
+
+        return True
 
     # Get account(s) info
     def get_account_info(self, acct_id=None):
@@ -359,7 +381,37 @@ class KillbillService(BillingService):
         
         return invoice_html['data']
 
-    # Add to invoice
+    # Add Credits
+    def add_credits(self, account_id, credits_to_add):
+
+        self.__LOGGER.debug(f"Adding Credits")
+
+        creditApi = killbill.api.CreditApi(self.kb_api_client)
+
+        creditBody = killbill.InvoiceItem(account_id=account_id, 
+                         amount=credits_to_add, 
+                         currency='USD', 
+                         description='Adding Credits')
+
+        credits = creditApi.create_credits_with_http_info([creditBody],
+                         auto_commit=True,
+                         created_by='KillbillService',
+                         reason='reason', 
+                         comment='comment')
+
+
+        response = self._transform_response(credits)
+
+        self.__LOGGER.debug(f"{response['data'][0]}")
+
+        """ for item in response['data'][0]:            
+            if item.item_details != None:
+                item.item_details = json.loads(item.item_details) """
+
+        return json.loads(json.dumps(response['data'][0].to_dict(), default=str))
+             
+
+
 
     # List invoices (all)
     def list_invoice(self):
