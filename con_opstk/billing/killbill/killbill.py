@@ -229,15 +229,9 @@ class KillbillService(BillingService):
 
         self.__LOGGER.debug(f"Checking for available credits for account {acct_id}")
         
-        """ account = self.get_account_info(acct_id=acct_id)
-        self.__LOGGER.debug(f"Available Credits :  {account.account_cba}")
-        if account.account_cba > 0:
-            return True
-         """
-        
-        draft_invoice = self.get_draft_invoice(account_id=acct_id)
-        self.__LOGGER.debug(f"Draft invoice :  {draft_invoice['balance']}")
-        if draft_invoice['balance'] > 0:
+        draft_invoice = self.get_draft_invoice(account_id=acct_id)['data']
+        self.__LOGGER.debug(f"Draft invoice balance :  {draft_invoice['balance']}")
+        if draft_invoice['balance'] >= 0:
             return False
         
 
@@ -329,14 +323,18 @@ class KillbillService(BillingService):
                                               account_id,
                                               created_by='KillbillService')
         
+        
         response = self._transform_response(invoice)
 
         for item in response['data'].items:            
             if item.item_details != None:
                 item.item_details = json.loads(item.item_details)
 
-        return json.loads(json.dumps(response['data'].to_dict(), default=str))
+        #return json.loads(json.dumps(response['data'].to_dict(), default=str))
         
+        response['data'] = response['data'].to_dict()
+
+        return response
 
     def list_account_invoice(self, account_id):
 
@@ -347,9 +345,38 @@ class KillbillService(BillingService):
         
         self.__LOGGER.debug(f"{accountInvoices}")
 
-        return self._transform_response(accountInvoices)
+        response =  self._transform_response(accountInvoices)
 
 
+        invoice_list = []
+        for invoice in accountInvoices[0]:
+            invoice_list.append(invoice.to_dict())
+
+        response['data'] = invoice_list
+    
+        self.__LOGGER.debug(f"{json.dumps(response['data'])}")
+        return response
+
+    def list_account_invoice_paginated(self, account_id, offset=0, limit=100):
+
+        self.__LOGGER.debug(f"Listing paginated invoices for account {account_id}")
+        accountApi = killbill.api.AccountApi(self.kb_api_client)
+
+        accountInvoices = accountApi.get_invoices_for_account_paginated_with_http_info(account_id=account_id, offset=offset, limit=limit)
+        
+        self.__LOGGER.debug(f"{accountInvoices}")
+
+
+        invoice_list = []
+        for invoice in accountInvoices[0]:
+            invoice_list.append(invoice.to_dict())
+
+        response =  self._transform_response(accountInvoices)
+        response['data'] = invoice_list
+    
+        self.__LOGGER.debug(f"{json.dumps(response['data'])}")
+        return response
+        
     # Get invoice (html)
     def get_invoice_html(self, invoice_id):
 
@@ -400,17 +427,18 @@ class KillbillService(BillingService):
                          comment='comment')
 
 
+        
+        credit_list = []
+        for credit in credits[0]:
+            credit_list.append(credit.to_dict())
+        
         response = self._transform_response(credits)
+        response['data'] = credit_list
 
-        self.__LOGGER.debug(f"{response['data'][0]}")
-
-        """ for item in response['data'][0]:            
-            if item.item_details != None:
-                item.item_details = json.loads(item.item_details) """
-
-        return json.loads(json.dumps(response['data'][0].to_dict(), default=str))
+        #return json.loads(json.dumps(response['data'][0].to_dict(), default=str))
              
 
+        return response
 
 
     # List invoices (all)

@@ -395,7 +395,7 @@ def get_draft_invoice():
         billing_service = ImportedService(config_file, log_file)
         app.logger.debug(f"Successfully created {config_file['billing_platform']} service")
 
-        invoice_obj = billing_service.get_draft_invoice(req_data['invoice']['billing_acct_id'])
+        invoice_obj = billing_service.get_draft_invoice(req_data['invoice']['billing_acct_id'])['data']
 
         resp = {"draft_invoice": invoice_obj}
         return make_response(resp,201)
@@ -443,7 +443,7 @@ def add_credits():
         billing_service = ImportedService(config_file, log_file)
         app.logger.debug(f"Successfully created {config_file['billing_platform']} service")
 
-        credit_obj = billing_service.add_credits(req_data['credits']['account_id'], req_data['credits']['credits_to_add'])
+        credit_obj = billing_service.add_credits(req_data['credits']['account_id'], req_data['credits']['credits_to_add'])['data']
 
         resp = {"credits": credit_obj}
         return make_response(resp,201)
@@ -521,6 +521,62 @@ def create_order():
             billing_handler = None
         except NameError:
             billing_handler = None
+
+@app.route('/list_paginated_invoices', methods=['POST'])
+def list_paginated_invoices():
+    app.logger.info(f"Starting - List paginated invoices")
+    try:
+        req_data = request.get_json()
+        app.logger.debug(req_data)
+        if 'invoices' not in req_data or 'account_id' not in req_data['invoices']:
+            raise APIServerDefError("No account id data recieved.", 400)
+        
+        
+        #ImportedHandler = importlib.import_module(BILLING_HANDLERS[config_file['billing_platform']])
+        billing_app = config_file['billing_platform']
+        ImportedService = getattr(importlib.import_module(BILLING_IMPORT_PATH[billing_app]), BILLING_SERVICES[billing_app])
+
+        billing_service = ImportedService(config_file, log_file)
+        app.logger.debug(f"Successfully created {config_file['billing_platform']} service")
+
+        offset = 0
+        if 'offset' in req_data['invoices']:
+            offset = req_data['invoices']['offset']
+
+        limit = 100
+        if 'limit' in req_data['invoices']:
+            limit = req_data['invoices']['limit']
+        
+        invoice_obj = billing_service.list_account_invoice_paginated(account_id=req_data['invoices']['account_id'], offset=offset, limit=limit)['data']
+
+        resp = {"invoices": invoice_obj}
+        return make_response(resp,201)
+    
+    except APIServerDefError as e:
+        response = {"error": type(e).__name__, "message": str(e)}
+        app.logger.error(response)
+        return jsonify(response), 400
+    except OpStkAuthenticationError as e:
+        response = {"error": type(e).__name__, "message": str(e)}
+        app.logger.error(response)
+        return jsonify(response), 401
+    except Exception as e:
+        response = f"Unexpected Error occurred - {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}"
+        #response = {"error": f"An unexpected error occurred: {e.__class__.__name__}", "message": str(e)}
+        stat_code = 500
+        app.logger.error(response)
+        if 'http_status' in dir(e):
+            stat_code = e.http_status
+        return jsonify(response), stat_code
+    finally:
+        app.logger.info(f"Finished - Listing paginated invoices")
+        app.logger.debug("Disconnecting Handler")
+        try:
+            billing_handler.disconnect()
+            billing_handler = None
+        except NameError:
+            billing_handler = None
+
 
 @app.route('/')
 def running():
