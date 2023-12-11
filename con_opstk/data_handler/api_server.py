@@ -547,9 +547,14 @@ def list_paginated_invoices():
         if 'limit' in req_data['invoices']:
             limit = req_data['invoices']['limit']
         
-        invoice_obj = billing_service.list_account_invoice_paginated(account_id=req_data['invoices']['account_id'], offset=offset, limit=limit)['data']
+        invoice_obj = billing_service.list_account_invoice_paginated(account_id=req_data['invoices']['account_id'], offset=offset, limit=limit)
 
-        resp = {"invoices": invoice_obj}
+        total_invoices = -1
+        if 'X-Killbill-Pagination-MaxNbRecords' in invoice_obj['headers']:
+            total_invoices = invoice_obj['headers']['X-Killbill-Pagination-MaxNbRecords']
+
+        resp = {"total_invoices": total_invoices, "invoices": invoice_obj['data']}
+
         return make_response(resp,201)
     
     except APIServerDefError as e:
