@@ -60,10 +60,10 @@ def create_user_project():
         user, project = api_handler.create_user_project(username, password, email)
         app.logger.debug(f"Successfully created new User and Project in Openstack")
 
-        billing_acct_id = api_handler.create_new_billing_acct(username, email, project.id)
+        billing_account_id = api_handler.create_new_billing_acct(username, email, project.id)
         app.logger.debug(f"Successfully created new Account in {config['billing_platform']}")
 
-        resp = {"username": username, "user_id": user.id, "project_id": project.id, "billing_acct_id": billing_acct_id}
+        resp = {"username": username, "user_id": user.id, "project_id": project.id, "billing_account_id": billing_account_id}
         return make_response(resp,201)
     except APIServerDefError as e:
         response = {"error": type(e).__name__, "message": str(e)}
@@ -337,7 +337,7 @@ def get_user_invoice():
     try:
         req_data = request.get_json()
         app.logger.debug(req_data)
-        if 'invoice' not in req_data or 'billing_acct_id' not in req_data['invoice']:
+        if 'invoice' not in req_data or 'billing_account_id' not in req_data['invoice']:
             raise APIServerDefError("No Billling Account data recieved.", 400)
         if 'invoice' not in req_data or 'target_date' not in req_data['invoice']:
             raise APIServerDefError("No Invoice Date data recieved.", 400)
@@ -349,7 +349,7 @@ def get_user_invoice():
         billing_service = ImportedService(config_file, log_file)
         app.logger.debug(f"Successfully created {config_file['billing_platform']} service")
 
-        invoice = billing_service.get_latest_invoice(req_data['invoice']['billing_acct_id'])
+        invoice = billing_service.get_latest_invoice(req_data['invoice']['billing_account_id'])
 
         resp = {"invoice_html": invoice}
         return make_response(resp,201)
@@ -383,7 +383,7 @@ def get_draft_invoice():
     try:
         req_data = request.get_json()
         app.logger.debug(req_data)
-        if 'invoice' not in req_data or 'billing_acct_id' not in req_data['invoice']:
+        if 'invoice' not in req_data or 'billing_account_id' not in req_data['invoice']:
             raise APIServerDefError("No Billling Account data recieved.", 400)
         if 'invoice' not in req_data or 'target_date' not in req_data['invoice']:
             raise APIServerDefError("No Invoice Date data recieved.", 400)
@@ -395,7 +395,7 @@ def get_draft_invoice():
         billing_service = ImportedService(config_file, log_file)
         app.logger.debug(f"Successfully created {config_file['billing_platform']} service")
 
-        invoice_obj = billing_service.get_draft_invoice(req_data['invoice']['billing_acct_id'])['data']
+        invoice_obj = billing_service.get_draft_invoice(req_data['invoice']['billing_account_id'])['data']
 
         resp = {"draft_invoice": invoice_obj}
         return make_response(resp,201)
@@ -433,7 +433,7 @@ def add_credits():
         if 'credits' not in req_data or 'credits_to_add' not in req_data['credits']:
             raise APIServerDefError("No Credit data recieved.", 400)
         
-        if 'credits' not in req_data or 'account_id' not in req_data['credits']:
+        if 'credits' not in req_data or 'billing_account_id' not in req_data['credits']:
             raise APIServerDefError("No Credit data recieved.", 400)
        
         #ImportedHandler = importlib.import_module(BILLING_HANDLERS[config_file['billing_platform']])
@@ -443,7 +443,7 @@ def add_credits():
         billing_service = ImportedService(config_file, log_file)
         app.logger.debug(f"Successfully created {config_file['billing_platform']} service")
 
-        credit_obj = billing_service.add_credits(req_data['credits']['account_id'], req_data['credits']['credits_to_add'])['data']
+        credit_obj = billing_service.add_credits(req_data['credits']['billing_account_id'], req_data['credits']['credits_to_add'])['data']
 
         resp = {"credits": credit_obj}
         return make_response(resp,201)
@@ -479,7 +479,7 @@ def create_order():
     try:
         req_data = request.get_json()
         app.logger.debug(req_data)
-        if 'order' not in req_data or 'account_id' not in req_data['order']:
+        if 'order' not in req_data or 'billing_account_id' not in req_data['order']:
             raise APIServerDefError("No account id data recieved.", 400)
         
         if 'order' not in req_data or 'os_stack_id' not in req_data['order']:
@@ -492,7 +492,7 @@ def create_order():
         billing_service = ImportedService(config_file, log_file)
         app.logger.debug(f"Successfully created {config_file['billing_platform']} service")
 
-        order_obj = billing_service.create_order(req_data['order']['account_id'], req_data['order']['os_stack_id'])
+        order_obj = billing_service.create_order(req_data['order']['billing_account_id'], req_data['order']['os_stack_id'])
 
         resp = {"order": order_obj['headers']['Location'].split('/')[-1]}
         return make_response(resp,201)
@@ -528,7 +528,7 @@ def list_paginated_invoices():
     try:
         req_data = request.get_json()
         app.logger.debug(req_data)
-        if 'invoices' not in req_data or 'account_id' not in req_data['invoices']:
+        if 'invoices' not in req_data or 'billing_account_id' not in req_data['invoices']:
             raise APIServerDefError("No account id data recieved.", 400)
         
         
@@ -547,7 +547,7 @@ def list_paginated_invoices():
         if 'limit' in req_data['invoices']:
             limit = req_data['invoices']['limit']
         
-        invoice_obj = billing_service.list_account_invoice_paginated(account_id=req_data['invoices']['account_id'], offset=offset, limit=limit)
+        invoice_obj = billing_service.list_account_invoice_paginated(account_id=req_data['invoices']['billing_account_id'], offset=offset, limit=limit)
 
         total_invoices = -1
         if 'X-Killbill-Pagination-MaxNbRecords' in invoice_obj['headers']:
