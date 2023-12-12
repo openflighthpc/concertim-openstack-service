@@ -288,9 +288,11 @@ class KillbillService(BillingService):
     def get_invoice_raw(self, invoice_id):
         self.__LOGGER.debug(f"Getting raw invoice for {invoice_id}")
         invoiceApi = killbill.api.InvoiceApi(self.kb_api_client)
-        invoice = invoiceApi.get_invoice(invoice_id)
+        invoice = invoiceApi.get_invoice_with_http_info(invoice_id)
         self.__LOGGER.debug(f"{invoice}")
-        return self._transform_response(invoice)
+        response = self._transform_response(invoice)
+        response['data'] = response['data'].to_dict()
+        return response
 
     def get_latest_invoice(self, account_id):
 
@@ -440,7 +442,6 @@ class KillbillService(BillingService):
 
         return response
 
-
     # List invoices (all)
     def list_invoice(self):
 
@@ -452,8 +453,6 @@ class KillbillService(BillingService):
 
         return self._transform_response(invoices)
     
-
-
     # List invoices for user (acct_id)
 
     # Search Invoices
