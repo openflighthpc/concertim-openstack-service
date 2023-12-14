@@ -338,6 +338,19 @@ class KillbillService(BillingService):
         
         return invoice_html['data']
 
+    def add_account_credit(self, acct_id, amt):
+        self.__LOGGER.debug(f"Adding credits for {acct_id}")
+        credit_api = killbill.api.CreditApi(self.kb_api_client)
+        credit_body = {
+            "amount": amt,
+            "currency": "USD",
+            "accountId": str(account_id),
+            "description": "Created by Concertim Service"
+        }
+        credit = credit_api.create_credits([credit_body], created_by="KillbillService")
+        self.__LOGGER.debug(f"{credit}")
+        return self._transform_response(credit)
+
     # Add to invoice
 
     # List invoices (all)

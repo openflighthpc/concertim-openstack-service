@@ -99,4 +99,13 @@ class APIHandler(BaseHandler):
             self.__LOGGER.error(f"Encountered error when creating billing account : {e.__class__.__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
             raise e
 
+    def add_user_credits(self, billing_acct_id, amt):
+        self.__LOGGER.info(f"Starting adding {amt} credits to {billing_acct_id}")
+        try:
+            response = self.billing_service.add_account_credit(acct_id=billing_acct_id, amt=amt)
+            return response
+        except Exception as e:
+            self.__LOGGER.error(f"Encountered error when adding credits : {e.__class__.__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
+            raise e
+
     
