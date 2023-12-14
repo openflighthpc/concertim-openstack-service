@@ -193,21 +193,21 @@ class KillbillService(BillingService):
             return False
         if 'headers' not in response:
             return False
-        if int(response['status']) not in [200 , 201]:
+        if int(response['status']) not in [200 , 201, 204]:
             return False
         self.__LOGGER.debug(f"Valid Response")
         return True
     
     # Add subscription
-    def create_order(self, acct_id, os_stack_id, plan_name=None):
-        self.__LOGGER.debug(f"Creating new order for account {acct_id}, stack id {os_stack_id}")
+    def create_order(self, account_id, os_stack_id, plan_name=None):
+        self.__LOGGER.debug(f"Creating new order for account {account_id}, stack id {os_stack_id}")
 
-        if not self.__check_for_available_credits(acct_id=acct_id):
-            raise Exception(f"Not enough credits to create a new order for account {acct_id}")
+        if not self.__check_for_available_credits(account_id=account_id):
+            raise Exception(f"Not enough credits to create a new order for account {account_id}")
         
         subscriptionApi = killbill.api.SubscriptionApi(self.kb_api_client)
         plan = plan_name if plan_name else KillbillService.DEFAULT_SUB_PLAN
-        body = killbill.Subscription(account_id=acct_id, plan_name=plan)
+        body = killbill.Subscription(account_id=account_id, plan_name=plan)
         self.__LOGGER.debug(f"Order to create: {body}")
         order = subscriptionApi.create_subscription(body, created_by='KillbillService')
         self.__LOGGER.debug(f"Killbill response: {order}")
@@ -225,33 +225,59 @@ class KillbillService(BillingService):
 
         return response
 
-    def __check_for_available_credits(self, acct_id):
+    def __check_for_available_credits(self, account_id):
 
-        self.__LOGGER.debug(f"Checking for available credits for account {acct_id}")
+        self.__LOGGER.debug(f"Checking for available credits for account {account_id}")
         
-        draft_invoice = self.get_draft_invoice(account_id=acct_id)['data']
-        self.__LOGGER.debug(f"Draft invoice balance :  {draft_invoice['balance']}")
-        if draft_invoice['balance'] > 0:
+        # Obtaining Credits present in an account
+        account = self.get_account_info(account_id=account_id)
+
+        account_credits = -1
+        if 'account_cba' in account['data']:
+            account_credits = account['data']['account_cba']
+
+        self.__LOGGER.debug(f"Account Credits :  {account_credits}")
+        if account_credits > 0:
+            pass
+        else:
             return False
+
+
+        # Obtaining amount from draft invoice, how much user has spent
+        draft_invoice_amount = 0
+        draft_invoice = self.get_draft_invoice(account_id=account_id)
+
+        if 'amount' in draft_invoice['data'] and draft_invoice['data']['amount'] is not None and draft_invoice['data']['amount'] >= 0:
+            draft_invoice_amount = draft_invoice['data']['amount']
+            self.__LOGGER.debug(f"Draft invoice amount :  {draft_invoice['data']['amount']}")
+        
+        remaining_credits = account_credits - draft_invoice_amount
+
+        self.__LOGGER.debug(f"Credits left to launch new order : {remaining_credits}")
+        
+        # Enough credits available to create more orders
+        if remaining_credits > 0:
+            return True
         
 
-        return True
+        return False
 
     # Get account(s) info
-    def get_account_info(self, acct_id=None):
-
-        self.__LOGGER.debug(f"Getting Account info {acct_id}")
+    def get_account_info(self, account_id=None):
 
         accountApi = killbill.AccountApi(self.kb_api_client)
-        if acct_id:
-            self.__LOGGER.debug(f"Getting account info for account: {acct_id}")
-            accounts = accountApi.get_account_with_http_info(acct_id)
-            return self._transform_response(accounts)
+        if account_id:
+            self.__LOGGER.debug(f"Getting account info for account: {account_id}")
+            account = accountApi.get_account_with_http_info(account_id=account_id, account_with_balance_and_cba=True)
+            response =  self._transform_response(account)
+            response['data'] = response['data'].to_dict()
+            return response
 
         self.__LOGGER.debug(f"Getting account info for all accounts")
         accounts = accountApi.get_accounts_with_http_info()
-        formatted = self._transform_response(accounts)
-        return formatted
+        response = self._transform_response(accounts)
+        response['data'] = response['data'].to_dict()
+        return response
 
     def get_account_bundles(self, account_id):
         self.__LOGGER.debug(f"Getting Bundles for account {account_id}")
@@ -271,13 +297,13 @@ class KillbillService(BillingService):
         accountApi.update_account(account_id, body, created_by='KillbillService')
 
 
-    """ def generate_invoice(self, acct_id, target_date):
+    """ def generate_invoice(self, account_id, target_date):
 
-        self.__LOGGER.debug(f"Generating invoice for {acct_id} : {target_date}")
+        self.__LOGGER.debug(f"Generating invoice for {account_id} : {target_date}")
 
         invoiceApi = killbill.api.InvoiceApi(self.kb_api_client)
         
-        ret = invoiceApi.create_future_invoice_with_http_info(acct_id, 
+        ret = invoiceApi.create_future_invoice_with_http_info(account_id, 
                                  created_by='KillbillService',  
                                  target_date=target_date)
         
@@ -328,11 +354,11 @@ class KillbillService(BillingService):
         
         response = self._transform_response(invoice)
 
-        for item in response['data'].items:            
-            if item.item_details != None:
-                item.item_details = json.loads(item.item_details)
+        if response['data'].items is not None:
+            for item in response['data'].items:            
+                if item.item_details != None:
+                    item.item_details = json.loads(item.item_details)
 
-        #return json.loads(json.dumps(response['data'].to_dict(), default=str))
         
         response['data'] = response['data'].to_dict()
 
@@ -396,11 +422,11 @@ class KillbillService(BillingService):
         return dt_parse(datetime_str).strftime('%Y-%m-%d')
 
 
-    def generate_invoice_html(self, acct_id, target_date):
+    def generate_invoice_html(self, account_id, target_date):
 
-        self.__LOGGER.debug(f"Genrating HTML invoice for {acct_id} , date : {target_date}")
+        self.__LOGGER.debug(f"Genrating HTML invoice for {account_id} , date : {target_date}")
         invoice_date = self._convert_date(target_date)
-        new_invoice = self.generate_invoice(acct_id=acct_id, target_date=invoice_date)
+        new_invoice = self.generate_invoice(account_id=account_id, target_date=invoice_date)
 
         self.__LOGGER.debug(f"New invoice  {new_invoice}")
         location_header = new_invoice['headers']['Location']       
@@ -453,7 +479,7 @@ class KillbillService(BillingService):
 
         return self._transform_response(invoices)
     
-    # List invoices for user (acct_id)
+    # List invoices for user (account_id)
 
     # Search Invoices
     def search_invoices(self, search_key):
@@ -470,10 +496,10 @@ class KillbillService(BillingService):
 
 
     # Close account (not delete)
-    def close_account(self, acct_id):
-        self.__LOGGER.debug(f"Closing account: {acct_id}")
+    def close_account(self, account_id):
+        self.__LOGGER.debug(f"Closing account: {account_id}")
         accountApi = killbill.AccountApi(self.kb_api_client)
-        close = accountApi.close_account(acct_id)
+        close = accountApi.close_account(account_id)
         return self._transform_response(close)
 
 

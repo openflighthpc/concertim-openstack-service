@@ -395,10 +395,10 @@ def get_draft_invoice():
         billing_service = ImportedService(config_file, log_file)
         app.logger.debug(f"Successfully created {config_file['billing_platform']} service")
 
-        invoice_obj = billing_service.get_draft_invoice(req_data['invoice']['billing_account_id'])['data']
+        invoice_obj = billing_service.get_draft_invoice(req_data['invoice']['billing_account_id'])
 
-        resp = {"draft_invoice": invoice_obj}
-        return make_response(resp,201)
+        resp = {"draft_invoice": invoice_obj['data']}
+        return make_response(resp, invoice_obj['status'])
     
     except APIServerDefError as e:
         response = {"error": type(e).__name__, "message": str(e)}
@@ -492,7 +492,7 @@ def create_order():
         billing_service = ImportedService(config_file, log_file)
         app.logger.debug(f"Successfully created {config_file['billing_platform']} service")
 
-        order_obj = billing_service.create_order(req_data['order']['billing_account_id'], req_data['order']['os_stack_id'])
+        order_obj = billing_service.create_order(account_id=req_data['order']['billing_account_id'], os_stack_id=req_data['order']['os_stack_id'])
 
         resp = {"order": order_obj['headers']['Location'].split('/')[-1]}
         return make_response(resp,201)
