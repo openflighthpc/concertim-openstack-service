@@ -203,8 +203,10 @@ class KillbillService(BillingService):
         self.__LOGGER.debug(f"Creating new order for account {account_id}, stack id {os_stack_id}")
 
         if not self.__check_for_available_credits(account_id=account_id):
-            raise Exception(f"Not enough credits to create a new order for account {account_id}")
-        
+            return {'data' : "Not enough credits to create a new order for account " + account_id,
+                    'status' : 500,
+                    'headers' : None}
+            
         subscriptionApi = killbill.api.SubscriptionApi(self.kb_api_client)
         plan = plan_name if plan_name else KillbillService.DEFAULT_SUB_PLAN
         body = killbill.Subscription(account_id=account_id, plan_name=plan)
@@ -223,6 +225,7 @@ class KillbillService(BillingService):
                                                               
         self.create_custom_field_subscription(subscription_id=subscription_id, field_name="openstack_cloudkitty_metrics", field_value=KillbillService.DEFAULT_CLOUDKITTY_METRICS)   
 
+        response['data'] = response['data']['headers']['Location'].split('/')[-1]
         return response
 
     def __check_for_available_credits(self, account_id):

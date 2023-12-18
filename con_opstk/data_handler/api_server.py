@@ -13,6 +13,8 @@ import keystoneauth1.exceptions.http
 import novaclient.exceptions
 import sys
 import json
+import traceback 
+
 
 # Logging setup
 formatter = SensitiveFormatter('[%(asctime)s] - %(levelname)-8s: %(module)-12s: %(funcName)-26s===>  %(message)s')
@@ -38,6 +40,7 @@ def create_user_project():
     config = {'log_level': config_file['log_level'], 'openstack': {}}
     app.logger.info(f"Starting - Creating new 'CM_' project and user in Openstack")
     try:
+
         req_data = request.get_json()
         app.logger.debug(req_data)
         if 'cloud_env' not in req_data:
@@ -66,15 +69,15 @@ def create_user_project():
         resp = {"username": username, "user_id": user.id, "project_id": project.id, "billing_account_id": billing_account_id}
         return make_response(resp,201)
     except APIServerDefError as e:
-        response = {"error": type(e).__name__, "message": str(e)}
+        response = {"error": type(e).__name__, "message": str(e), "traceback" : traceback.format_exc()}
         app.logger.error(response)
         return jsonify(response), 400
     except OpStkAuthenticationError as e:
-        response = {"error": type(e).__name__, "message": str(e)}
+        response = {"error": type(e).__name__, "message": str(e), "traceback" : traceback.format_exc()}
         app.logger.error(response)
         return jsonify(response), 401
     except Exception as e:
-        response = {"error": f"An unexpected error occurred: {e.__class__.__name__}", "message": str(e)}
+        response = {"error": f"An unexpected error occurred: {e.__class__.__name__}", "message": str(e), "traceback" : traceback.format_exc()}
         stat_code = 500
         app.logger.error(response)
         if 'http_status' in dir(e):
@@ -119,27 +122,27 @@ def update_status(type, id):
         resp = {"success": True}
         return jsonify(resp), 202
     except APIServerDefError as e:
-        response = {"error": type(e).__name__, "message": str(e)}
+        response = {"error": type(e).__name__, "message": str(e), "traceback" : traceback.format_exc()}
         app.logger.error(response)
         return jsonify(response), 400
     except keystoneauth1.exceptions.http.Unauthorized as e:
-        response = {"error": "Unauthorized", "message": "Unauthorized"}
+        response = {"error": "Unauthorized", "message": "Unauthorized", "traceback" : traceback.format_exc()}
         app.logger.error(response)
         return jsonify(response), 401
     except novaclient.exceptions.Conflict as e:
-        response = {"error": "Conflict", "message": e.message}
+        response = {"error": "Conflict", "message": e.message, "traceback" : traceback.format_exc()}
         app.logger.error(response)
         return jsonify(response), 409
     except novaclient.exceptions.NotFound as e:
-        response = {"error": "Not found", "message": e.message}
+        response = {"error": "Not found", "message": e.message, "traceback" : traceback.format_exc()}
         app.logger.error(response)
         return jsonify(response), 404
     except OpStkAuthenticationError as e:
-        response = {"error": type(e).__name__, "message": str(e)}
+        response = {"error": type(e).__name__, "message": str(e), "traceback" : traceback.format_exc()}
         app.logger.error(response)
         return jsonify(response), 400
     except Exception as e:
-        response = {"error": f"An unexpected error occurred: {e.__class__.__name__}", "message": str(e)}
+        response = {"error": f"An unexpected error occurred: {e.__class__.__name__}", "message": str(e), "traceback" : traceback.format_exc()}
         stat_code = 500
         app.logger.error(response)
         if 'http_status' in dir(e):
@@ -179,27 +182,27 @@ def create_keypair():
         resp = {"success": True, "key_pair": result}
         return jsonify(resp), 202
     except APIServerDefError as e:
-        response = {"error": type(e).__name__, "message": str(e)}
+        response = {"error": type(e).__name__, "message": str(e), "traceback" : traceback.format_exc()}
         app.logger.error(response)
         return jsonify(response), 400
     except keystoneauth1.exceptions.http.Unauthorized as e:
-        response = {"error": "Unauthorized", "message": "Unauthorized"}
+        response = {"error": "Unauthorized", "message": "Unauthorized", "traceback" : traceback.format_exc()}
         app.logger.error(response)
         return jsonify(response), 401
     except novaclient.exceptions.Conflict as e:
-        response = {"error": "Conflict", "message": e.message}
+        response = {"error": "Conflict", "message": e.message, "traceback" : traceback.format_exc()}
         app.logger.error(response)
         return jsonify(response), 409
     except novaclient.exceptions.NotFound as e:
-        response = {"error": "Not found", "message": e.message}
+        response = {"error": "Not found", "message": e.message, "traceback" : traceback.format_exc()}
         app.logger.error(response)
         return jsonify(response), 404
     except OpStkAuthenticationError as e:
-        response = {"error": type(e).__name__, "message": str(e)}
+        response = {"error": type(e).__name__, "message": str(e), "traceback" : traceback.format_exc()}
         app.logger.error(response)
         return jsonify(response), 400
     except Exception as e:
-        response = {"error": f"An unexpected error occurred: {e.__class__.__name__}", "message": str(e)}
+        response = {"error": f"An unexpected error occurred: {e.__class__.__name__}", "message": str(e), "traceback" : traceback.format_exc()}
         stat_code = 500
         app.logger.error(response)
         if 'http_status' in dir(e):
@@ -236,27 +239,27 @@ def list_keypairs():
         resp = {"success": True, 'key_pairs': result}
         return jsonify(resp), 202
     except APIServerDefError as e:
-        response = {"error": type(e).__name__, "message": str(e)}
+        response = {"error": type(e).__name__, "message": str(e), "traceback" : traceback.format_exc()}
         app.logger.error(response)
         return jsonify(response), 400
     except keystoneauth1.exceptions.http.Unauthorized as e:
-        response = {"error": "Unauthorized", "message": "Unauthorized"}
+        response = {"error": "Unauthorized", "message": "Unauthorized", "traceback" : traceback.format_exc()}
         app.logger.error(response)
         return jsonify(response), 401
     except novaclient.exceptions.Conflict as e:
-        response = {"error": "Conflict", "message": e.message}
+        response = {"error": "Conflict", "message": e.message, "traceback" : traceback.format_exc()}
         app.logger.error(response)
         return jsonify(response), 409
     except novaclient.exceptions.NotFound as e:
-        response = {"error": "Not found", "message": e.message}
+        response = {"error": "Not found", "message": e.message, "traceback" : traceback.format_exc()}
         app.logger.error(response)
         return jsonify(response), 404
     except OpStkAuthenticationError as e:
-        response = {"error": type(e).__name__, "message": str(e)}
+        response = {"error": type(e).__name__, "message": str(e), "traceback" : traceback.format_exc()}
         app.logger.error(response)
         return jsonify(response), 400
     except Exception as e:
-        response = {"error": f"An unexpected error occurred: {e.__class__.__name__}", "message": str(e)}
+        response = {"error": f"An unexpected error occurred: {e.__class__.__name__}", "message": str(e), "traceback" : traceback.format_exc()}
         stat_code = 500
         app.logger.error(response)
         if 'http_status' in dir(e):
@@ -295,27 +298,27 @@ def delete_keypairs():
         resp = {"success": True, 'key_pair_name': req_data['keypair_name']}
         return jsonify(resp), 202
     except APIServerDefError as e:
-        response = {"error": type(e).__name__, "message": str(e)}
+        response = {"error": type(e).__name__, "message": str(e), "traceback" : traceback.format_exc()}
         app.logger.error(response)
         return jsonify(response), 400
     except keystoneauth1.exceptions.http.Unauthorized as e:
-        response = {"error": "Unauthorized", "message": "Unauthorized"}
+        response = {"error": "Unauthorized", "message": "Unauthorized", "traceback" : traceback.format_exc()}
         app.logger.error(response)
         return jsonify(response), 401
     except novaclient.exceptions.Conflict as e:
-        response = {"error": "Conflict", "message": e.message}
+        response = {"error": "Conflict", "message": e.message, "traceback" : traceback.format_exc()}
         app.logger.error(response)
         return jsonify(response), 409
     except novaclient.exceptions.NotFound as e:
-        response = {"error": "Not found", "message": e.message}
+        response = {"error": "Not found", "message": e.message, "traceback" : traceback.format_exc()}
         app.logger.error(response)
         return jsonify(response), 404
     except OpStkAuthenticationError as e:
-        response = {"error": type(e).__name__, "message": str(e)}
+        response = {"error": type(e).__name__, "message": str(e), "traceback" : traceback.format_exc()}
         app.logger.error(response)
         return jsonify(response), 400
     except Exception as e:
-        response = {"error": f"An unexpected error occurred: {e.__class__.__name__}", "message": str(e)}
+        response = {"error": f"An unexpected error occurred: {e.__class__.__name__}", "message": str(e), "traceback" : traceback.format_exc()}
         stat_code = 500
         app.logger.error(response)
         if 'http_status' in dir(e):
@@ -354,15 +357,15 @@ def get_user_invoice():
         resp = {"invoice_html": invoice}
         return make_response(resp,201)
     except APIServerDefError as e:
-        response = {"error": type(e).__name__, "message": str(e)}
+        response = {"error": type(e).__name__, "message": str(e), "traceback" : traceback.format_exc()}
         app.logger.error(response)
         return jsonify(response), 400
     except OpStkAuthenticationError as e:
-        response = {"error": type(e).__name__, "message": str(e)}
+        response = {"error": type(e).__name__, "message": str(e), "traceback" : traceback.format_exc()}
         app.logger.error(response)
         return jsonify(response), 401
     except Exception as e:
-        response = {"error": f"An unexpected error occurred: {e.__class__.__name__}", "message": str(e)}
+        response = {"error": f"An unexpected error occurred: {e.__class__.__name__}", "message": str(e), "traceback" : traceback.format_exc()}
         stat_code = 500
         app.logger.error(response)
         if 'http_status' in dir(e):
@@ -401,15 +404,15 @@ def get_draft_invoice():
         return make_response(resp, invoice_obj['status'])
     
     except APIServerDefError as e:
-        response = {"error": type(e).__name__, "message": str(e)}
+        response = {"error": type(e).__name__, "message": str(e), "traceback" : traceback.format_exc()}
         app.logger.error(response)
         return jsonify(response), 400
     except OpStkAuthenticationError as e:
-        response = {"error": type(e).__name__, "message": str(e)}
+        response = {"error": type(e).__name__, "message": str(e), "traceback" : traceback.format_exc()}
         app.logger.error(response)
         return jsonify(response), 401
     except Exception as e:
-        response = {"error": f"An unexpected error occurred: {e.__class__.__name__}", "message": str(e)}
+        response = {"error": f"An unexpected error occurred: {e.__class__.__name__}", "message": str(e), "traceback" : traceback.format_exc()}
         stat_code = 500
         app.logger.error(response)
         if 'http_status' in dir(e):
@@ -449,16 +452,15 @@ def add_credits():
         return make_response(resp,201)
     
     except APIServerDefError as e:
-        response = {"error": type(e).__name__, "message": str(e)}
+        response = {"error": type(e).__name__, "message": str(e), "traceback" : traceback.format_exc()}
         app.logger.error(response)
         return jsonify(response), 400
     except OpStkAuthenticationError as e:
-        response = {"error": type(e).__name__, "message": str(e)}
+        response = {"error": type(e).__name__, "message": str(e), "traceback" : traceback.format_exc()}
         app.logger.error(response)
         return jsonify(response), 401
     except Exception as e:
-        response = f"Unexpected Error occurred - {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}"
-        #response = {"error": f"An unexpected error occurred: {e.__class__.__name__}", "message": str(e)}
+        response = {"error": f"An unexpected error occurred: {e.__class__.__name__}", "message": str(e), "traceback" : traceback.format_exc()}
         stat_code = 500
         app.logger.error(response)
         if 'http_status' in dir(e):
@@ -494,20 +496,19 @@ def create_order():
 
         order_obj = billing_service.create_order(account_id=req_data['order']['billing_account_id'], os_stack_id=req_data['order']['os_stack_id'])
 
-        resp = {"order": order_obj['headers']['Location'].split('/')[-1]}
-        return make_response(resp,201)
+        resp = {"order": order_obj['data']}
+        return make_response(resp, order_obj['status'])
     
     except APIServerDefError as e:
-        response = {"error": type(e).__name__, "message": str(e)}
+        response = {"error": type(e).__name__, "message": str(e), "traceback" : traceback.format_exc()}
         app.logger.error(response)
         return jsonify(response), 400
     except OpStkAuthenticationError as e:
-        response = {"error": type(e).__name__, "message": str(e)}
+        response = {"error": type(e).__name__, "message": str(e), "traceback" : traceback.format_exc()}
         app.logger.error(response)
         return jsonify(response), 401
     except Exception as e:
-        response = f"Unexpected Error occurred - {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}"
-        #response = {"error": f"An unexpected error occurred: {e.__class__.__name__}", "message": str(e)}
+        response = {"error": f"An unexpected error occurred: {e.__class__.__name__}", "message": str(e), "traceback" : traceback.format_exc()}
         stat_code = 500
         app.logger.error(response)
         if 'http_status' in dir(e):
@@ -558,16 +559,15 @@ def list_paginated_invoices():
         return make_response(resp,201)
     
     except APIServerDefError as e:
-        response = {"error": type(e).__name__, "message": str(e)}
+        response = {"error": type(e).__name__, "message": str(e), "traceback" : traceback.format_exc()}
         app.logger.error(response)
         return jsonify(response), 400
     except OpStkAuthenticationError as e:
-        response = {"error": type(e).__name__, "message": str(e)}
+        response = {"error": type(e).__name__, "message": str(e), "traceback" : traceback.format_exc()}
         app.logger.error(response)
         return jsonify(response), 401
     except Exception as e:
-        response = f"Unexpected Error occurred - {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}"
-        #response = {"error": f"An unexpected error occurred: {e.__class__.__name__}", "message": str(e)}
+        response = {"error": f"An unexpected error occurred: {e.__class__.__name__}", "message": str(e), "traceback": traceback.format_exc()}
         stat_code = 500
         app.logger.error(response)
         if 'http_status' in dir(e):
@@ -606,15 +606,15 @@ def get_account_invoice():
         return make_response(resp,201)
     
     except APIServerDefError as e:
-        response = {"error": type(e).__name__, "message": str(e)}
+        response = {"error": type(e).__name__, "message": str(e), "traceback" : traceback.format_exc()}
         app.logger.error(response)
         return jsonify(response), 400
     except OpStkAuthenticationError as e:
-        response = {"error": type(e).__name__, "message": str(e)}
+        response = {"error": type(e).__name__, "message": str(e), "traceback" : traceback.format_exc()}
         app.logger.error(response)
         return jsonify(response), 401
     except Exception as e:
-        response = {"error": f"An unexpected error occurred: {e.__class__.__name__}", "message": str(e)}
+        response = {"error": f"An unexpected error occurred: {e.__class__.__name__}", "message": str(e), "traceback" : traceback.format_exc()}
         stat_code = 500
         app.logger.error(response)
         if 'http_status' in dir(e):
