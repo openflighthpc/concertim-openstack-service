@@ -44,7 +44,15 @@ class KillbillService(BillingService):
         kb_subscription_api = killbill.SubscriptionApi(self.kb_api_client)
         custom_fields = kb_subscription_api.get_subscription_custom_fields(subscription_id)
         
-        return self._transform_response(custom_fields)
+        response = self._transform_response(custom_fields)
+
+        new_list = []
+
+        for cf in response['data']:
+            new_list.append(cf.to_dict())
+
+        response['data'] = new_list
+        return response
 
     def remove_custom_field_subscription(self, subscription_id, custom_fields):
         subscriptionApi = killbill.api.SubscriptionApi(self.kb_api_client)
@@ -79,8 +87,10 @@ class KillbillService(BillingService):
 
         allCustomFields = accountApi.get_all_custom_fields_with_http_info(account_id,object_type='ACCOUNT')
 
-        return self._transform_response(allCustomFields)
+        response = self._transform_response(allCustomFields)
 
+        response['data'] = response['data'].to_dict()
+        return response
 
     def __create_killbill_client(self, config):
         configuration = killbill.Configuration()
@@ -300,19 +310,6 @@ class KillbillService(BillingService):
         accountApi.update_account(account_id, body, created_by='KillbillService')
 
 
-    """ def generate_invoice(self, account_id, target_date):
-
-        self.__LOGGER.debug(f"Generating invoice for {account_id} : {target_date}")
-
-        invoiceApi = killbill.api.InvoiceApi(self.kb_api_client)
-        
-        ret = invoiceApi.create_future_invoice_with_http_info(account_id, 
-                                 created_by='KillbillService',  
-                                 target_date=target_date)
-        
-        self.__LOGGER.debug(ret)
-        return self._transform_response(ret) """
-
     # Get invoice (raw)
     def get_invoice_raw(self, invoice_id):
         self.__LOGGER.debug(f"Getting raw invoice for {invoice_id}")
@@ -320,8 +317,43 @@ class KillbillService(BillingService):
         invoice = invoiceApi.get_invoice_with_http_info(invoice_id)
         self.__LOGGER.debug(f"{invoice}")
         response = self._transform_response(invoice)
-        response['data'] = response['data'].to_dict()
+        response['data'] = self.__transform_invoice_items(response['data'].to_dict())
         return response
+    
+    def __transform_invoice_items(self, invoice):
+
+        new_items = {}
+        for item in invoice["items"]:
+            subscription_id = item["subscription_id"]
+            if subscription_id is not None and item["item_type"] in ["USAGE", "RECURRING"]:
+                
+                if subscription_id not in new_items:
+                    custom_fields = self.get_custom_fields_subscription(subscription_id)['data']
+
+                    found = False
+                    openstack_stack_id = None
+                    for field in custom_fields:
+                        if field['name'] == "openstack_stack_id" and len(field['value']) > 0:
+                            found = True
+                            openstack_stack_id = field['value']
+                            break
+
+                    if found == True:
+                        if subscription_id not in new_items:
+                            new_items[subscription_id] = {}
+                            new_items[subscription_id]['amount'] = item['amount']
+                            new_items[subscription_id]['openstack_stack_id'] = openstack_stack_id
+                            new_items[subscription_id]['openstack_stack_name'] = "Dummy Stack Name"
+                            continue
+
+                else:
+                    new_items[subscription_id]['amount'] += item['amount']
+
+        self.__LOGGER.debug(f"New Invoice items : \n {new_items}")
+
+        invoice['items'] = new_items
+        return invoice
+        
 
     def get_latest_invoice(self, account_id):
 
@@ -363,7 +395,7 @@ class KillbillService(BillingService):
                     item.item_details = json.loads(item.item_details)
 
         
-        response['data'] = response['data'].to_dict()
+        response['data'] = self.__transform_invoice_items(response['data'].to_dict())
 
         return response
 
@@ -397,15 +429,14 @@ class KillbillService(BillingService):
         
         self.__LOGGER.debug(f"{accountInvoices}")
 
-
-        invoice_list = []
-        for invoice in accountInvoices[0]:
-            invoice_list.append(invoice.to_dict())
-
         response =  self._transform_response(accountInvoices)
+        invoice_list = []
+        for invoice in response['data']:
+            #invoice_list.append( self.__transform_invoice_items(invoice.to_dict()))
+            invoice_list.append(invoice.to_dict())
         response['data'] = invoice_list
     
-        self.__LOGGER.debug(f"{json.dumps(response['data'])}")
+        #self.__LOGGER.debug(f"{json.dumps(response['data'])}")
         return response
         
     # Get invoice (html)
@@ -423,7 +454,6 @@ class KillbillService(BillingService):
     
     def _convert_date(self, datetime_str):
         return dt_parse(datetime_str).strftime('%Y-%m-%d')
-
 
     def generate_invoice_html(self, account_id, target_date):
 
@@ -482,8 +512,6 @@ class KillbillService(BillingService):
 
         return self._transform_response(invoices)
     
-    # List invoices for user (account_id)
-
     # Search Invoices
     def search_invoices(self, search_key):
 
@@ -495,8 +523,6 @@ class KillbillService(BillingService):
         self.__LOGGER.debug(f"{result}")
 
         return self._transform_response(result)
-
-
 
     # Close account (not delete)
     def close_account(self, account_id):
