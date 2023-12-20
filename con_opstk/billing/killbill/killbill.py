@@ -344,6 +344,9 @@ class KillbillService(BillingService):
                             new_items[subscription_id]['amount'] = item['amount']
                             new_items[subscription_id]['openstack_stack_id'] = openstack_stack_id
                             new_items[subscription_id]['openstack_stack_name'] = "Dummy Stack Name"
+                            new_items[subscription_id]['start_date'] = item['start_date']
+                            new_items[subscription_id]['end_date'] = item['end_date']
+                            new_items[subscription_id]['currency'] = item['currency']
                             continue
 
                 else:
