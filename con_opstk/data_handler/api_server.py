@@ -606,6 +606,49 @@ def get_account_invoice():
             billing_handler = None
 
 
+@app.route('/add_order_tag', methods=['POST'])
+def add_order_tag():
+    app.logger.info(f"Starting - Adding tag to Order")
+    try:
+        req_data = request.get_json()
+        app.logger.debug(req_data)
+        if 'tag' not in req_data or 'order_id' not in req_data['tag']:
+            raise APIServerDefError("No Order ID data recieved.", 400)
+        if 'tag' not in req_data or 'tag_name' not in req_data['tag'] or 'tag_value' not in req_data['tag']:
+            raise APIServerDefError("No Tag data recieved.", 400)
+
+        api_handler = APIHandler(config_file, log_file, billing_enabled=True)
+        app.logger.debug(f"Successfully created APIHandler")
+
+        response = api_handler.add_order_tag(req_data['tag']['order_id'], req_data['tag']['tag_name'], req_data['tag']['tag_value'])
+
+        resp = {"tag": response['data']}
+        return make_response(resp, response['status'])
+    
+    except APIServerDefError as e:
+        response = {"error": type(e).__name__, "message": str(e), "traceback" : traceback.format_exc()}
+        app.logger.error(response)
+        return jsonify(response), 400
+    except OpStkAuthenticationError as e:
+        response = {"error": type(e).__name__, "message": str(e), "traceback" : traceback.format_exc()}
+        app.logger.error(response)
+        return jsonify(response), 401
+    except Exception as e:
+        response = {"error": f"An unexpected error occurred: {e.__class__.__name__}", "message": str(e), "traceback" : traceback.format_exc()}
+        stat_code = 500
+        app.logger.error(response)
+        if 'http_status' in dir(e):
+            stat_code = e.http_status
+        return jsonify(response), stat_code
+    finally:
+        app.logger.info(f"Finished - Adding tag to order")
+        app.logger.debug("Disconnecting Handler")
+        try:
+            billing_handler.disconnect()
+            billing_handler = None
+        except NameError:
+            billing_handler = None
+
 @app.route('/')
 def running():
     app.logger.info("Running\n")

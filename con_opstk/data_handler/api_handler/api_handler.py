@@ -90,9 +90,14 @@ class APIHandler(BaseHandler):
         result = self.billing_service.get_invoice_by_id(invoice_id)
 
         self.read_view()
-        
+
         return result
 
+    def add_order_tag(self, order_id, tag_name, tag_value):
+        self.__LOGGER.info(f"Creating tag for order_id {order_id} - {tag_name} : {tag_value}")
+        result = self.billing_service.add_order_tag(order_id, tag_name, tag_value)
+        return result
+    
 
     def create_keypair(self, name, key_type='ssh', imported_pub_key=None):
         self.__LOGGER.info(f"Starting creation of {key_type} key pair {name}")

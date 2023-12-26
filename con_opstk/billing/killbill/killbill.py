@@ -68,7 +68,12 @@ class KillbillService(BillingService):
 
         kb_subscription_response = kb_subscription_api.create_subscription_custom_fields(subscription_id, [body], created_by="KillbillService")
 
-        return self._transform_response(kb_subscription_response)
+        response =  self._transform_response(kb_subscription_response)
+
+        custom_field_id = response['headers']['Location'].split('/')[-2]
+        response['data'] = custom_field_id
+
+        return response
     
     def create_custom_field_account(self, account_id, field_name, field_value):
         self.__LOGGER.debug(f"Creating Custom fields for {account_id} : {field_name} = {field_value}")
@@ -78,8 +83,13 @@ class KillbillService(BillingService):
         body = killbill.CustomField(name=field_name, value=field_value)
 
         kb_subscription_response = kb_account_api.create_account_custom_fields_with_http_info(account_id, [body], created_by="KillbillService")
+    
+        response =  self._transform_response(kb_subscription_response)
 
-        return self._transform_response(kb_subscription_response)
+        custom_field_id = response['headers']['Location'].split('/')[-2]
+        response['data'] = custom_field_id
+
+        return response
     
     def get_custom_fields_account(self, account_id):
 
@@ -180,6 +190,8 @@ class KillbillService(BillingService):
 
         self.create_custom_field_account(account_id=account_id,field_name="openstack_project_id", field_value=openstack_project_id)
 
+        response['data'] = account_id
+
         return response
 
     def _transform_response(self, raw_response):
@@ -235,7 +247,8 @@ class KillbillService(BillingService):
                                                               
         #self.create_custom_field_subscription(subscription_id=subscription_id, field_name="openstack_cloudkitty_metrics", field_value=KillbillService.DEFAULT_CLOUDKITTY_METRICS)   
 
-        response['data'] = response['data']['headers']['Location'].split('/')[-1]
+        response['data'] = subscription_id
+
         return response
 
     def __check_for_available_credits(self, account_id):
@@ -309,6 +322,9 @@ class KillbillService(BillingService):
 
         accountApi.update_account(account_id, body, created_by='KillbillService')
 
+    def add_order_tag(self, order_id, tag_name, tag_value):
+        return self.create_custom_field_subscription(subscription_id=order_id, field_name=tag_name, field_value=tag_value)
+        
 
     # Get invoice (raw)
     def get_invoice_by_id(self, invoice_id):
