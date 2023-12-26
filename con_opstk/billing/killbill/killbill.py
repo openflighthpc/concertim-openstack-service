@@ -23,7 +23,7 @@ class KillbillService(BillingService):
         super().__init__(config_obj, log_file)
         self.__LOGGER = create_logger(__name__, self._LOG_FILE, self._CONFIG['log_level'])
         self.kb_api_client = self.__create_killbill_client(self._CONFIG['killbill'])
-
+        
     def get_bundles(self):
 
         self.__LOGGER.debug(f"Listing all bundles")
@@ -209,8 +209,8 @@ class KillbillService(BillingService):
         return True
     
     # Add subscription
-    def create_order(self, account_id, os_stack_id, plan_name=None):
-        self.__LOGGER.debug(f"Creating new order for account {account_id}, stack id {os_stack_id}")
+    def create_order(self, account_id, plan_name=None):
+        self.__LOGGER.debug(f"Creating new order for account {account_id}")
 
         if not self.__check_for_available_credits(account_id=account_id):
             return {'data' : "Not enough credits to create a new order for account " + account_id,
@@ -229,11 +229,11 @@ class KillbillService(BillingService):
         location_header = response['headers']['Location']       
         subscription_id = location_header.split('/')[-1]
 
-        self.create_custom_field_subscription(subscription_id=subscription_id, field_name="openstack_metering_enabled", field_value="true")
+        #self.create_custom_field_subscription(subscription_id=subscription_id, field_name="openstack_metering_enabled", field_value="true")
 
-        self.create_custom_field_subscription(subscription_id=subscription_id, field_name="openstack_stack_id", field_value=os_stack_id)
+        #self.create_custom_field_subscription(subscription_id=subscription_id, field_name="openstack_stack_id", field_value=os_stack_id)
                                                               
-        self.create_custom_field_subscription(subscription_id=subscription_id, field_name="openstack_cloudkitty_metrics", field_value=KillbillService.DEFAULT_CLOUDKITTY_METRICS)   
+        #self.create_custom_field_subscription(subscription_id=subscription_id, field_name="openstack_cloudkitty_metrics", field_value=KillbillService.DEFAULT_CLOUDKITTY_METRICS)   
 
         response['data'] = response['data']['headers']['Location'].split('/')[-1]
         return response
@@ -258,7 +258,7 @@ class KillbillService(BillingService):
 
         # Obtaining amount from draft invoice, how much user has spent
         draft_invoice_amount = 0
-        draft_invoice = self.get_draft_invoice(account_id=account_id)
+        draft_invoice = self.get_draft_invoice(account_id=account_id, transform_invoice_items=False)
 
         if 'amount' in draft_invoice['data'] and draft_invoice['data']['amount'] is not None and draft_invoice['data']['amount'] >= 0:
             draft_invoice_amount = draft_invoice['data']['amount']
@@ -311,7 +311,7 @@ class KillbillService(BillingService):
 
 
     # Get invoice (raw)
-    def get_invoice_raw(self, invoice_id):
+    def get_invoice_by_id(self, invoice_id):
         self.__LOGGER.debug(f"Getting raw invoice for {invoice_id}")
         invoiceApi = killbill.api.InvoiceApi(self.kb_api_client)
         invoice = invoiceApi.get_invoice_with_http_info(invoice_id)
@@ -366,18 +366,18 @@ class KillbillService(BillingService):
         latest_date = datetime.date(1970, 1, 1)
         latest_invoice_id = None
         for invoice in accountInvoices['data']:
-            if invoice.target_date >= latest_date:
-                latest_invoice_id = invoice.invoice_id
-                latest_date = invoice.target_date
-                self.__LOGGER.debug(f"Latest invoice found for date {latest_date}")
-        
+            target_date = datetime.datetime.strptime(invoice['target_date'], '%Y-%m-%d').date()
+            if  target_date >= latest_date:
+                latest_invoice_id = invoice['invoice_id']
+                latest_date = target_date
+                
         if latest_invoice_id != None:
-            return self.get_invoice_html(latest_invoice_id)['data']
+            return self.get_invoice_html(latest_invoice_id)
         
         else:
             raise BillingAPIError(f"No latest invoice found for account {account_id}")
         
-    def get_draft_invoice(self, account_id):
+    def get_draft_invoice(self, account_id, transform_invoice_items=True):
 
         self.__LOGGER.debug(f"Getting draft invoice for account {account_id}")
         
@@ -397,8 +397,10 @@ class KillbillService(BillingService):
                 if item.item_details != None:
                     item.item_details = json.loads(item.item_details)
 
-        
-        response['data'] = self.__transform_invoice_items(response['data'].to_dict())
+        if transform_invoice_items:
+            response['data'] = self.__transform_invoice_items(response['data'].to_dict())
+        else:
+            response['data'] = response['data'].to_dict()
 
         return response
 

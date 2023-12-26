@@ -345,17 +345,13 @@ def get_user_invoice():
         if 'invoice' not in req_data or 'target_date' not in req_data['invoice']:
             raise APIServerDefError("No Invoice Date data recieved.", 400)
 
-        #ImportedHandler = importlib.import_module(BILLING_HANDLERS[config_file['billing_platform']])
-        billing_app = config_file['billing_platform']
-        ImportedService = getattr(importlib.import_module(BILLING_IMPORT_PATH[billing_app]), BILLING_SERVICES[billing_app])
+        api_handler = APIHandler(config_file, log_file, billing_enabled=True)
+        app.logger.debug(f"Successfully created APIHandler")
 
-        billing_service = ImportedService(config_file, log_file)
-        app.logger.debug(f"Successfully created {config_file['billing_platform']} service")
+        invoice = api_handler.get_latest_invoice(req_data['invoice']['billing_account_id'])
 
-        invoice = billing_service.get_latest_invoice(req_data['invoice']['billing_account_id'])
-
-        resp = {"invoice_html": invoice}
-        return make_response(resp,201)
+        response = {"invoice_html": invoice['data']}
+        return make_response(response, invoice['status'])
     except APIServerDefError as e:
         response = {"error": type(e).__name__, "message": str(e), "traceback" : traceback.format_exc()}
         app.logger.error(response)
@@ -391,17 +387,13 @@ def get_draft_invoice():
         if 'invoice' not in req_data or 'target_date' not in req_data['invoice']:
             raise APIServerDefError("No Invoice Date data recieved.", 400)
 
-        #ImportedHandler = importlib.import_module(BILLING_HANDLERS[config_file['billing_platform']])
-        billing_app = config_file['billing_platform']
-        ImportedService = getattr(importlib.import_module(BILLING_IMPORT_PATH[billing_app]), BILLING_SERVICES[billing_app])
+        api_handler = APIHandler(config_file, log_file, billing_enabled=True)
+        app.logger.debug(f"Successfully created APIHandler")
 
-        billing_service = ImportedService(config_file, log_file)
-        app.logger.debug(f"Successfully created {config_file['billing_platform']} service")
+        response = api_handler.get_draft_invoice(req_data['invoice']['billing_account_id'])
 
-        invoice_obj = billing_service.get_draft_invoice(req_data['invoice']['billing_account_id'])
-
-        resp = {"draft_invoice": invoice_obj['data']}
-        return make_response(resp, invoice_obj['status'])
+        resp = {"invoice_html": response['data']}
+        return make_response(resp, response['status'])
     
     except APIServerDefError as e:
         response = {"error": type(e).__name__, "message": str(e), "traceback" : traceback.format_exc()}
@@ -438,18 +430,14 @@ def add_credits():
         
         if 'credits' not in req_data or 'billing_account_id' not in req_data['credits']:
             raise APIServerDefError("No Credit data recieved.", 400)
-       
-        #ImportedHandler = importlib.import_module(BILLING_HANDLERS[config_file['billing_platform']])
-        billing_app = config_file['billing_platform']
-        ImportedService = getattr(importlib.import_module(BILLING_IMPORT_PATH[billing_app]), BILLING_SERVICES[billing_app])
+        
+        api_handler = APIHandler(config_file, log_file, billing_enabled=True)
+        app.logger.debug(f"Successfully created APIHandler")
 
-        billing_service = ImportedService(config_file, log_file)
-        app.logger.debug(f"Successfully created {config_file['billing_platform']} service")
+        response = api_handler.add_credits(req_data['credits']['billing_account_id'], req_data['credits']['credits_to_add'])
 
-        credit_obj = billing_service.add_credits(req_data['credits']['billing_account_id'], req_data['credits']['credits_to_add'])['data']
-
-        resp = {"credits": credit_obj}
-        return make_response(resp,201)
+        resp = {"credits": response['data']}
+        return make_response(resp, response['status'])
     
     except APIServerDefError as e:
         response = {"error": type(e).__name__, "message": str(e), "traceback" : traceback.format_exc()}
@@ -484,20 +472,16 @@ def create_order():
         if 'order' not in req_data or 'billing_account_id' not in req_data['order']:
             raise APIServerDefError("No account id data recieved.", 400)
         
-        if 'order' not in req_data or 'os_stack_id' not in req_data['order']:
-            raise APIServerDefError("OS Stack ID not received.", 400)
-       
-        #ImportedHandler = importlib.import_module(BILLING_HANDLERS[config_file['billing_platform']])
-        billing_app = config_file['billing_platform']
-        ImportedService = getattr(importlib.import_module(BILLING_IMPORT_PATH[billing_app]), BILLING_SERVICES[billing_app])
+        #if 'order' not in req_data or 'os_stack_id' not in req_data['order']:
+        #    raise APIServerDefError("OS Stack ID not received.", 400)
+        
+        api_handler = APIHandler(config_file, log_file, billing_enabled=True)
+        app.logger.debug(f"Successfully created APIHandler")
 
-        billing_service = ImportedService(config_file, log_file)
-        app.logger.debug(f"Successfully created {config_file['billing_platform']} service")
+        response = api_handler.create_order(req_data['order']['billing_account_id'])
 
-        order_obj = billing_service.create_order(account_id=req_data['order']['billing_account_id'], os_stack_id=req_data['order']['os_stack_id'])
-
-        resp = {"order": order_obj['data']}
-        return make_response(resp, order_obj['status'])
+        resp = {"order": response['data']}
+        return make_response(resp, response['status'])
     
     except APIServerDefError as e:
         response = {"error": type(e).__name__, "message": str(e), "traceback" : traceback.format_exc()}
@@ -532,13 +516,8 @@ def list_paginated_invoices():
         if 'invoices' not in req_data or 'billing_account_id' not in req_data['invoices']:
             raise APIServerDefError("No account id data recieved.", 400)
         
-        
-        #ImportedHandler = importlib.import_module(BILLING_HANDLERS[config_file['billing_platform']])
-        billing_app = config_file['billing_platform']
-        ImportedService = getattr(importlib.import_module(BILLING_IMPORT_PATH[billing_app]), BILLING_SERVICES[billing_app])
-
-        billing_service = ImportedService(config_file, log_file)
-        app.logger.debug(f"Successfully created {config_file['billing_platform']} service")
+        api_handler = APIHandler(config_file, log_file, billing_enabled=True)
+        app.logger.debug(f"Successfully created APIHandler")
 
         offset = 0
         if 'offset' in req_data['invoices']:
@@ -548,15 +527,16 @@ def list_paginated_invoices():
         if 'limit' in req_data['invoices']:
             limit = req_data['invoices']['limit']
         
-        invoice_obj = billing_service.list_account_invoice_paginated(account_id=req_data['invoices']['billing_account_id'], offset=offset, limit=limit)
+
+        response = api_handler.list_account_invoice_paginated(billing_account_id=req_data['invoices']['billing_account_id'], offset=offset, limit=limit)
 
         total_invoices = -1
-        if 'X-Killbill-Pagination-MaxNbRecords' in invoice_obj['headers']:
-            total_invoices = invoice_obj['headers']['X-Killbill-Pagination-MaxNbRecords']
+        if 'X-Killbill-Pagination-MaxNbRecords' in response['headers']:
+            total_invoices = response['headers']['X-Killbill-Pagination-MaxNbRecords']
 
-        resp = {"total_invoices": total_invoices, "invoices": invoice_obj['data']}
 
-        return make_response(resp,201)
+        resp = {"invoices": response['data']}
+        return make_response(resp, response['status'])
     
     except APIServerDefError as e:
         response = {"error": type(e).__name__, "message": str(e), "traceback" : traceback.format_exc()}
@@ -593,17 +573,13 @@ def get_account_invoice():
         if 'invoice' not in req_data or 'invoice_id' not in req_data['invoice']:
             raise APIServerDefError("No Invoice ID data recieved.", 400)
 
-        #ImportedHandler = importlib.import_module(BILLING_HANDLERS[config_file['billing_platform']])
-        billing_app = config_file['billing_platform']
-        ImportedService = getattr(importlib.import_module(BILLING_IMPORT_PATH[billing_app]), BILLING_SERVICES[billing_app])
+        api_handler = APIHandler(config_file, log_file, billing_enabled=True)
+        app.logger.debug(f"Successfully created APIHandler")
 
-        billing_service = ImportedService(config_file, log_file)
-        app.logger.debug(f"Successfully created {config_file['billing_platform']} service")
+        response = api_handler.get_invoice_by_id(req_data['invoice']['invoice_id'])
 
-        invoice_obj = billing_service.get_invoice_raw(req_data['invoice']['invoice_id'])
-
-        resp = {"account_invoice": invoice_obj['data']}
-        return make_response(resp,201)
+        resp = {"account_invoice": response['data']}
+        return make_response(resp, response['status'])
     
     except APIServerDefError as e:
         response = {"error": type(e).__name__, "message": str(e), "traceback" : traceback.format_exc()}
@@ -621,7 +597,7 @@ def get_account_invoice():
             stat_code = e.http_status
         return jsonify(response), stat_code
     finally:
-        app.logger.info(f"Finished - Getting user draft invoice")
+        app.logger.info(f"Finished - Getting account invoice by id")
         app.logger.debug("Disconnecting Handler")
         try:
             billing_handler.disconnect()

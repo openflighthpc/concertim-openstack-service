@@ -16,6 +16,7 @@ class APIHandler(BaseHandler):
         super().__init__(config_obj, log_file, self.clients, enable_concertim=enable_concertim, billing_enabled=billing_enabled)
         self.__LOGGER = create_logger(__name__, self._LOG_FILE, self._CONFIG['log_level'])
 
+
     def create_user_project(self, username, password, email):
         self.__LOGGER.info(f"Creating Concertim-managed (CM_) user/project in Openstack for : {username}")
         children = []
@@ -58,6 +59,40 @@ class APIHandler(BaseHandler):
         except Exception as e:
             self.__LOGGER.error(f"Encountered error when completing action [action:{action},type:{type},id:{id}] : {e.__class__.__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
             raise e
+
+    def get_latest_invoice(self, billing_account_id):
+        self.__LOGGER.info(f"Getting latest invoice for {billing_account_id}")
+        result = self.billing_service.get_latest_invoice(billing_account_id)
+        return result
+       
+    def get_draft_invoice(self, billing_account_id):
+        self.__LOGGER.info(f"Getting draft invoice for {billing_account_id}")
+        result = self.billing_service.get_draft_invoice(billing_account_id)
+        return result
+    
+    def add_credits(self, billing_account_id, credits_to_add):
+        self.__LOGGER.info(f"Adding credits to {billing_account_id}")
+        result = self.billing_service.add_credits(billing_account_id, credits_to_add)
+        return result
+    
+    def create_order(self, billing_account_id):
+        self.__LOGGER.info(f"Creating Order for {billing_account_id}")
+        result = self.billing_service.create_order(billing_account_id)
+        return result
+    
+    def list_account_invoice_paginated(self, billing_account_id, offset, limit):
+        self.__LOGGER.info(f"Listing paginated invoices for {billing_account_id}")
+        result = self.billing_service.list_account_invoice_paginated(account_id=billing_account_id, offset=offset, limit=limit)
+        return result
+    
+    def get_invoice_by_id(self, invoice_id):
+        self.__LOGGER.info(f"Getting invoice for id {invoice_id}")
+        result = self.billing_service.get_invoice_by_id(invoice_id)
+
+        self.read_view()
+        
+        return result
+
 
     def create_keypair(self, name, key_type='ssh', imported_pub_key=None):
         self.__LOGGER.info(f"Starting creation of {key_type} key pair {name}")
