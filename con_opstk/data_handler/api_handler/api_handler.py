@@ -17,11 +17,11 @@ class APIHandler(BaseHandler):
         self.__LOGGER = create_logger(__name__, self._LOG_FILE, self._CONFIG['log_level'])
 
     def create_user_project(self, username, password, email):
-        self.__LOGGER.info(f"Creating Concertim-managed (CM_) user/project in Openstack for : {username}")
         children = []
         opsk_username = f"CM_{username}"
         opsk_project_name = f"{opsk_username}_proj"
         try:
+            self.__LOGGER.info(f"Creating Project for {username}")
             # Create new project
             if 'project_domain_name' in self._CONFIG['openstack']:
                 new_project = self.openstack_service.create_new_cm_project(opsk_project_name,domain=self._CONFIG['openstack']['project_domain_name'])
@@ -29,17 +29,23 @@ class APIHandler(BaseHandler):
                 new_project = self.openstack_service.create_new_cm_project(opsk_project_name)
             children.append(new_project)
             # Create new user
+            self.__LOGGER.info(f"Creating User for {username}")
             if 'user_domain_name' in self._CONFIG['openstack']:
                 new_user = self.openstack_service.create_new_cm_user(opsk_username, password, email, new_project, domain=self._CONFIG['openstack']['user_domain_name'])
             else:
                 new_user = self.openstack_service.create_new_cm_user(opsk_username, password, email, new_project)
             children.append(new_user)
+            # Create billing account
+            self.__LOGGER.info(f"Creating Billling Account for {username}")
+            response = self.billing_service.create_new_account(name=username, email=email, openstack_project_id=new_project.id)
+            location_header = response['headers']['Location']
+            new_billing_acct_id = location_header.split('/')[-1]
 
-            return new_user, new_project
+            return new_user, new_project, new_billing_acct_id
         except Exception as e:
             self.__LOGGER.error(f"Encountered ERROR - Aborting")
             super().__scrub(*children)
-            self.__LOGGER.error(f"Encountered error when creating new Concertim Managed User/Project {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
+            self.__LOGGER.error(f"Encountered error when creating new Concertim Managed User/Project/Billing {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
             raise e
 
     def update_status(self, type, id, action):
@@ -88,24 +94,5 @@ class APIHandler(BaseHandler):
             self.__LOGGER.error(f"Encountered error when completing key pair deletion : {e.__class__.__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
             raise e
 
-    def create_new_billing_acct(self, name, email, openstack_project_id):
-        self.__LOGGER.info(f"Starting creation of new billing account for {name}")
-        try:
-            response = self.billing_service.create_new_account(name=name, email=email, openstack_project_id=openstack_project_id)
-            location_header = response['headers']['Location']       
-            billing_acct_id = location_header.split('/')[-1]
-            return billing_acct_id
-        except Exception as e:
-            self.__LOGGER.error(f"Encountered error when creating billing account : {e.__class__.__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
-            raise e
-
-    def add_user_credits(self, billing_acct_id, amt):
-        self.__LOGGER.info(f"Starting adding {amt} credits to {billing_acct_id}")
-        try:
-            response = self.billing_service.add_account_credit(acct_id=billing_acct_id, amt=amt)
-            return response
-        except Exception as e:
-            self.__LOGGER.error(f"Encountered error when adding credits : {e.__class__.__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
-            raise e
 
     
