@@ -172,6 +172,16 @@ class KillbillService(BillingService):
 
         return response
 
+    def change_account_email(self, billing_acct_id, email):
+        self.__LOGGER.debug(f"Updating email for {billing_acct_id}")
+        accountApi = killbill.AccountApi(self.kb_api_client)
+        body = killbill.Account(email=email)
+        update_attempt = accountApi.update_account(billing_acct_id, body)
+
+        response = self._transform_response(update_attempt)
+        return response
+
+
     def _transform_response(self, raw_response):
         response = {}
         self.__LOGGER.debug(f"Formatting response.... {raw_response}")
@@ -193,7 +203,7 @@ class KillbillService(BillingService):
             return False
         if 'headers' not in response:
             return False
-        if int(response['status']) not in [200 , 201]:
+        if int(response['status']) not in [200 , 201, 204]:
             return False
         self.__LOGGER.debug(f"Valid Response")
         return True

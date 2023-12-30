@@ -230,6 +230,30 @@ class OpenstackService(object):
             self.__LOGGER.error(f"Failed to add required roles to new user - {type(e).__name__} - {e}")
             raise e
 
+    def delete_cm_pair(self, user_id, project_id):
+        self.__LOGGER.debug(f"Deleting User '{user_id}' and project '{project_id}'")
+        self.__check_handlers('keystone')
+        keystone = self.handlers[self._handlers_key_map['keystone']]
+
+        keystone.delete_user(user_id)
+        keystone.delete_project(project_id)
+        return True
+
+    def change_user_details(self, user_id, new_password=None, new_email=None):
+        self.__check_handlers('keystone')
+        keystone = self.handlers[self._handlers_key_map['keystone']]
+        try:
+            if new_password:
+                self.__LOGGER.debug(f"Updating User password")
+                keystone.update_user(user_id, password=new_password)
+            if new_email:
+                self.__LOGGER.debug(f"Updating User email")
+                keystone.update_user(user_id, email=new_email)
+            return True
+        except Exception as e:
+            self.__LOGGER.error(f"An unexpected error : {type(e).__name__} - {e}")
+            raise e
+
     def get_cpu_load(self, resource, start, stop, granularity=5):
         self.__LOGGER.debug(f"Getting CPU Load % for {resource['id']}")
         self.__check_handlers('gnocchi')

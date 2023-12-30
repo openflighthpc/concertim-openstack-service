@@ -94,5 +94,32 @@ class APIHandler(BaseHandler):
             self.__LOGGER.error(f"Encountered error when completing key pair deletion : {e.__class__.__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
             raise e
 
+    def change_user_details(self, openstack_user_id, billing_acct_id, new_data):
+        self.__LOGGER.info(f"Updating details for User '{openstack_user_id}'")
+        changed = []
+        try:
+            for field in new_data:
+                if field is 'password':
+                    self.openstack_service.change_user_details(openstack_user_id, new_password=new_data['password'])
+                    changed.append("password")
+                if field is 'email':
+                    self.openstack_service.change_user_details(openstack_user_id, new_email=new_data['email'])
+                    self.billing_service.change_account_email(billing_acct_id, new_data['email'])
+                    changed.append("email")
+            return changed
+        except Exception as e:
+            self.__LOGGER.error(f"Encountered error when updating User info : {e.__class__.__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
+            raise e
+
+    def delete_user(self, openstack_user_id, openstack_project_id, billing_acct_id):
+        self.__LOGGER.info(f"Starting delete of Concertim User objects")
+        try:
+            self.openstack_service.delete_cm_pair(openstack_user_id, openstack_project_id)
+            self.billing_service.close_account(billing_acct_id)
+            return True
+        except Exception as e:
+            self.__LOGGER.error(f"Encountered error when completing User objects deletion : {e.__class__.__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
+            raise e
+
 
     

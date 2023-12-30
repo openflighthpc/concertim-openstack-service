@@ -34,7 +34,7 @@ BILLING_IMPORT_PATH = {'killbill': 'con_opstk.billing.killbill.killbill', 'hostb
 @app.route('/create_user_project', methods=['POST'])
 def create_user_project():
     config = {'log_level': config_file['log_level'], 'openstack': {}}
-    app.logger.info(f"Starting - Creating new 'CM_' project and user in Openstack")
+    app.logger.info(f"Starting - Creating new 'CM_' project and user in Openstack and Billing account")
     try:
         req_data = request.get_json()
         app.logger.debug(req_data)
@@ -76,7 +76,7 @@ def create_user_project():
             stat_code = e.http_status
         return jsonify(response), stat_code
     finally:
-        app.logger.info(f"Finished - Creating new CM_ project and user in Openstack")
+        app.logger.info(f"Finished - Creating new CM_ project and user in Openstack and Billing Account")
         app.logger.debug("Disconnecting Handler")
         try:
             api_handler.disconnect()
@@ -372,6 +372,107 @@ def get_user_invoice():
         except NameError:
             billing_handler = None
 
+@app.route('/delete_user', methods=['DELETE'])
+def delete_user():
+    config = {'log_level': config_file['log_level'], 'openstack': {}}
+    app.logger.info(f"Starting - Deleting User Objects")
+    try:
+        req_data = request.get_json()
+        app.logger.debug(req_data)
+        if 'cloud_env' not in req_data:
+            raise APIServerDefError("No Authentication data recieved.", 400)
+        if 'user_info' not in req_data:
+            raise APIServerDefError("No User data received.", 400)
+        if 'project_id' not in req_data['user_info'] or 'cloud_user_id' not in req_data['user_info'] or 'billing_acct_id' not in req_data['user_info']:
+            raise APIServerDefError("Invalid user data. 'project_id', 'cloud_user_id' and 'billing_acct_id' are required.", 400)
+
+        # Setup Config
+        config['openstack'] = req_data['cloud_env']
+        config['billing_platform'] = config_file['billing_platform']
+        config[config_file['billing_platform']] = config_file[config_file['billing_platform']]
+        
+        api_handler = APIHandler(config, log_file, billing_enabled=True)
+        app.logger.debug(f"Successfully created APIHandler")
+
+        attempt = api_handler.delete_user(req_data['user_info']['cloud_user_id'], req_data['user_info']['project_id'], req_data['user_info']['billing_acct_id'])
+        app.logger.debug(f"Successfully deleted User Objects")
+
+        resp = {"success": True}
+        return make_response(resp,204)
+    except APIServerDefError as e:
+        response = {"error": type(e).__name__, "message": str(e)}
+        app.logger.error(response)
+        return jsonify(response), 400
+    except OpStkAuthenticationError as e:
+        response = {"error": type(e).__name__, "message": str(e)}
+        app.logger.error(response)
+        return jsonify(response), 401
+    except Exception as e:
+        response = {"error": f"An unexpected error occurred: {e.__class__.__name__}", "message": str(e)}
+        stat_code = 500
+        app.logger.error(response)
+        if 'http_status' in dir(e):
+            stat_code = e.http_status
+        return jsonify(response), stat_code
+    finally:
+        app.logger.info(f"Finished - Deleting User Objects")
+        app.logger.debug("Disconnecting Handler")
+        try:
+            api_handler.disconnect()
+            api_handler = None
+        except NameError:
+            api_handler = None
+
+@app.route('/change_user_details', methods=['PATCH'])
+def change_user_details():
+    config = {'log_level': config_file['log_level'], 'openstack': {}}
+    app.logger.info(f"Starting - Updating User details")
+    try:
+        req_data = request.get_json()
+        app.logger.debug(req_data)
+        if 'cloud_env' not in req_data:
+            raise APIServerDefError("No Authentication data recieved.", 400)
+        if 'user_info' not in req_data:
+            raise APIServerDefError("No User data received.", 400)
+        if 'cloud_user_id' not in req_data['user_info'] or 'billing_acct_id' not in req_data['user_info'] or 'new_data' not in req_data['user_info']:
+            raise APIServerDefError("Invalid user data. 'cloud_user_id', 'billing_acct_id' and 'new_data' block are required.", 400)
+
+        # Setup Config
+        config['openstack'] = req_data['cloud_env']
+        config['billing_platform'] = config_file['billing_platform']
+        config[config_file['billing_platform']] = config_file[config_file['billing_platform']]
+        
+        api_handler = APIHandler(config, log_file, billing_enabled=True)
+        app.logger.debug(f"Successfully created APIHandler")
+
+        changed = api_handler.change_user_details(req_data['user_info']['cloud_user_id'], req_data['user_info']['billing_acct_id'], req_data['user_info']['new_data'])
+        app.logger.debug(f"Successfully updated User's {changed}")
+
+        resp = {"updated": changed}
+        return make_response(resp,204)
+    except APIServerDefError as e:
+        response = {"error": type(e).__name__, "message": str(e)}
+        app.logger.error(response)
+        return jsonify(response), 400
+    except OpStkAuthenticationError as e:
+        response = {"error": type(e).__name__, "message": str(e)}
+        app.logger.error(response)
+        return jsonify(response), 401
+    except Exception as e:
+        response = {"error": f"An unexpected error occurred: {e.__class__.__name__}", "message": str(e)}
+        stat_code = 500
+        app.logger.error(response)
+        if 'http_status' in dir(e):
+            stat_code = e.http_status
+        return jsonify(response), stat_code
+    finally:
+        app.logger.info(f"Finished - Updating User details")
+        app.logger.debug("Disconnecting Handler")
+        try:
+            api_handler.disconnect()
+            api_handler = None
+        except NameError:
+            api_handler = None
 
 
 @app.route('/')
