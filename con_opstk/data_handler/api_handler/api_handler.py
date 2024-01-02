@@ -91,6 +91,18 @@ class APIHandler(BaseHandler):
 
         self.read_view()
 
+        for subscription_id in result['data']['items']:
+
+            for tup in self.view.racks:
+                rack = self.view.racks[tup]
+                self.__LOGGER.info(f"{rack}")
+
+                # Checking for matching of Openstack stack id
+                if rack.id[1] != result['data']['items'][subscription_id]['openstack_stack_id']:
+                    continue
+
+                result['data']['items'][subscription_id]['openstack_stack_name'] = rack.openstack_name
+
         return result
 
     def add_order_tag(self, order_id, tag_name, tag_value):
