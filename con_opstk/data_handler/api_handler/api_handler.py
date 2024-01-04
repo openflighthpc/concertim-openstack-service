@@ -75,6 +75,11 @@ class APIHandler(BaseHandler):
         result = self.billing_service.add_credits(billing_account_id, credits_to_add)
         return result
     
+    def get_credits(self, billing_account_id):
+        self.__LOGGER.info(f"Getting credits for {billing_account_id}")
+        result = self.billing_service.get_credits(billing_account_id)
+        return result
+    
     def create_order(self, billing_account_id):
         self.__LOGGER.info(f"Creating Order for {billing_account_id}")
         result = self.billing_service.create_order(billing_account_id)

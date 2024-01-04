@@ -521,6 +521,23 @@ class KillbillService(BillingService):
              
 
         return response
+    
+
+    # Add Credits
+    def get_credits(self, account_id):
+
+        self.__LOGGER.debug(f"Getting Credits")
+
+        # Obtaining Credits present in an account
+        response = self.get_account_info(account_id=account_id)
+
+        account_credits = -1
+        if 'account_cba' in response['data']:
+            account_credits = response['data']['account_cba']             
+
+        response['data'] = account_credits
+        
+        return response
 
     # List invoices (all)
     def list_invoice(self):
