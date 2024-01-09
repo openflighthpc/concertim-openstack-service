@@ -99,7 +99,12 @@ class KillbillService(BillingService):
 
         response = self._transform_response(allCustomFields)
 
-        response['data'] = response['data'].to_dict()
+        #response['data'] = response['data'].to_dict()
+        new_list = []
+        for cf in response['data']:
+            new_list.append(cf.to_dict())
+
+        response['data'] = new_list
         return response
 
     def __create_killbill_client(self, config):
@@ -198,7 +203,7 @@ class KillbillService(BillingService):
         self.__LOGGER.debug(f"Updating email for {billing_acct_id}")
         accountApi = killbill.AccountApi(self.kb_api_client)
         body = killbill.Account(email=email)
-        update_attempt = accountApi.update_account(billing_acct_id, body)
+        update_attempt = accountApi.update_account(billing_acct_id, body, created_by='KillbillService', reason='Updated', comment='Updated Via Concertim')
 
         response = self._transform_response(update_attempt)
         return response
@@ -312,7 +317,11 @@ class KillbillService(BillingService):
         self.__LOGGER.debug(f"Getting account info for all accounts")
         accounts = accountApi.get_accounts_with_http_info()
         response = self._transform_response(accounts)
-        response['data'] = response['data'].to_dict()
+        #response['data'] = response['data'].to_dict()
+        new_list = []
+        for cf in response['data']:
+            new_list.append(cf.to_dict())
+        response['data'] = new_list
         return response
 
     def get_account_bundles(self, account_id):
@@ -581,7 +590,7 @@ class KillbillService(BillingService):
     def close_account(self, account_id):
         self.__LOGGER.debug(f"Closing account: {account_id}")
         accountApi = killbill.AccountApi(self.kb_api_client)
-        close = accountApi.close_account(account_id)
+        close = accountApi.close_account(account_id, created_by='KillbillService', reason='Deleted', comment='Deleted Via Concertim')
         return self._transform_response(close)
 
 

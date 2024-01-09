@@ -60,7 +60,7 @@ def create_user_project():
         api_handler = APIHandler(config, log_file, billing_enabled=True)
         app.logger.debug(f"Successfully created APIHandler")
 
-        user, project, billing_acct_id = api_handler.create_user_project(username, password, email)
+        user, project, billing_account_id = api_handler.create_user_project(username, password, email)
         app.logger.debug(f"Successfully created new User details")
 
 
@@ -698,7 +698,7 @@ def get_account_invoice():
         except NameError:
             billing_handler = None
 
-@app.route('/change_user_details', methods=['PATCH'])
+@app.route('/change_user_details', methods=['POST'])
 def change_user_details():
     config = {'log_level': config_file['log_level'], 'openstack': {}}
     app.logger.info(f"Starting - Updating User details")

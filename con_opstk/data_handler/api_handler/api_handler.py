@@ -155,11 +155,11 @@ class APIHandler(BaseHandler):
         self.__LOGGER.info(f"Updating details for User '{openstack_user_id}'")
         changed = []
         try:
-            for field in new_data:
-                if field is 'password':
+            for field in new_data.keys():
+                if field == 'password':
                     self.openstack_service.change_user_details(openstack_user_id, new_password=new_data['password'])
                     changed.append("password")
-                if field is 'email':
+                if field == 'email':
                     self.openstack_service.change_user_details(openstack_user_id, new_email=new_data['email'])
                     self.billing_service.change_account_email(billing_acct_id, new_data['email'])
                     changed.append("email")
