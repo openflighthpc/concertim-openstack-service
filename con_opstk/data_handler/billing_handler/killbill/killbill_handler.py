@@ -29,11 +29,11 @@ class KillbillHandler(BillingHandler):
         self.__LOGGER.info("== KillBill Process Completed ==")
 
 
-    def update_cost_account(self, account_id, begin_date, end_date):
+    def update_cost_account(self, billing_account_id, begin_date, end_date):
 
-        self.__LOGGER.debug(f"Updating cost for Killbill account {account_id} : {begin_date} - {end_date}")
+        self.__LOGGER.debug(f"Updating cost for Killbill account {billing_account_id} : {begin_date} - {end_date}")
 
-        accountCustomFields = self.billing_service.get_custom_fields_account(account_id)['data']
+        accountCustomFields = self.billing_service.get_custom_fields_account(billing_account_id)['data']
 
         openstack_project_id = None
 
@@ -43,12 +43,12 @@ class KillbillHandler(BillingHandler):
                 break
 
         if openstack_project_id != None:
-            self.update_user_cost_concertim(openstack_project_id=openstack_project_id, begin=begin_date, end = end_date)
+            self.update_user_cost_concertim(openstack_project_id=openstack_project_id, begin=begin_date, end = end_date, billing_account_id = billing_account_id)
         else:
             #Killbill account not associated with any Openstack project
             return
         
-        bundles = self.billing_service.get_account_bundles(account_id)['data']
+        bundles = self.billing_service.get_account_bundles(billing_account_id)['data']
         for bundle in bundles:
             # Cycle through all subscriptions in the current bundle
             for subscription in bundle.subscriptions:

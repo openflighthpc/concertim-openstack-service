@@ -21,7 +21,7 @@ class BillingHandler(BaseHandler):
     def update_cost(self, type, amt):
         pass
         
-    def update_user_cost_concertim(self, openstack_project_id, begin, end):
+    def update_user_cost_concertim(self, openstack_project_id, begin, end, billing_account_id):
         self.__LOGGER.info("\n\n********************************************\n\n")
         self.__LOGGER.info ("*** Updating User cost %s (%s, %s) ***", openstack_project_id, begin, end)
         
@@ -44,10 +44,13 @@ class BillingHandler(BaseHandler):
         for type_res in rating_summary:
             project_cost  = project_cost + float(rating_summary[type_res])
 
+        # Obtaining Account Credits
+        account_credits = self.billing_service.get_credits(billing_account_id)['data']
+
 
         # Update User Cost in Concertim
         try:
-            self.concertim_service.update_user(ID=user.id[0], variables_dict ={'cost' : project_cost, 'billing_period_start' : begin, 'billing_period_end' : end})
+            self.concertim_service.update_user(ID=user.id[0], variables_dict ={'cost' : project_cost, 'billing_period_start' : begin, 'billing_period_end' : end, 'credits' : account_credits})
         except Exception as e:
             self.__LOGGER.debug(f" Exception Occurred : {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
 
