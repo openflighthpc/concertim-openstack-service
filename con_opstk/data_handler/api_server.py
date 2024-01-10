@@ -628,7 +628,7 @@ def list_paginated_invoices():
             total_invoices = response['headers']['X-Killbill-Pagination-MaxNbRecords']
 
 
-        resp = {"invoices": response['data']}
+        resp = {"total_invoices": total_invoices, "invoices": response['data']}
         return make_response(resp, response['status'])
     
     except APIServerDefError as e:
