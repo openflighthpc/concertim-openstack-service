@@ -391,7 +391,7 @@ def get_draft_invoice():
 
         response = api_handler.get_draft_invoice(req_data['invoice']['billing_account_id'])
 
-        resp = {"invoice_html": response['data']}
+        resp = {"draft_invoice": response['data']}
         return make_response(resp, response['status'])
     
     except APIServerDefError as e:
