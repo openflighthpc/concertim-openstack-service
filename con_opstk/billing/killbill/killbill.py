@@ -269,7 +269,19 @@ class KillbillService(BillingService):
     def __check_for_available_credits(self, account_id):
 
         self.__LOGGER.debug(f"Checking for available credits for account {account_id}")
+
+        remaining_credits = self.__get_remaining_credits(account_id)
+        self.__LOGGER.debug(f"Credits left to launch new order : {remaining_credits}")
+
+        # Enough credits available to create more orders
+        if remaining_credits > 0:
+            return True
         
+        return False
+
+        
+    def __get_remaining_credits(self, account_id):
+
         # Obtaining Credits present in an account
         account = self.get_account_info(account_id=account_id)
 
@@ -283,7 +295,6 @@ class KillbillService(BillingService):
         else:
             return False
 
-
         # Obtaining amount from draft invoice, how much user has spent
         draft_invoice_amount = 0
         draft_invoice = self.get_draft_invoice(account_id=account_id, transform_invoice_items=False)
@@ -294,15 +305,8 @@ class KillbillService(BillingService):
         
         remaining_credits = account_credits - draft_invoice_amount
 
-        self.__LOGGER.debug(f"Credits left to launch new order : {remaining_credits}")
+        return remaining_credits
         
-        # Enough credits available to create more orders
-        if remaining_credits > 0:
-            return True
-        
-
-        return False
-
     # Get account(s) info
     def get_account_info(self, account_id=None):
 
@@ -548,14 +552,9 @@ class KillbillService(BillingService):
 
         self.__LOGGER.debug(f"Getting Credits")
 
-        # Obtaining Credits present in an account
-        response = self.get_account_info(account_id=account_id)
+        response = {'data': "", 'status' : 201, 'headers' : {}}
 
-        account_credits = -1
-        if 'account_cba' in response['data']:
-            account_credits = response['data']['account_cba']             
-
-        response['data'] = account_credits
+        response['data'] = self.__get_remaining_credits(account_id)           
         
         return response
 
