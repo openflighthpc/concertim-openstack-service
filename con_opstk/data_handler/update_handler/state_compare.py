@@ -54,6 +54,7 @@ class BulkUpdateHandler(UpdateHandler):
             self.__LOGGER.warning(f"TOO MANY RESYNCS - {self.__resync_count} - PLEASE CHECK LOGS")
             raise Exception(f"TOO MANY RESYNCS - {self.__resync_count} - PLEASE CHECK LOGS")
         else:
+            self.__LOGGER.info(f"No Resync Scheduled")
             self.view = stash_curr_view
             stash_curr_view = None
             self.view._needs_resync = False

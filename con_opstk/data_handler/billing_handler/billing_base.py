@@ -51,12 +51,14 @@ class BillingHandler(BaseHandler):
 
         # Obtaining Account Credits
         account_credits = self.billing_service.get_credits(billing_account_id)['data']
-        if float(account_credits) <= self._credit_threshold:
+        remaining_credits = float(account_credits) - project_cost
+
+        if remaining_credits <= self._credit_threshold:
             self._account_shutdown(user.id)
 
         # Update User Cost in Concertim
         try:
-            self.concertim_service.update_user(ID=user.id[0], variables_dict ={'cost' : project_cost, 'billing_period_start' : begin, 'billing_period_end' : end, 'credits' : account_credits})
+            self.concertim_service.update_user(ID=user.id[0], variables_dict ={'cost' : project_cost, 'billing_period_start' : begin, 'billing_period_end' : end, 'credits' : remaining_credits})
         except Exception as e:
             self.__LOGGER.debug(f" Exception Occurred : {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
 
