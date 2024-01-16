@@ -404,12 +404,13 @@ class OpenstackService(object):
         # instance parsing
         if stack_instance_resources:
             for inst_r in stack_instance_resources:
-                if inst_r.resource_type == 'OS::Nova::Server':
+                if inst_r.resource_type == 'OS::Nova::Server' :
                     instance_ids.append(inst_r.physical_resource_id)
         # get nova server objs for all instance ids
         for inst_id in instance_ids:
             try:
-                instances.append(nova.get_server(inst_id))
+                if inst_id:
+                    instances.append(nova.get_server(inst_id))
             except novaclient.exceptions.NotFound as e:
                 self.__LOGGER.warning(f"Could not find server '{inst_id}' from stack '{stack_id}' in Openstack - skipping")
                 continue
@@ -452,16 +453,16 @@ class OpenstackService(object):
         actions_map = {
             #'on': heat.switch_on_stack,
             #'off': heat.switch_off_stack,
-            #'suspend': heat.suspend_stack,
-            #'resume': heat.resume_stack,
+            'suspend': heat.suspend_stack,
+            'resume': heat.resume_stack,
             'destroy': heat.destroy_stack
         }
         if action not in actions_map:
             raise APIServerDefError("Invalid action")
         attempt = actions_map[action](stack_id)
         # If attempt returns the specified exc from the heat.action(id) call, use fallback
-        if isinstance(attempt, heatclient.exc.BaseException):
-            return self._update_stack_status_fallback(stack_id, action)
+#        if isinstance(attempt, heatclient.exc.BaseException):
+#            return self._update_stack_status_fallback(stack_id, action)
         return attempt
 
     # For when the heat stack has issues changing status

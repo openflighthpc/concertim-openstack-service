@@ -96,29 +96,30 @@ def run_bulk_updates(test=False):
     try:
         bulk_update_handler = BulkUpdateHandler(config, log_file, billing_enabled=True)
         logger.info("BEGINNING COMMUNICATION")
-        ## MAIN LOOP
-        while True:
-            try:
-                bulk_update_handler.full_update_sync()
-                if test:
-                    break
-            except Exception as e:
-                logger.error(f"Unexpected exception has caused the bulk update loop to terminate : {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
-                logger.warning(f"Continuing loop at next interval.")
-                continue
-            finally:
-                # Run full sync every 2.5 min / check for resync every 15 seconds
-                if not test:
-                    for _ in range(1,11):
-                        time.sleep(15)
-                        bulk_update_handler._check_resync()
-                else:
-                    bulk_update_handler._check_resync()
-        stop(logger,bulk_update_handler)
     except Exception as e:
         msg = f"Could not run Bulk Updates process - {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}"
         logger.error(msg)
         stop(logger,bulk_update_handler)
+        ## MAIN LOOP
+    while True:
+        try:
+            bulk_update_handler.full_update_sync()
+            if test:
+                break
+        except Exception as e:
+            logger.error(f"Unexpected exception has caused the bulk update loop to terminate : {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
+            logger.warning(f"Continuing loop at next interval.")
+            continue
+        finally:
+            # Run full sync every 2.5 min / check for resync every 15 seconds
+            if not test:
+                for _ in range(1,11):
+                    time.sleep(15)
+                    bulk_update_handler._check_resync()
+            else:
+                bulk_update_handler._check_resync()
+    stop(logger,bulk_update_handler)
+    
 
 def run_mq_updates(test=False):
     # Common
