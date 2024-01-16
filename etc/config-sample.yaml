@@ -15,7 +15,7 @@ rmq:
     rmq_path : "/"
 concertim:
     concertim_url: "https://host.concertim"
-    concertim_username: "admin "
+    concertim_username: "admin"
     concertim_password: "password"
     default_rack_height: 20
 killbill:

@@ -80,19 +80,36 @@ class HeatHandler(ClientHandler):
             self.__LOGGER.error(f"An unexpected error : {type(e).__name__} - {e}")
             raise e
 
+
+# TODO: { Catch errors when stack operation fails
 #     heat client doesn't wait to see if successful, so an error is not captured in the normal
 #     update status workflow.
-#     def suspend_stack(self, stack_id):
-#         try:
-#             self.client.actions.suspend(stack_id)
-#             return True
-#         # TODO: put in exceptions that match the failing from instance mismatch status
-#         #except <heat exception> as e:
-#         #    self.__LOGGER.warning(f"An unexpected instance conflict caused suspend of stack {stack_id} to fail")
-#         #    return e
-#         except Exception as e:
-#             self.__LOGGER.error(f"An unexpected error : {type(e).__name__} - {e}")
-#             raise e
+    def suspend_stack(self, stack_id):
+        try:
+            self.client.actions.suspend(stack_id)
+            return True
+        # TODO: put in exceptions that match the failing from instance mismatch status
+        #except <heat exception> as e:
+        #    self.__LOGGER.warning(f"An unexpected instance conflict caused suspend of stack {stack_id} to fail")
+        #    return e
+        except Exception as e:
+            self.__LOGGER.error(f"An unexpected error : {type(e).__name__} - {e}")
+            raise e
+
+#     heat client doesn't wait to see if successful, so an error is not captured in the normal
+#     update status workflow.
+    def resume_stack(self, stack_id):
+        try:
+            self.client.actions.resume(stack_id)
+            return True
+        # TODO: put in exceptions that match the failing from instance mismatch status
+        #except <heat exception> as e:
+        #    self.__LOGGER.warning(f"An unexpected instance conflict caused suspend of stack {stack_id} to fail")
+        #    return e
+        except Exception as e:
+            self.__LOGGER.error(f"An unexpected error : {type(e).__name__} - {e}")
+            raise e
+# TODO: }
 
     def close(self):
         self.__LOGGER.debug("Closing Heat Client Connection")

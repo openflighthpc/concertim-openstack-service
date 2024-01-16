@@ -48,26 +48,26 @@ def run_metrics(test=False):
     try:
         metric_handler = MetricHandler(config, log_file, granularity=granularity, interval=interval)
         logger.info("BEGINNING COMMUNICATION")
-        if not test:
-            while True:
-                try:
-                    metric_handler.run()
-                except Exception as e:
-                    logger.error(f"Unexpected exception has caused the metric loop to terminate : {type(e).__name__} - {e}")
-                    logger.warning(f"Continuing loop at next interval.")
-                    continue
-                finally:
-                    time.sleep(interval)
-        else:
-            try:
-                metric_handler.run()
-            except Exception as e:
-                logger.error(f"Unexpected exception has caused the metric process to terminate : {type(e).__name__} - {e}")
-                raise e
-            stop(logger,metric_handler)
     except Exception as e:
         msg = f"Could not run Metrics process - {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}"
         logger.error(msg)
+        stop(logger,metric_handler)
+    if not test:
+        while True:
+            try:
+                metric_handler.run()
+            except Exception as e:
+                logger.error(f"Unexpected exception has caused the metric loop to terminate : {type(e).__name__} - {e}")
+                logger.warning(f"Continuing loop at next interval.")
+                continue
+            finally:
+                time.sleep(interval)
+    else:
+        try:
+            metric_handler.run()
+        except Exception as e:
+            logger.error(f"Unexpected exception has caused the metric process to terminate : {type(e).__name__} - {e}")
+            raise e
         stop(logger,metric_handler)
 
 def run_bulk_updates(test=False):
@@ -96,29 +96,30 @@ def run_bulk_updates(test=False):
     try:
         bulk_update_handler = BulkUpdateHandler(config, log_file, billing_enabled=True)
         logger.info("BEGINNING COMMUNICATION")
-        ## MAIN LOOP
-        while True:
-            try:
-                bulk_update_handler.full_update_sync()
-                if test:
-                    break
-            except Exception as e:
-                logger.error(f"Unexpected exception has caused the bulk update loop to terminate : {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
-                logger.warning(f"Continuing loop at next interval.")
-                continue
-            finally:
-                # Run full sync every 2.5 min / check for resync every 15 seconds
-                if not test:
-                    for _ in range(1,11):
-                        time.sleep(15)
-                        bulk_update_handler._check_resync()
-                else:
-                    bulk_update_handler._check_resync()
-        stop(logger,bulk_update_handler)
     except Exception as e:
         msg = f"Could not run Bulk Updates process - {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}"
         logger.error(msg)
         stop(logger,bulk_update_handler)
+        ## MAIN LOOP
+    while True:
+        try:
+            bulk_update_handler.full_update_sync()
+            if test:
+                break
+        except Exception as e:
+            logger.error(f"Unexpected exception has caused the bulk update loop to terminate : {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
+            logger.warning(f"Continuing loop at next interval.")
+            continue
+        finally:
+            # Run full sync every 2.5 min / check for resync every 15 seconds
+            if not test:
+                for _ in range(1,11):
+                    time.sleep(15)
+                    bulk_update_handler._check_resync()
+            else:
+                bulk_update_handler._check_resync()
+    stop(logger,bulk_update_handler)
+    
 
 def run_mq_updates(test=False):
     # Common
@@ -232,34 +233,33 @@ def run_billing_handler(test=False):
 
     config = load_config(CONFIG_FILE)
     billing_backend = config["billing_platform"].lower()
-    
-    ImportedService = getattr(importlib.import_module(BILLING_IMPORT_PATH[billing_backend]), BILLING_HANDLERS[billing_backend])
-    billing_handler = ImportedService(config, log_file)
-
+    try:
+        ImportedService = getattr(importlib.import_module(BILLING_IMPORT_PATH[billing_backend]), BILLING_HANDLERS[billing_backend])
+        billing_handler = ImportedService(config, log_file)
+    except Exception as e:
+        msg = f"Could not run Billing process - {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}"
+        logger.error(msg)
+        stop(logger,billing_handler)
 
     def signal_handler(sig, frame):
         stop(logger,billing_handler)
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
-    try:
-        while True:
-            try:
-                billing_handler.update_cost()
-            except Exception as e:
-                logger.error(f"Unexpected exception has caused the billing loop to terminate : {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
-                logger.warning(f"Continuing loop at next interval.")
-                continue
-            finally:
-                if test:
-                    break
-                elif 'sleep_timer' in config and int(config["sleep_timer"]) > 0:
-                    time.sleep(int(self.config["sleep_timer"]))
-                else:
-                    time.sleep(10)
-    except Exception as e:
-        msg = f"Could not run Billing process - {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}"
-        logger.error(msg)
-        stop(logger,billing_handler)
+    while True:
+        try:
+            billing_handler.update_cost()
+        except Exception as e:
+            logger.error(f"Unexpected exception has caused the billing loop to terminate : {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
+            logger.warning(f"Continuing loop at next interval.")
+            continue
+        finally:
+            if test:
+                break
+            elif 'sleep_timer' in config and int(config["sleep_timer"]) > 0:
+                time.sleep(int(self.config["sleep_timer"]))
+            else:
+                time.sleep(10)
+    stop(logger,billing_handler)
 
 
 ### COMMON METHODS ###

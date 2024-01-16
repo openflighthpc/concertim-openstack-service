@@ -12,16 +12,21 @@ from dateutil.parser import parse as dt_parse
 
 class BillingHandler(BaseHandler):
     DEFAULT_CLIENTS = ['keystone','cloudkitty','heat','nova']
-
+    DEFAULT_CREDIT_THRESHOLD = 24
     def __init__(self, config_obj, log_file, clients=None):
         self.clients = clients if clients else BillingHandler.DEFAULT_CLIENTS
         super().__init__(config_obj, log_file, self.clients, enable_concertim=True, billing_enabled=True)
         self.__LOGGER = create_logger(__name__, self._LOG_FILE, self._CONFIG['log_level'])
+        if 'credit_threshold' in self._CONFIG and self._CONFIG['credit_threshold']:
+            self._credit_threshold = float(self._CONFIG['credit_threshold'])
+        else:
+            self._credit_threshold = float(BillingHandler.DEFAULT_CREDIT_THRESHOLD)
+
 
     def update_cost(self, type, amt):
         pass
         
-    def update_user_cost_concertim(self, openstack_project_id, begin, end):
+    def update_user_cost_concertim(self, openstack_project_id, begin, end, billing_account_id):
         self.__LOGGER.info("\n\n********************************************\n\n")
         self.__LOGGER.info ("*** Updating User cost %s (%s, %s) ***", openstack_project_id, begin, end)
         
@@ -44,10 +49,16 @@ class BillingHandler(BaseHandler):
         for type_res in rating_summary:
             project_cost  = project_cost + float(rating_summary[type_res])
 
+        # Obtaining Account Credits
+        account_credits = self.billing_service.get_credits(billing_account_id)['data']
+        remaining_credits = float(account_credits) - project_cost
+
+        if remaining_credits <= self._credit_threshold:
+            self._account_shutdown(user.id)
 
         # Update User Cost in Concertim
         try:
-            self.concertim_service.update_user(ID=user.id[0], variables_dict ={'cost' : project_cost, 'billing_period_start' : begin, 'billing_period_end' : end})
+            self.concertim_service.update_user(ID=user.id[0], variables_dict ={'cost' : project_cost, 'billing_period_start' : begin, 'billing_period_end' : end, 'credits' : remaining_credits})
         except Exception as e:
             self.__LOGGER.debug(f" Exception Occurred : {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
 
@@ -122,6 +133,15 @@ class BillingHandler(BaseHandler):
 
     def _convert_date(self, datetime_str):
         return dt_parse(datetime_str).strftime('%Y-%m-%d')
+
+    def _account_shutdown(self, user_id_tup):
+        self.__LOGGER.info(f"User <ID:{user_id_tup}> has crossed the allowed credit threshold - starting shutdown procedure for User's racks")
+        for rack_concertim_id in self.view.users[user_id_tup].racks:
+            for rack_id_tup in self.view.racks:
+                if rack_concertim_id == rack_id_tup[0]:
+                    self.openstack_service.update_stack_status(rack_id_tup[1], 'suspend')
+        self.__LOGGER.debug(f"Shutdown procedure completed.")
+        return True
 
     def disconnect(self):
         self.__LOGGER.info(f"Disconnecting Billing base connections")

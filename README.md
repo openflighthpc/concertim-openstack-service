@@ -33,7 +33,7 @@ For Non-Docker ENVs:
 
 If **Killbill** is being used as the Billing App (default):
 
-5. Clone the Alces fork of the Killbill API Client into the Conceritm-Openstack billing directory
+5. Clone the [Alces fork of the Killbill API Client](https://github.com/alces-flight/killbill_fork) into the Conceritm-Openstack billing directory
     ```
     cd concertim-openstack-service/con_opstk/billing/killbill/
     git clone https://<user>@github.com/alces-flight/killbill_fork.git

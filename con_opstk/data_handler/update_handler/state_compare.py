@@ -54,6 +54,7 @@ class BulkUpdateHandler(UpdateHandler):
             self.__LOGGER.warning(f"TOO MANY RESYNCS - {self.__resync_count} - PLEASE CHECK LOGS")
             raise Exception(f"TOO MANY RESYNCS - {self.__resync_count} - PLEASE CHECK LOGS")
         else:
+            self.__LOGGER.info(f"No Resync Scheduled")
             self.view = stash_curr_view
             stash_curr_view = None
             self.view._needs_resync = False
@@ -288,16 +289,33 @@ class BulkUpdateHandler(UpdateHandler):
             if hasattr(os_stack, 'stack_user_project_id') and os_stack.stack_user_project_id:
                 new_rack.add_metadata(openstack_stack_owner_id=os_stack.stack_user_project_id)
             concertim_response_rack = None
-            # CREATE BILLNIG ORDER FOR STACK
+            # RETRIEVE BILLNIG ORDER FOR STACK
             try:
-
+                billing_stack_id = None
                 billing_acct = self.view.users[user_id_tup].billing_acct_id
+                order_id = None
                 if billing_acct is not None:
-                    order_id = self.billing_service.create_order(billing_acct, os_stack.id)['headers']['Location'].split('/')[-1]
-                    new_rack.order_id = order_id
+                    bundles = self.billing_service.get_account_bundles(billing_acct)['data']
+                    for bundle in bundles:
+                        # Cycle through all subscriptions in the current bundle
+                        for subscription in bundle.subscriptions:
+                            if subscription.state != "ACTIVE":
+                                continue
+                            customFields = self.billing_service.get_custom_fields_subscription(subscription.subscription_id)['data']
+                            for field in customFields:
+                                if field["name"] == "openstack_stack_id":
+                                    billing_stack_id = field["value"]
+                            if billing_stack_id == os_stack.id:
+                                order_id = bundle.bundle_id
+                                break
+                        if order_id:
+                            break
+                if not order_id:
+                    raise Exception(f"Order not found for stack:{os_stack.id}")
             except Exception as e:
                 self.__LOGGER.error(f"Failed to create Rack - {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
                 raise e
+            new_rack.order_id = order_id
             try:
                 concertim_response_rack = self.concertim_service.create_rack({'name': new_rack.name[0],
                                                                 'user_id' : new_rack.user_id,

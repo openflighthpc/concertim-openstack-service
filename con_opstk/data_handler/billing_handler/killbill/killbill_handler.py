@@ -24,31 +24,31 @@ class KillbillHandler(BillingHandler):
         end_date = (begin_date + timedelta(days=32)).replace(day=1)
 
         for account in accounts:
-            self.update_cost_account(account.account_id, begin_date, end_date)
+            self.update_cost_account(account["account_id"], begin_date, end_date)
         
         self.__LOGGER.info("== KillBill Process Completed ==")
 
 
-    def update_cost_account(self, account_id, begin_date, end_date):
+    def update_cost_account(self, billing_account_id, begin_date, end_date):
 
-        self.__LOGGER.debug(f"Updating cost for Killbill account {account_id} : {begin_date} - {end_date}")
+        self.__LOGGER.debug(f"Updating cost for Killbill account {billing_account_id} : {begin_date} - {end_date}")
 
-        accountCustomFields = self.billing_service.get_custom_fields_account(account_id)['data']
+        accountCustomFields = self.billing_service.get_custom_fields_account(billing_account_id)['data']
 
         openstack_project_id = None
 
         for customField in accountCustomFields:
-            if customField.name == "openstack_project_id":
-                openstack_project_id = customField.value
+            if customField["name"] == "openstack_project_id":
+                openstack_project_id = customField["value"]
                 break
 
         if openstack_project_id != None:
-            self.update_user_cost_concertim(openstack_project_id=openstack_project_id, begin=begin_date, end = end_date)
+            self.update_user_cost_concertim(openstack_project_id=openstack_project_id, begin=begin_date, end = end_date, billing_account_id = billing_account_id)
         else:
             #Killbill account not associated with any Openstack project
             return
         
-        bundles = self.billing_service.get_account_bundles(account_id)['data']
+        bundles = self.billing_service.get_account_bundles(billing_account_id)['data']
         for bundle in bundles:
             # Cycle through all subscriptions in the current bundle
             for subscription in bundle.subscriptions:
@@ -70,14 +70,14 @@ class KillbillHandler(BillingHandler):
 
         for customField in customFields:
             #self.__LOGGER.debug(customField)
-            if customField.name == "openstack_metering_enabled" and customField.value == "true":
+            if customField["name"] == "openstack_metering_enabled" and customField["value"] == "true":
                 openstack_enabled = True
 
-            if customField.name == "openstack_stack_id":
-                openstack_stack_id = customField.value
+            if customField["name"] == "openstack_stack_id":
+                openstack_stack_id = customField["value"]
 
-            if customField.name == "openstack_cloudkitty_metrics":
-                openstack_kb_metrics = (customField.value).split(",")
+            if customField["name"] == "openstack_cloudkitty_metrics":
+                openstack_kb_metrics = (customField["value"]).split(",")
 
         if openstack_enabled and openstack_stack_id:
             # Subscription is linked to an Openstack project

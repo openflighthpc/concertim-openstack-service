@@ -140,6 +140,25 @@ class KeystoneHandler(ClientHandler):
         except Exception as e:
             self.__LOGGER.error(f"An unexpected error : {type(e).__name__} - {e}")
             raise e
+
+    def delete_user(self, user_id):
+        try:
+            self.__LOGGER.debug(f"Deleting User '{user_id}'")
+            delete_attempt = self.client.users.delete(user=user_id)
+            return True
+        except Exception as e:
+            self.__LOGGER.error(f"An unexpected error : {type(e).__name__} - {e}")
+            raise e
+    
+    def update_user(self, user_id, **kwargs):
+        try:
+            fields = list(kwargs.keys())
+            self.__LOGGER.debug(f"Updating User '{user_id}' fields {fields}")
+            update_attempt = self.client.users.update(user=user_id, **kwargs)
+            return True
+        except Exception as e:
+            self.__LOGGER.error(f"An unexpected error : {type(e).__name__} - {e}")
+            raise e
     
     def create_project(self, name, domain, desc=''):
         try:
@@ -147,6 +166,15 @@ class KeystoneHandler(ClientHandler):
             project = self.client.projects.create(name=name,domain=domain,description=desc)
             self.__LOGGER.debug(f"NEW PROJECT: {project}")
             return project
+        except Exception as e:
+            self.__LOGGER.error(f"An unexpected error : {type(e).__name__} - {e}")
+            raise e
+
+    def delete_project(self, project_id):
+        try:
+            self.__LOGGER.debug(f"Deleting '{project_id}'")
+            delete_attempt = self.client.projects.delete(project=project_id)
+            return True
         except Exception as e:
             self.__LOGGER.error(f"An unexpected error : {type(e).__name__} - {e}")
             raise e

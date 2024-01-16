@@ -130,7 +130,8 @@ ENDPOINTS = {
                         'data': {"user": {
                                     "cost": '{cost}',
                                     "billing_period_start": '{billing_period_start}',
-                                    "billing_period_end": '{billing_period_end}'
+                                    "billing_period_end": '{billing_period_end}',
+                                    "credits": '{credits}'
                                 }}
                     },
                     'UPDATE_DEVICE':{
