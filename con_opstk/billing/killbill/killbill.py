@@ -179,10 +179,10 @@ class KillbillService(BillingService):
         return self._transform_response(kb_usage_response)
 
     # Create account
-    def create_new_account(self, name, email, openstack_project_id,  **kwargs):
+    def create_new_account(self, name, openstack_project_id,  **kwargs):
         self.__LOGGER.debug(f"Creating new account for {name}")
         accountApi = killbill.AccountApi(self.kb_api_client)
-        body = killbill.Account(name=name, email=email, bill_cycle_day_local=31, currency='USD', **kwargs)
+        body = killbill.Account(name=name, bill_cycle_day_local=31, currency='USD', **kwargs)
         
         account = accountApi.create_account(body,created_by='KillbillService')
         

@@ -35,36 +35,29 @@ class APIHandler(BaseHandler):
             raise e
 
 
-    def create_user_project(self, username, password, email):
+    def create_team_project(self, name):
         children = []
-        opsk_username = f"CM_{username}"
-        opsk_project_name = f"{opsk_username}_proj"
+        formatted_name = name.replace(' ', '_')
+        opsk_project_name = f"CM_{formatted_name}_proj"
         try:
-            self.__LOGGER.info(f"Creating Project for {username}")
+            self.__LOGGER.info(f"Creating Project for team {name}")
             # Create new project
             if 'project_domain_name' in self._CONFIG['openstack']:
                 new_project = self.openstack_service.create_new_cm_project(opsk_project_name,domain=self._CONFIG['openstack']['project_domain_name'])
             else:
                 new_project = self.openstack_service.create_new_cm_project(opsk_project_name)
             children.append(new_project)
-            # Create new user
-            self.__LOGGER.info(f"Creating User for {username}")
-            if 'user_domain_name' in self._CONFIG['openstack']:
-                new_user = self.openstack_service.create_new_cm_user(opsk_username, password, email, new_project, domain=self._CONFIG['openstack']['user_domain_name'])
-            else:
-                new_user = self.openstack_service.create_new_cm_user(opsk_username, password, email, new_project)
-            children.append(new_user)
             # Create billing account
-            self.__LOGGER.info(f"Creating Billling Account for {username}")
-            response = self.billing_service.create_new_account(name=username, email=email, openstack_project_id=new_project.id)
+            self.__LOGGER.info(f"Creating Billling Account for team {name}")
+            response = self.billing_service.create_new_account(name=formatted_name, openstack_project_id=new_project.id)
             location_header = response['headers']['Location']
             new_billing_acct_id = location_header.split('/')[-1]
 
-            return new_user, new_project, new_billing_acct_id
+            return new_project, new_billing_acct_id
         except Exception as e:
             self.__LOGGER.error(f"Encountered ERROR - Aborting")
             super().__scrub(*children)
-            self.__LOGGER.error(f"Encountered error when creating new Concertim Managed User/Project/Billing {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
+            self.__LOGGER.error(f"Encountered error when creating new Concertim Project/Billing {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
             raise e
 
     def update_status(self, type, id, action):
