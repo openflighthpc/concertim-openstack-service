@@ -207,29 +207,6 @@ class OpenstackService(object):
             self.__LOGGER.error(f"Failed to add required roles to new project - {type(e).__name__} - {e}")
             raise e
 
-#     def create_new_cm_user(self, name, password, email, project, domain='default'):
-#         self.__LOGGER.debug(f"Creating new Concertim-managed User '{name}' in domain '{domain}'")
-#         self.__check_handlers('keystone')
-#         keystone = self.handlers[self._handlers_key_map['keystone']]
-#
-#         domain_ref = ''
-#         if domain != 'default':
-#             domain_ref = keystone.get_domain(domain)
-#         else:
-#             domain_ref = domain
-#
-#         new_user = keystone.create_user(name, password, domain_ref, email=email, project=project, desc="Concertim managed User")
-#         try:
-#             self.__LOGGER.debug(f"Adding new_user to project")
-#             keystone.add_user_to_project(user=new_user,project=project,role=self.req_keystone_objs['role']['member'])
-#             self.__LOGGER.debug(f"New Concertim-managed user created successfully - '{new_user}'")
-#             return new_user
-#         except Exception as e:
-#             self.__LOGGER.error(f"Failed - Aborting - scrubbing created user")
-#             keystone.delete(new_user)
-#             self.__LOGGER.error(f"Failed to add required roles to new user - {type(e).__name__} - {e}")
-#             raise e
-
     def create_new_cm_user(self, name, password, email, domain='default'):
         self.__LOGGER.debug(f"Creating new Concertim-managed User '{name}' in domain '{domain}'")
         self.__check_handlers('keystone')
@@ -246,6 +223,17 @@ class OpenstackService(object):
         except Exception as e:
             self.__LOGGER.error(f"Failed to create user - {type(e).__name__} - {e}")
             raise e
+
+    def add_user_to_project(self, user_id, project_id, role):
+        self.__LOGGER.debug(f"Adding User '{user_id}' to project '{project_id}'")
+        self.__check_handlers('keystone')
+        keystone = self.handlers[self._handlers_key_map['keystone']]
+        try:
+          role = keystone.get_role(role)
+          keystone.add_user_to_project(user=user_id, project=project_id, role=role)
+        except Exception as e:
+          self.__LOGGER.error(f"Failed to add user to project - {type(e).__name__} - {e}")
+          raise e
 
     def delete_cm_pair(self, user_id, project_id):
         self.__LOGGER.debug(f"Deleting User '{user_id}' and project '{project_id}'")
