@@ -37,7 +37,7 @@ BILLING_IMPORT_PATH = {'killbill': 'con_opstk.billing.killbill.killbill', 'hostb
         
 
 @app.route('/create_user', methods=['POST'])
-def create_user_project():
+def create_user():
     config = {'log_level': config_file['log_level'], 'openstack': {}}
     app.logger.info(f"Starting - Creating new user in Openstack")
     try:
@@ -56,7 +56,7 @@ def create_user_project():
         password = req_data['password']
         email = req_data['email'] if 'email' in req_data else ''
 
-        api_handler = APIHandler(config, log_file, billing_enabled=True)
+        api_handler = APIHandler(config, log_file)
         app.logger.debug(f"Successfully created APIHandler")
 
         user = api_handler.create_user(username, password, email)
