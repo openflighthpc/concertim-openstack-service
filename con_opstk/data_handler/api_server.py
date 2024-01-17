@@ -35,6 +35,59 @@ BILLING_SERVICES = {'killbill': 'KillbillService', 'hostbill': 'HostbillService'
 BILLING_IMPORT_PATH = {'killbill': 'con_opstk.billing.killbill.killbill', 'hostbill': 'con_opstk.billing.hostbill.hostbill'}
         
 
+@app.route('/create_user', methods=['POST'])
+def create_user_project():
+    config = {'log_level': config_file['log_level'], 'openstack': {}}
+    app.logger.info(f"Starting - Creating new user in Openstack")
+    try:
+
+        req_data = request.get_json()
+        app.logger.debug(req_data)
+        if 'cloud_env' not in req_data:
+            raise APIServerDefError("No Authentication data recieved.", 400)
+        if 'username' not in req_data or 'password' not in req_data:
+            raise APIServerDefError("Invalid user data. 'username' and 'password' are required.", 400)
+
+        # Setup Config
+        config['openstack'] = req_data['cloud_env']
+
+        username = req_data['username']
+        password = req_data['password']
+        email = req_data['email'] if 'email' in req_data else ''
+
+        api_handler = APIHandler(config, log_file, billing_enabled=True)
+        app.logger.debug(f"Successfully created APIHandler")
+
+        user = api_handler.create_user(username, password, email)
+        app.logger.debug(f"Successfully created new User")
+
+
+        resp = {"username": username, "user_id": user.id}
+        return make_response(resp,201)
+    except APIServerDefError as e:
+        response = {"error": type(e).__name__, "message": str(e), "traceback" : traceback.format_exc()}
+        app.logger.error(response)
+        return jsonify(response), 400
+    except OpStkAuthenticationError as e:
+        response = {"error": type(e).__name__, "message": str(e), "traceback" : traceback.format_exc()}
+        app.logger.error(response)
+        return jsonify(response), 401
+    except Exception as e:
+        response = {"error": f"An unexpected error occurred: {e.__class__.__name__}", "message": str(e), "traceback" : traceback.format_exc()}
+        stat_code = 500
+        app.logger.error(response)
+        if 'http_status' in dir(e):
+            stat_code = e.http_status
+        return jsonify(response), stat_code
+    finally:
+        app.logger.info(f"Finished - Creating new CM_ user in Openstack")
+        app.logger.debug("Disconnecting Handler")
+        try:
+            api_handler.disconnect()
+            api_handler = None
+        except NameError:
+            api_handler = None
+
 @app.route('/create_user_project', methods=['POST'])
 def create_user_project():
     config = {'log_level': config_file['log_level'], 'openstack': {}}

@@ -16,6 +16,24 @@ class APIHandler(BaseHandler):
         super().__init__(config_obj, log_file, self.clients, enable_concertim=enable_concertim, billing_enabled=billing_enabled)
         self.__LOGGER = create_logger(__name__, self._LOG_FILE, self._CONFIG['log_level'])
 
+    def create_user(self, username, password, email):
+        children = []
+        opsk_username = f"CM_{username}"
+        try:
+            # Create new user
+            self.__LOGGER.info(f"Creating User for {username}")
+            if 'user_domain_name' in self._CONFIG['openstack']:
+                new_user = self.openstack_service.create_new_cm_user(opsk_username, password, email, domain=self._CONFIG['openstack']['user_domain_name'])
+            else:
+                new_user = self.openstack_service.create_new_cm_user(opsk_username, password, email)
+            children.append(new_user)
+            return new_user
+        except Exception as e:
+            self.__LOGGER.error(f"Encountered ERROR - Aborting")
+            super().__scrub(*children) # what's this for/ doing?
+            self.__LOGGER.error(f"Encountered error when creating new Concertim Managed User {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
+            raise e
+
 
     def create_user_project(self, username, password, email):
         children = []
