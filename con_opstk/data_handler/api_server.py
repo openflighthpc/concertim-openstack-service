@@ -89,10 +89,10 @@ def create_user():
         except NameError:
             api_handler = None
 
-@app.route('/create_user_project', methods=['POST'])
-def create_user_project():
+@app.route('/create_team', methods=['POST'])
+def create_team():
     config = {'log_level': config_file['log_level'], 'openstack': {}}
-    app.logger.info(f"Starting - Creating new 'CM_' project and user in Openstack and Billing account")
+    app.logger.info(f"Starting - Creating new 'CM_' team project in Openstack and Billing account")
     try:
         if not authenticate_headers(request.headers, app.logger):
             resp = {"message" : "Request not authenticated"}
@@ -102,26 +102,24 @@ def create_user_project():
         app.logger.debug(req_data)
         if 'cloud_env' not in req_data:
             raise APIServerDefError("No Authentication data recieved.", 400)
-        if 'username' not in req_data or 'password' not in req_data:
-            raise APIServerDefError("Invalid user data. 'username' and 'password' are required.", 400)
+        if 'name' not in req_data:
+            raise APIServerDefError("Invalid user data. 'name' is required.", 400)
 
         # Setup Config
         config['openstack'] = req_data['cloud_env']
         config['billing_platform'] = config_file['billing_platform']
         config[config_file['billing_platform']] = config_file[config_file['billing_platform']]
 
-        username = req_data['username']
-        password = req_data['password']
-        email = req_data['email'] if 'email' in req_data else ''
+        name = req_data['name']
         
         api_handler = APIHandler(config, log_file, billing_enabled=True)
         app.logger.debug(f"Successfully created APIHandler")
 
-        user, project, billing_account_id = api_handler.create_user_project(username, password, email)
-        app.logger.debug(f"Successfully created new User details")
+        project, billing_account_id = api_handler.create_team_project(name)
+        app.logger.debug(f"Successfully created new team details")
 
 
-        resp = {"username": username, "user_id": user.id, "project_id": project.id, "billing_account_id": billing_account_id}
+        resp = {"name": name, "project_id": project.id, "billing_account_id": billing_account_id}
         return make_response(resp,201)
     except APIServerDefError as e:
         response = {"error": type(e).__name__, "message": str(e), "traceback" : traceback.format_exc()}
@@ -139,7 +137,7 @@ def create_user_project():
             stat_code = e.http_status
         return jsonify(response), stat_code
     finally:
-        app.logger.info(f"Finished - Creating new CM_ project and user in Openstack and Billing Account")
+        app.logger.info(f"Finished - Creating new CM_ team project in Openstack and Billing Account")
         app.logger.debug("Disconnecting Handler")
         try:
             api_handler.disconnect()
