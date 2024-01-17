@@ -241,9 +241,9 @@ class OpenstackService(object):
         else:
             domain_ref = domain
         try:
-            keystone.create_user(name, password, domain_ref, email=email, desc="Concertim managed User")
-            return True
-        exception Exception as e:
+            new_user = keystone.create_user(name, password, domain_ref, email=email, desc="Concertim managed User")
+            return new_user
+        except Exception as e:
             self.__LOGGER.error(f"Failed to create user - {type(e).__name__} - {e}")
             raise e
 
