@@ -60,6 +60,17 @@ class APIHandler(BaseHandler):
             self.__LOGGER.error(f"Encountered error when creating new Concertim Project/Billing {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
             raise e
 
+    def delete_team(self, openstack_project_id, billing_acct_id):
+        self.__LOGGER.info(f"Starting delete of Concertim Team objects")
+        try:
+            self.openstack_service.delete_project(openstack_project_id)
+            self.billing_service.close_account(billing_acct_id)
+            return True
+        except Exception as e:
+            self.__LOGGER.error(f"Encountered error when completing Team objects deletion : {e.__class__.__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
+            raise e
+
+
     def create_team_role(self, user_id, project_id, role):
         self.__LOGGER.info(f"Creating role #{role} for user #{user_id} in project #{project_id}")
         try:

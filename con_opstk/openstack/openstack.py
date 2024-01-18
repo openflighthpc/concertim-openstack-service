@@ -235,6 +235,14 @@ class OpenstackService(object):
           self.__LOGGER.error(f"Failed to add user to project - {type(e).__name__} - {e}")
           raise e
 
+    def delete_project(self, project_id):
+        self.__LOGGER.debug(f"Deleting project '{project_id}'")
+        self.__check_handlers('keystone')
+        keystone = self.handlers[self._handlers_key_map['keystone']]
+
+        keystone.delete_project(project_id)
+        return True
+
     def delete_cm_pair(self, user_id, project_id):
         self.__LOGGER.debug(f"Deleting User '{user_id}' and project '{project_id}'")
         self.__check_handlers('keystone')
