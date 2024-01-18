@@ -188,6 +188,15 @@ class KeystoneHandler(ClientHandler):
             self.__LOGGER.error(f"An unexpected error : {type(e).__name__} - {e}")
             raise e
 
+    def remove_user_role_from_project(self, user, project, role):
+            try:
+                self.__LOGGER.debug(f"Removing role #{role} for user {user} from Project:{project} with Role:{role}")
+                self.client.roles.revoke(role=role, user=user, project=project)
+                return
+            except Exception as e:
+                self.__LOGGER.error(f"An unexpected error : {type(e).__name__} - {e}")
+                raise e
+
     def close(self):
         self.__LOGGER.debug("Closing Keystone Client Connection")
         self.client = None
