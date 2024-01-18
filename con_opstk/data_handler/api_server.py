@@ -145,6 +145,58 @@ def create_team():
         except NameError:
             api_handler = None
 
+@app.route('/delete_team', methods=['DELETE'])
+def delete_team():
+    config = {'log_level': config_file['log_level'], 'openstack': {}}
+    app.logger.info(f"Starting - Deleting Team Objects")
+    try:
+        req_data = request.get_json()
+        app.logger.debug(req_data)
+        if 'cloud_env' not in req_data:
+            raise APIServerDefError("No Authentication data received.", 400)
+        if 'team_info' not in req_data:
+            raise APIServerDefError("No team data received.", 400)
+        if 'project_id' not in req_data['team_info'] or 'billing_acct_id' not in req_data['team_info']:
+            raise APIServerDefError("Invalid user data. 'project_id' and 'billing_acct_id' are required.", 400)
+
+        # Setup Config
+        config['openstack'] = req_data['cloud_env']
+        config['billing_platform'] = config_file['billing_platform']
+        config[config_file['billing_platform']] = config_file[config_file['billing_platform']]
+
+        api_handler = APIHandler(config, log_file, billing_enabled=True)
+        app.logger.debug(f"Successfully created APIHandler")
+
+        attempt = api_handler.delete_team(req_data['team_info']['project_id'], req_data['team_info']['billing_acct_id'])
+        app.logger.debug(f"Successfully deleted Team Objects")
+
+        resp = {"success": True}
+        return make_response(resp,204)
+    except APIServerDefError as e:
+        response = {"error": type(e).__name__, "message": str(e)}
+        app.logger.error(response)
+        return jsonify(response), 400
+    except OpStkAuthenticationError as e:
+        response = {"error": type(e).__name__, "message": str(e)}
+        app.logger.error(response)
+        return jsonify(response), 401
+    except Exception as e:
+        response = {"error": f"An unexpected error occurred: {e.__class__.__name__}", "message": str(e)}
+
+        stat_code = 500
+        app.logger.error(response)
+        if 'http_status' in dir(e):
+            stat_code = e.http_status
+        return jsonify(response), stat_code
+    finally:
+        app.logger.info(f"Finished - Deleting Team Objects")
+        app.logger.debug("Disconnecting Handler")
+        try:
+            api_handler.disconnect()
+            api_handler = None
+        except NameError:
+            api_handler = None
+
 @app.route('/create_team_role', methods=['POST'])
 def create_team_role():
     config = {'log_level': config_file['log_level'], 'openstack': {}}
@@ -737,7 +789,6 @@ def delete_order():
         except NameError:
             billing_handler = None
 
-
 @app.route('/delete_user', methods=['DELETE'])
 def delete_user():
     config = {'log_level': config_file['log_level'], 'openstack': {}}
@@ -1010,4 +1061,4 @@ def running():
 def run_app(config_obj):
     global config_file
     config_file = config_obj
-    app.run(host='0.0.0.0', port=42356)
+    app.run(host='0.0.0.0', port=42355)
