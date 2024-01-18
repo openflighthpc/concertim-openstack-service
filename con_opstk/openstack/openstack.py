@@ -235,6 +235,17 @@ class OpenstackService(object):
           self.__LOGGER.error(f"Failed to add user to project - {type(e).__name__} - {e}")
           raise e
 
+    def remove_user_role_from_project(self, user_id, project_id, role):
+        self.__LOGGER.debug(f"Removing user '{user_id}' role ''{role}' from' project '{project_id}'")
+        self.__check_handlers('keystone')
+        keystone = self.handlers[self._handlers_key_map['keystone']]
+        try:
+          role = keystone.get_role(role)
+          keystone.remove_user_role_from_project(user=user_id, project=project_id, role=role)
+        except Exception as e:
+          self.__LOGGER.error(f"Failed to remove user role from project - {type(e).__name__} - {e}")
+          raise e
+
     def delete_project(self, project_id):
         self.__LOGGER.debug(f"Deleting project '{project_id}'")
         self.__check_handlers('keystone')

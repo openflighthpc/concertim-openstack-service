@@ -200,7 +200,7 @@ def delete_team():
 @app.route('/create_team_role', methods=['POST'])
 def create_team_role():
     config = {'log_level': config_file['log_level'], 'openstack': {}}
-    app.logger.info(f"Starting - Creating new 'CM_' team project in Openstack and Billing account")
+    app.logger.info(f"Starting - Creating new team role")
     try:
         req_data = request.get_json()
         app.logger.debug(req_data)
@@ -242,6 +242,59 @@ def create_team_role():
         return jsonify(response), stat_code
     finally:
         app.logger.info(f"Finished - adding new team role")
+        app.logger.debug("Disconnecting Handler")
+        try:
+            api_handler.disconnect()
+            api_handler = None
+        except NameError:
+            api_handler = None
+
+@app.route('/update_team_role', methods=['POST'])
+def update_team_role():
+    config = {'log_level': config_file['log_level'], 'openstack': {}}
+    app.logger.info(f"Starting - updating team role")
+    try:
+        req_data = request.get_json()
+        app.logger.debug(req_data)
+        if 'cloud_env' not in req_data:
+            raise APIServerDefError("No Authentication data received.", 400)
+        if 'team_role' not in req_data:
+            raise APIServerDefError("No team role data received.", 400)
+
+        # Setup Config
+        config['openstack'] = req_data['cloud_env']
+        team_role_data = req_data['team_role']
+        project_id = team_role_data["project_id"]
+        user_id = team_role_data["user_id"]
+        current_role = team_role_data["current_role"]
+        new_role = team_role_data["new_role"]
+
+        api_handler = APIHandler(config, log_file)
+        app.logger.debug(f"Successfully created APIHandler")
+
+        api_handler.update_team_role(user_id, project_id, current_role, new_role)
+        # above will raise an exception if failed, otherwise can assume success
+        app.logger.debug(f"Successfully updated team role")
+
+        resp = {"success": True}
+        return jsonify(resp), 202
+    except APIServerDefError as e:
+        response = {"error": type(e).__name__, "message": str(e), "traceback" : traceback.format_exc()}
+        app.logger.error(response)
+        return jsonify(response), 400
+    except OpStkAuthenticationError as e:
+        response = {"error": type(e).__name__, "message": str(e), "traceback" : traceback.format_exc()}
+        app.logger.error(response)
+        return jsonify(response), 401
+    except Exception as e:
+        response = {"error": f"An unexpected error occurred: {e.__class__.__name__}", "message": str(e), "traceback" : traceback.format_exc()}
+        stat_code = 500
+        app.logger.error(response)
+        if 'http_status' in dir(e):
+            stat_code = e.http_status
+        return jsonify(response), stat_code
+    finally:
+        app.logger.info(f"Finished - updating team role")
         app.logger.debug("Disconnecting Handler")
         try:
             api_handler.disconnect()

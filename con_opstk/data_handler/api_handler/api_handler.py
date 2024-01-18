@@ -79,6 +79,15 @@ class APIHandler(BaseHandler):
             self.__LOGGER.error(f"Encountered error when adding user {user_id} to project {project_id} : {e.__class__.__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
             raise e
 
+    def update_team_role(self, user_id, project_id, current_role, new_role):
+        self.__LOGGER.info(f"Changing user #{user_id} to have role #{new_role} in project #{project_id}")
+        try:
+            self.openstack_service.add_user_to_project(user_id, project_id, new_role)
+            self.openstack_service.remove_user_role_from_project(user_id, project_id, current_role)
+        except Exception as e:
+            self.__LOGGER.error(f"Encountered error when adding user {user_id} to project {project_id} : {e.__class__.__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
+            raise e
+
     def update_status(self, type, id, action):
         self.__LOGGER.info(f"Starting action {action} for {type} {id}")
         try:
