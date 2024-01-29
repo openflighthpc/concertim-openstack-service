@@ -1,2 +1,0 @@
--r hostbill/requirements-hostbill.txt
--r killbill/requirements-killbill.txt
