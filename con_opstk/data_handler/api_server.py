@@ -41,7 +41,7 @@ def create_user_project():
     config = {'log_level': config_file['log_level'], 'openstack': {}}
     app.logger.info(f"Starting - Creating new 'CM_' project and user in Openstack and Billing account")
     try:
-        if not authenticate_headers(request.headers, config_file["secret_key"]):
+        if not authenticate_headers(request.headers, config_file["secret_key"], app.logger):
             resp = {"message" : "Request not authenticated"}
             return make_response(resp, 401)
         
@@ -99,7 +99,7 @@ def update_status(type, id):
     config = {'log_level': config_file['log_level'], 'openstack': {}}
     app.logger.info(f"Starting - Updating status for {type}:{id}")
     try:
-        if not authenticate_headers(request.headers, config_file["secret_key"]):
+        if not authenticate_headers(request.headers, config_file["secret_key"], app.logger):
             resp = {"message" : "Request not authenticated"}
             return make_response(resp, 401)
         
@@ -168,7 +168,7 @@ def create_keypair():
     config = {'log_level': config_file['log_level'], 'openstack': {}}
     app.logger.info(f"Starting - Creating keypair in Openstack")
     try:
-        if not authenticate_headers(request.headers, config_file["secret_key"]):
+        if not authenticate_headers(request.headers, config_file["secret_key"], app.logger):
             resp = {"message" : "Request not authenticated"}
             return make_response(resp, 401)
         
@@ -232,7 +232,7 @@ def list_keypairs():
     config = {'log_level': config_file['log_level'], 'openstack': {}}
     app.logger.info(f"Starting - Listing keypairs")
     try:
-        if not authenticate_headers(request.headers, config_file["secret_key"]):
+        if not authenticate_headers(request.headers, config_file["secret_key"], app.logger):
             resp = {"message" : "Request not authenticated"}
             return make_response(resp, 401)
         
@@ -293,7 +293,7 @@ def delete_keypairs():
     config = {'log_level': config_file['log_level'], 'openstack': {}}
     app.logger.info(f"Starting - Deleting keypair")
     try:
-        if not authenticate_headers(request.headers, config_file["secret_key"]):
+        if not authenticate_headers(request.headers, config_file["secret_key"], app.logger):
             resp = {"message" : "Request not authenticated"}
             return make_response(resp, 401)
         
@@ -356,7 +356,7 @@ def delete_keypairs():
 def get_user_invoice():
     app.logger.info(f"Starting - Getting user current invoice")
     try:
-        if not authenticate_headers(request.headers, config_file["secret_key"]):
+        if not authenticate_headers(request.headers, config_file["secret_key"], app.logger):
             resp = {"message" : "Request not authenticated"}
             return make_response(resp, 401)
         
@@ -403,7 +403,7 @@ def get_user_invoice():
 def get_draft_invoice():
     app.logger.info(f"Starting - Getting user draft invoice")
     try:
-        if not authenticate_headers(request.headers, config_file["secret_key"]):
+        if not authenticate_headers(request.headers, config_file["secret_key"], app.logger):
             resp = {"message" : "Request not authenticated"}
             return make_response(resp, 401)
        
@@ -450,7 +450,7 @@ def get_draft_invoice():
 def add_credits():
     app.logger.info(f"Starting - Adding credits to Billing platform")
     try:
-        if not authenticate_headers(request.headers, config_file["secret_key"]):
+        if not authenticate_headers(request.headers, config_file["secret_key"], app.logger):
             resp = {"message" : "Request not authenticated"}
             return make_response(resp, 401)
         
@@ -498,7 +498,7 @@ def add_credits():
 def get_credits():
     app.logger.info(f"Starting - Getting Credits for account")
     try:
-        if not authenticate_headers(request.headers, config_file["secret_key"]):
+        if not authenticate_headers(request.headers, config_file["secret_key"], app.logger):
             resp = {"message" : "Request not authenticated"}
             return make_response(resp, 401)
         
@@ -544,7 +544,7 @@ def get_credits():
 def create_order():
     app.logger.info(f"Starting - Creating Order")
     try:
-        if not authenticate_headers(request.headers, config_file["secret_key"]):
+        if not authenticate_headers(request.headers, config_file["secret_key"], app.logger):
             resp = {"message" : "Request not authenticated"}
             return make_response(resp, 401)
         
@@ -593,7 +593,7 @@ def delete_user():
     config = {'log_level': config_file['log_level'], 'openstack': {}}
     app.logger.info(f"Starting - Deleting User Objects")
     try:
-        if not authenticate_headers(request.headers, config_file["secret_key"]):
+        if not authenticate_headers(request.headers, config_file["secret_key"], app.logger):
             resp = {"message" : "Request not authenticated"}
             return make_response(resp, 401)
         
@@ -648,7 +648,7 @@ def delete_user():
 def list_paginated_invoices():
     app.logger.info(f"Starting - List paginated invoices")
     try:
-        if not authenticate_headers(request.headers, config_file["secret_key"]):
+        if not authenticate_headers(request.headers, config_file["secret_key"], app.logger):
             resp = {"message" : "Request not authenticated"}
             return make_response(resp, 401)
         
@@ -707,7 +707,7 @@ def list_paginated_invoices():
 def get_account_invoice():
     app.logger.info(f"Starting - Getting account invoice")
     try:
-        if not authenticate_headers(request.headers, config_file["secret_key"]):
+        if not authenticate_headers(request.headers, config_file["secret_key"], app.logger):
             resp = {"message" : "Request not authenticated"}
             return make_response(resp, 401)
         
@@ -755,7 +755,7 @@ def change_user_details():
     config = {'log_level': config_file['log_level'], 'openstack': {}}
     app.logger.info(f"Starting - Updating User details")
     try:
-        if not authenticate_headers(request.headers, config_file["secret_key"]):
+        if not authenticate_headers(request.headers, config_file["secret_key"], app.logger):
             resp = {"message" : "Request not authenticated"}
             return make_response(resp, 401)
         
@@ -809,7 +809,7 @@ def change_user_details():
 def add_order_tag():
     app.logger.info(f"Starting - Adding tag to Order")
     try:
-        if not authenticate_headers(request.headers, config_file["secret_key"]):
+        if not authenticate_headers(request.headers, config_file["secret_key"], app.logger):
             resp = {"message" : "Request not authenticated"}
             return make_response(resp, 401)
         
