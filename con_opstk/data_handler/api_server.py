@@ -1,5 +1,6 @@
 # Local imports
 from con_opstk.data_handler.api_handler.api_handler import APIHandler
+from con_opstk.data_handler.utils.auth import authenticate_headers
 from con_opstk.openstack.exceptions import APIServerDefError, OpStkAuthenticationError
 import con_opstk.app_definitions as app_paths
 from con_opstk.utils.service_logger import SensitiveFormatter
@@ -40,7 +41,10 @@ def create_user_project():
     config = {'log_level': config_file['log_level'], 'openstack': {}}
     app.logger.info(f"Starting - Creating new 'CM_' project and user in Openstack and Billing account")
     try:
-
+        if not authenticate_headers(request.headers, app.logger):
+            resp = {"message" : "Request not authenticated"}
+            return make_response(resp, 401)
+        
         req_data = request.get_json()
         app.logger.debug(req_data)
         if 'cloud_env' not in req_data:
@@ -95,6 +99,10 @@ def update_status(type, id):
     config = {'log_level': config_file['log_level'], 'openstack': {}}
     app.logger.info(f"Starting - Updating status for {type}:{id}")
     try:
+        if not authenticate_headers(request.headers, app.logger):
+            resp = {"message" : "Request not authenticated"}
+            return make_response(resp, 401)
+        
         req_data = request.get_json()
         app.logger.debug(req_data)
         if 'cloud_env' not in req_data:
@@ -160,6 +168,10 @@ def create_keypair():
     config = {'log_level': config_file['log_level'], 'openstack': {}}
     app.logger.info(f"Starting - Creating keypair in Openstack")
     try:
+        if not authenticate_headers(request.headers, app.logger):
+            resp = {"message" : "Request not authenticated"}
+            return make_response(resp, 401)
+        
         req_data = request.get_json()
         app.logger.debug(req_data)
         if 'cloud_env' not in req_data:
@@ -220,6 +232,10 @@ def list_keypairs():
     config = {'log_level': config_file['log_level'], 'openstack': {}}
     app.logger.info(f"Starting - Listing keypairs")
     try:
+        if not authenticate_headers(request.headers, app.logger):
+            resp = {"message" : "Request not authenticated"}
+            return make_response(resp, 401)
+        
         req_data = request.get_json()
         app.logger.debug(req_data)
         if 'cloud_env' not in req_data:
@@ -277,6 +293,10 @@ def delete_keypairs():
     config = {'log_level': config_file['log_level'], 'openstack': {}}
     app.logger.info(f"Starting - Deleting keypair")
     try:
+        if not authenticate_headers(request.headers, app.logger):
+            resp = {"message" : "Request not authenticated"}
+            return make_response(resp, 401)
+        
         req_data = request.get_json()
         app.logger.debug(req_data)
         if 'cloud_env' not in req_data:
@@ -336,6 +356,10 @@ def delete_keypairs():
 def get_user_invoice():
     app.logger.info(f"Starting - Getting user current invoice")
     try:
+        if not authenticate_headers(request.headers, app.logger):
+            resp = {"message" : "Request not authenticated"}
+            return make_response(resp, 401)
+        
         req_data = request.get_json()
         app.logger.debug(req_data)
         if 'invoice' not in req_data or 'billing_account_id' not in req_data['invoice']:
@@ -379,6 +403,10 @@ def get_user_invoice():
 def get_draft_invoice():
     app.logger.info(f"Starting - Getting user draft invoice")
     try:
+        if not authenticate_headers(request.headers, app.logger):
+            resp = {"message" : "Request not authenticated"}
+            return make_response(resp, 401)
+       
         req_data = request.get_json()
         app.logger.debug(req_data)
         if 'invoice' not in req_data or 'billing_account_id' not in req_data['invoice']:
@@ -422,6 +450,10 @@ def get_draft_invoice():
 def add_credits():
     app.logger.info(f"Starting - Adding credits to Billing platform")
     try:
+        if not authenticate_headers(request.headers, app.logger):
+            resp = {"message" : "Request not authenticated"}
+            return make_response(resp, 401)
+        
         req_data = request.get_json()
         app.logger.debug(req_data)
         if 'credits' not in req_data or 'credits_to_add' not in req_data['credits']:
@@ -466,6 +498,10 @@ def add_credits():
 def get_credits():
     app.logger.info(f"Starting - Getting Credits for account")
     try:
+        if not authenticate_headers(request.headers, app.logger):
+            resp = {"message" : "Request not authenticated"}
+            return make_response(resp, 401)
+        
         req_data = request.get_json()
         app.logger.debug(req_data)
         
@@ -508,6 +544,10 @@ def get_credits():
 def create_order():
     app.logger.info(f"Starting - Creating Order")
     try:
+        if not authenticate_headers(request.headers, app.logger):
+            resp = {"message" : "Request not authenticated"}
+            return make_response(resp, 401)
+        
         req_data = request.get_json()
         app.logger.debug(req_data)
         if 'order' not in req_data or 'billing_account_id' not in req_data['order']:
@@ -553,6 +593,10 @@ def delete_user():
     config = {'log_level': config_file['log_level'], 'openstack': {}}
     app.logger.info(f"Starting - Deleting User Objects")
     try:
+        if not authenticate_headers(request.headers, app.logger):
+            resp = {"message" : "Request not authenticated"}
+            return make_response(resp, 401)
+        
         req_data = request.get_json()
         app.logger.debug(req_data)
         if 'cloud_env' not in req_data:
@@ -604,6 +648,10 @@ def delete_user():
 def list_paginated_invoices():
     app.logger.info(f"Starting - List paginated invoices")
     try:
+        if not authenticate_headers(request.headers, app.logger):
+            resp = {"message" : "Request not authenticated"}
+            return make_response(resp, 401)
+        
         req_data = request.get_json()
         app.logger.debug(req_data)
         if 'invoices' not in req_data or 'billing_account_id' not in req_data['invoices']:
@@ -659,6 +707,10 @@ def list_paginated_invoices():
 def get_account_invoice():
     app.logger.info(f"Starting - Getting account invoice")
     try:
+        if not authenticate_headers(request.headers, app.logger):
+            resp = {"message" : "Request not authenticated"}
+            return make_response(resp, 401)
+        
         req_data = request.get_json()
         app.logger.debug(req_data)
         if 'invoice' not in req_data or 'billing_account_id' not in req_data['invoice']:
@@ -703,6 +755,10 @@ def change_user_details():
     config = {'log_level': config_file['log_level'], 'openstack': {}}
     app.logger.info(f"Starting - Updating User details")
     try:
+        if not authenticate_headers(request.headers, app.logger):
+            resp = {"message" : "Request not authenticated"}
+            return make_response(resp, 401)
+        
         req_data = request.get_json()
         app.logger.debug(req_data)
         if 'cloud_env' not in req_data:
@@ -753,6 +809,10 @@ def change_user_details():
 def add_order_tag():
     app.logger.info(f"Starting - Adding tag to Order")
     try:
+        if not authenticate_headers(request.headers, app.logger):
+            resp = {"message" : "Request not authenticated"}
+            return make_response(resp, 401)
+        
         req_data = request.get_json()
         app.logger.debug(req_data)
         if 'tag' not in req_data or 'order_id' not in req_data['tag']:
