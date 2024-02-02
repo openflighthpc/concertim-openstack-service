@@ -254,13 +254,12 @@ class OpenstackService(object):
         keystone.delete_project(project_id)
         return True
 
-    def delete_cm_pair(self, user_id, project_id):
-        self.__LOGGER.debug(f"Deleting User '{user_id}' and project '{project_id}'")
+    def delete_user(self, user_id):
+        self.__LOGGER.debug(f"Deleting User '{user_id}'")
         self.__check_handlers('keystone')
         keystone = self.handlers[self._handlers_key_map['keystone']]
 
         keystone.delete_user(user_id)
-        keystone.delete_project(project_id)
         return True
 
     def change_user_details(self, user_id, new_password=None, new_email=None):

@@ -812,7 +812,7 @@ def create_order():
 @app.route('/delete_user', methods=['DELETE'])
 def delete_user():
     config = {'log_level': config_file['log_level'], 'openstack': {}}
-    app.logger.info(f"Starting - Deleting User Objects")
+    app.logger.info(f"Starting - Deleting User")
     try:
         req_data = request.get_json()
         app.logger.debug(req_data)
@@ -820,19 +820,17 @@ def delete_user():
             raise APIServerDefError("No Authentication data recieved.", 400)
         if 'user_info' not in req_data:
             raise APIServerDefError("No User data received.", 400)
-        if 'project_id' not in req_data['user_info'] or 'cloud_user_id' not in req_data['user_info'] or 'billing_acct_id' not in req_data['user_info']:
-            raise APIServerDefError("Invalid user data. 'project_id', 'cloud_user_id' and 'billing_acct_id' are required.", 400)
+        if  'cloud_user_id' not in req_data['user_info']:
+            raise APIServerDefError("Invalid user data. 'cloud_user_id' is required.", 400)
 
         # Setup Config
         config['openstack'] = req_data['cloud_env']
-        config['billing_platform'] = config_file['billing_platform']
-        config[config_file['billing_platform']] = config_file[config_file['billing_platform']]
-        
-        api_handler = APIHandler(config, log_file, billing_enabled=True)
+
+        api_handler = APIHandler(config, log_file)
         app.logger.debug(f"Successfully created APIHandler")
 
-        attempt = api_handler.delete_user(req_data['user_info']['cloud_user_id'], req_data['user_info']['project_id'], req_data['user_info']['billing_acct_id'])
-        app.logger.debug(f"Successfully deleted User Objects")
+        attempt = api_handler.delete_user(req_data['user_info']['cloud_user_id'])
+        app.logger.debug(f"Successfully deleted User")
 
         resp = {"success": True}
         return make_response(resp,204)
@@ -853,7 +851,7 @@ def delete_user():
             stat_code = e.http_status
         return jsonify(response), stat_code
     finally:
-        app.logger.info(f"Finished - Deleting User Objects")
+        app.logger.info(f"Finished - Deleting User")
         app.logger.debug("Disconnecting Handler")
         try:
             api_handler.disconnect()
