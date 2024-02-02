@@ -198,7 +198,7 @@ class APIHandler(BaseHandler):
             self.__LOGGER.error(f"Encountered error when completing key pair deletion : {e.__class__.__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
             raise e
 
-    def change_user_details(self, openstack_user_id, billing_acct_id, new_data):
+    def change_user_details(self, openstack_user_id, new_data):
         self.__LOGGER.info(f"Updating details for User '{openstack_user_id}'")
         changed = []
         try:
@@ -208,7 +208,6 @@ class APIHandler(BaseHandler):
                     changed.append("password")
                 if field == 'email':
                     self.openstack_service.change_user_details(openstack_user_id, new_email=new_data['email'])
-                    self.billing_service.change_account_email(billing_acct_id, new_data['email'])
                     changed.append("email")
             return changed
         except Exception as e:
