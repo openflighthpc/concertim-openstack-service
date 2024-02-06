@@ -91,6 +91,11 @@ class APIHandler(BaseHandler):
         result = self.billing_service.create_order(billing_account_id)
         return result
     
+    def delete_order(self, order_id):
+        self.__LOGGER.info(f"Deleting Order for {order_id}")
+        result = self.billing_service.delete_order(order_id)
+        return result
+    
     def list_account_invoice_paginated(self, billing_account_id, offset, limit):
         self.__LOGGER.info(f"Listing paginated invoices for {billing_account_id}")
         result = self.billing_service.list_account_invoice_paginated(account_id=billing_account_id, offset=offset, limit=limit)
