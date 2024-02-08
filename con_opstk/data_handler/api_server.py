@@ -508,7 +508,7 @@ def get_credits():
         if 'credits' not in req_data or 'billing_account_id' not in req_data['credits']:
             raise APIServerDefError("No Billing account id recieved.", 400)
         
-        api_handler = APIHandler(config_file, log_file, billing_enabled=True)
+        api_handler = APIHandler(config_file, log_file, clients=None, billing_enabled=True)
         app.logger.debug(f"Successfully created APIHandler")
 
         response = api_handler.get_credits(req_data['credits']['billing_account_id'])
@@ -556,7 +556,7 @@ def create_order():
         #if 'order' not in req_data or 'os_stack_id' not in req_data['order']:
         #    raise APIServerDefError("OS Stack ID not received.", 400)
         
-        api_handler = APIHandler(config_file, log_file, billing_enabled=True)
+        api_handler = APIHandler(config_file, log_file, clients=None, billing_enabled=True)
         app.logger.debug(f"Successfully created APIHandler")
 
         response = api_handler.create_order(req_data['order']['billing_account_id'])
@@ -587,6 +587,53 @@ def create_order():
             billing_handler = None
         except NameError:
             billing_handler = None
+
+@app.route('/delete_order', methods=['POST'])
+def delete_order():
+    app.logger.info(f"Starting - Deleting Order")
+    try:
+        if not authenticate_headers(request.headers, app.logger):
+            resp = {"message" : "Request not authenticated"}
+            return make_response(resp, 401)
+        
+        req_data = request.get_json()
+        app.logger.debug(req_data)
+        if 'order' not in req_data or 'order_id' not in req_data['order']:
+            raise APIServerDefError("No order id data recieved.", 400)
+        
+       
+        api_handler = APIHandler(config_file, log_file, clients=None, billing_enabled=True)
+        app.logger.debug(f"Successfully created APIHandler")
+
+        response = api_handler.delete_order(req_data['order']['order_id'])
+
+        resp = {"order": req_data['order']['order_id']}
+        return make_response(resp, response['status'])
+    
+    except APIServerDefError as e:
+        response = {"error": type(e).__name__, "message": str(e), "traceback" : traceback.format_exc()}
+        app.logger.error(response)
+        return jsonify(response), 400
+    except OpStkAuthenticationError as e:
+        response = {"error": type(e).__name__, "message": str(e), "traceback" : traceback.format_exc()}
+        app.logger.error(response)
+        return jsonify(response), 401
+    except Exception as e:
+        response = {"error": f"An unexpected error occurred: {e.__class__.__name__}", "message": str(e), "traceback" : traceback.format_exc()}
+        stat_code = 500
+        app.logger.error(response)
+        if 'http_status' in dir(e):
+            stat_code = e.http_status
+        return jsonify(response), stat_code
+    finally:
+        app.logger.info(f"Finished - Deleting Order")
+        app.logger.debug("Disconnecting Handler")
+        try:
+            billing_handler.disconnect()
+            billing_handler = None
+        except NameError:
+            billing_handler = None
+
 
 @app.route('/delete_user', methods=['DELETE'])
 def delete_user():
@@ -657,7 +704,7 @@ def list_paginated_invoices():
         if 'invoices' not in req_data or 'billing_account_id' not in req_data['invoices']:
             raise APIServerDefError("No account id data recieved.", 400)
         
-        api_handler = APIHandler(config_file, log_file, billing_enabled=True)
+        api_handler = APIHandler(config_file, log_file, clients=None, billing_enabled=True)
         app.logger.debug(f"Successfully created APIHandler")
 
         offset = 0
@@ -718,7 +765,7 @@ def get_account_invoice():
         if 'invoice' not in req_data or 'invoice_id' not in req_data['invoice']:
             raise APIServerDefError("No Invoice ID data recieved.", 400)
 
-        api_handler = APIHandler(config_file, log_file, billing_enabled=True)
+        api_handler = APIHandler(config_file, log_file, clients=None, billing_enabled=True)
         app.logger.debug(f"Successfully created APIHandler")
 
         response = api_handler.get_invoice_by_id(req_data['invoice']['invoice_id'])

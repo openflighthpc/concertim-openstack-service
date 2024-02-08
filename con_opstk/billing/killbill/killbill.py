@@ -256,15 +256,22 @@ class KillbillService(BillingService):
         location_header = response['headers']['Location']       
         subscription_id = location_header.split('/')[-1]
 
-        #self.create_custom_field_subscription(subscription_id=subscription_id, field_name="openstack_metering_enabled", field_value="true")
-
-        #self.create_custom_field_subscription(subscription_id=subscription_id, field_name="openstack_stack_id", field_value=os_stack_id)
-                                                              
-        #self.create_custom_field_subscription(subscription_id=subscription_id, field_name="openstack_cloudkitty_metrics", field_value=KillbillService.DEFAULT_CLOUDKITTY_METRICS)   
-
         response['data'] = subscription_id
 
         return response
+    
+    def delete_order(self, order_id):
+        self.__LOGGER.debug(f"Deleting order/subscription {order_id}")
+            
+        subscriptionApi = killbill.api.SubscriptionApi(self.kb_api_client)
+        order = subscriptionApi.cancel_subscription_plan(subscription_id=order_id, created_by='KillbillService')
+        self.__LOGGER.debug(f"Killbill response: {order}")
+
+        response = self._transform_response(order)
+
+        return response
+    
+
 
     def __check_for_available_credits(self, account_id):
 
@@ -290,10 +297,10 @@ class KillbillService(BillingService):
             account_credits = account['data']['account_cba']
 
         self.__LOGGER.debug(f"Account Credits :  {account_credits}")
-        if account_credits > 0:
+        """ if account_credits > 0:
             pass
         else:
-            return False
+            return False """
 
         # Obtaining amount from draft invoice, how much user has spent
         draft_invoice_amount = 0
