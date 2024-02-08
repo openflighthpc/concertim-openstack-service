@@ -605,7 +605,7 @@ def delete_order():
         api_handler = APIHandler(config_file, log_file, clients=None, billing_enabled=True)
         app.logger.debug(f"Successfully created APIHandler")
 
-        response = api_handler.delete_order(req_data['order']['billing_account_id'])
+        response = api_handler.delete_order(req_data['order']['order_id'])
 
         resp = {"order": response['data']}
         return make_response(resp, response['status'])
