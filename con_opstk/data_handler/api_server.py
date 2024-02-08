@@ -607,7 +607,7 @@ def delete_order():
 
         response = api_handler.delete_order(req_data['order']['order_id'])
 
-        resp = {"order": response['data']}
+        resp = {"order": req_data['order']['order_id']}
         return make_response(resp, response['status'])
     
     except APIServerDefError as e:
@@ -626,7 +626,7 @@ def delete_order():
             stat_code = e.http_status
         return jsonify(response), stat_code
     finally:
-        app.logger.info(f"Finished - Creating Order")
+        app.logger.info(f"Finished - Deleting Order")
         app.logger.debug("Disconnecting Handler")
         try:
             billing_handler.disconnect()
