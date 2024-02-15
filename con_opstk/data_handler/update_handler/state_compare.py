@@ -6,6 +6,7 @@ from con_opstk.concertim.components.device import ConcertimDevice
 from con_opstk.concertim.components.rack import ConcertimRack
 from con_opstk.concertim.components.template import ConcertimTemplate
 from con_opstk.concertim.components.user import ConcertimUser
+from con_opstk.concertim.components.user import ConcertimTeam
 from con_opstk.concertim.components.location import Location
 from con_opstk.concertim.exceptions import ConcertimItemConflict, MissingRequiredArgs, MissingRequiredField
 # Py Packages
@@ -112,13 +113,13 @@ class BulkUpdateHandler(UpdateHandler):
             self.__LOGGER.debug(f"Checking for new Stacks not in Concertim")
             in_openstack = []
             # Start new rack creation
-            for user_id_tup in self.view.users:
-                self.__LOGGER.debug(f"Updating Racks for User[IDs:{user_id_tup},project_id:{self.view.users[user_id_tup].openstack_project_id}]")
-                openstack_stacks = self.openstack_service.list_stacks(project_id=self.view.users[user_id_tup].openstack_project_id)
+            for team_id_tup in self.view.teams:
+                self.__LOGGER.debug(f"Updating Racks for Teams[IDs:{team_id_tup},project_id:{self.view.teams[team_id_tup].openstack_project_id}]")
+                openstack_stacks = self.openstack_service.list_stacks(project_id=self.view.teams[team_id_tup].openstack_project_id)
                 for heat_stack_obj in openstack_stacks:
                     self.__LOGGER.debug(f"Checking Stack: {heat_stack_obj.stack_name} = {heat_stack_obj.id}")
-                    if not (str(heat_stack_obj.stack_owner) == str(self.view.users[user_id_tup].name[1])):
-                        self.__LOGGER.debug(f"Stack belongs to different user - Skipping - [current_user={self.view.users[user_id_tup].name[1]}, stack_owner={heat_stack_obj.stack_owner}]")
+                    if not (str(heat_stack_obj.stack_owner) == str(self.view.teams[team_id_tup].name[1])):
+                        self.__LOGGER.debug(f"Stack belongs to different user - Skipping - [current_user={self.view.teams[team_id_tup].name[1]}, stack_owner={heat_stack_obj.stack_owner}]")
                         continue
                     in_openstack.append(heat_stack_obj.id)
                     matching_racks = [con_rack for id_tup, con_rack in self.view.racks.items() if id_tup[1] == heat_stack_obj.id]
@@ -147,7 +148,7 @@ class BulkUpdateHandler(UpdateHandler):
                                 break
                         continue
                     self.__LOGGER.debug(f"No Rack found for Openstack Stack[ID:{heat_stack_obj.id},Name:{heat_stack_obj.stack_name}] - Creating in Concertim")
-                    self.create_rack_in_concertim(heat_stack_obj, user_id_tup)
+                    self.create_rack_in_concertim(heat_stack_obj, team_id_tup)
             # End new rack creation
 
             self.__LOGGER.debug(f"--- Checking for stale Racks that are mapped to a non-existing Stacks in Openstack")
@@ -158,9 +159,9 @@ class BulkUpdateHandler(UpdateHandler):
                 for stale_rack_id in stale_racks_ids:
                     try:
                         self.concertim_service.delete_rack(stale_rack_id[0], recurse=True)
-                        stale_rack_user = [id_tup for id_tup, con_user in self.view.users.items() if id_tup[0] == self.view.racks[stale_rack_id].user_id]
-                        if stale_rack_user:
-                            self.view.users[stale_rack_user[0]].remove_rack(stale_rack_id[0])
+                        stale_rack_team = [id_tup for id_tup, con_team in self.view.teams.items() if id_tup[0] == self.view.racks[stale_rack_id].team_id]
+                        if stale_rack_team:
+                            self.view.teams[stale_rack_team[0]].remove_rack(stale_rack_id[0])
                         del self.view.racks[stale_rack_id]
                     except Exception as e:
                         self.__LOGGER.warning(f"Unhandled Exception when deleting rack {stale_rack_id[0]} - Moving to next - {type(e).__name__} - {e}")
@@ -266,7 +267,7 @@ class BulkUpdateHandler(UpdateHandler):
             self.__LOGGER.error(f"Failed to create Template - {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
             raise e
 
-    def create_rack_in_concertim(self, os_stack, user_id_tup):
+    def create_rack_in_concertim(self, os_stack, team_id_tup):
         try:
             con_state_list = [c_state for c_state, os_state_list in UpdateHandler.CONCERTIM_STATE_MAP['RACK'].items() if os_stack.stack_status in os_state_list]
             if con_state_list:
@@ -276,7 +277,7 @@ class BulkUpdateHandler(UpdateHandler):
             # BASE RACK CREATION
             new_rack = ConcertimRack(concertim_id=None, openstack_id=os_stack.id, 
                                     concertim_name=os_stack.stack_name.replace('.','-').replace('_','-'), openstack_name=os_stack.stack_name, 
-                                    user_id=user_id_tup[0], height=self.default_rack_height, 
+                                    team_id=team_id_tup[0], height=self.default_rack_height,
                                     description='Heat Stack in Openstack', status=con_state)
             new_rack.output = self.openstack_service.get_stack_output(os_stack.id)
             new_rack._creation_output = self._get_output_as_string(new_rack.output)
@@ -286,13 +287,13 @@ class BulkUpdateHandler(UpdateHandler):
                 new_rack.add_metadata(openstack_stack_status_reason=os_stack.stack_status_reason)
             if hasattr(os_stack, 'stack_owner') and os_stack.stack_owner:
                 new_rack.add_metadata(openstack_stack_owner=os_stack.stack_owner)
-            if hasattr(os_stack, 'stack_user_project_id') and os_stack.stack_user_project_id:
-                new_rack.add_metadata(openstack_stack_owner_id=os_stack.stack_user_project_id)
+            if hasattr(os_stack, 'stack_team_project_id') and os_stack.stack_team_project_id:
+                new_rack.add_metadata(openstack_stack_owner_id=os_stack.stack_team_project_id)
             concertim_response_rack = None
-            # RETRIEVE BILLNIG ORDER FOR STACK
+            # RETRIEVE BILLING ORDER FOR STACK
             try:
                 billing_stack_id = None
-                billing_acct = self.view.users[user_id_tup].billing_acct_id
+                billing_acct = self.view.racks[team_id_tup].billing_acct_id
                 order_id = None
                 if billing_acct is not None:
                     bundles = self.billing_service.get_account_bundles(billing_acct)['data']
@@ -318,7 +319,7 @@ class BulkUpdateHandler(UpdateHandler):
             new_rack.order_id = order_id
             try:
                 concertim_response_rack = self.concertim_service.create_rack({'name': new_rack.name[0],
-                                                                'user_id' : new_rack.user_id,
+                                                                'team_id' : new_rack.team_id,
                                                                 'u_height': new_rack.height,
                                                                 'openstack_stack_id' : new_rack.id[1],
                                                                 'status' : new_rack.status,
@@ -328,11 +329,11 @@ class BulkUpdateHandler(UpdateHandler):
                                                                 'openstack_stack_output': new_rack.output,
                                                                 'openstack_stack_status_reason':os_stack.stack_status_reason,
                                                                 'openstack_stack_owner':os_stack.stack_owner,
-                                                                'openstack_stack_owner_id' : os_stack.stack_user_project_id})
+                                                                'openstack_stack_owner_id' : os_stack.stack_team_project_id})
                 new_rack.id = (concertim_response_rack['id'],new_rack.id[1])
                 self.__LOGGER.debug(f"Successfully created new Rack: {new_rack}")
                 self.view.add_rack(new_rack)
-                self.view.users[user_id_tup].add_rack(new_rack.id[0])
+                self.view.teams[team_id_tup].add_rack(new_rack.id[0])
                 return True
             except ConcertimItemConflict as e:
                 self.__LOGGER.warning(f"The rack {new_rack.name[0]} already exists - Skipping - {type(e).__name__} - {e}")
@@ -473,8 +474,8 @@ class BulkUpdateHandler(UpdateHandler):
                 os_stk_status_reas = os_stack.stack_status_reason
             if hasattr(os_stack, 'stack_owner') and os_stack.stack_owner:
                 os_stk_owner = os_stack.stack_owner
-            if hasattr(os_stack, 'stack_user_project_id') and os_stack.stack_user_project_id:
-                os_stk_owner_id = os_stack.stack_user_project_id
+            if hasattr(os_stack, 'stack_team_project_id') and os_stack.stack_team_project_id:
+                os_stk_owner_id = os_stack.stack_team_project_id
             if not (os_stk_owner or os_stk_owner_id or os_stk_status_reas):
                 try:
                     self.concertim_service.update_rack(rack_id_tup[0], {'name':self.view.racks[rack_id_tup].name[0],

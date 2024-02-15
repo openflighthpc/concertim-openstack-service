@@ -36,9 +36,9 @@ ENDPOINTS = {
                     },
                     'CREATE_RACK':{
                         'endpoint': '/api/v1/racks',
-                        'required_vars': ['user_id','name','u_height', 'status'],
+                        'required_vars': ['team_id','name','u_height', 'status'],
                         'data': {"rack": {
-                                    "user_id": '{user_id}',
+                                    "team_id": '{team_id}',
                                     "name": '{name}',
                                     "u_height": '{u_height}',
                                     "status" : "{status}",
@@ -96,6 +96,9 @@ ENDPOINTS = {
                     'LIST_TEMPLATES':{
                         'endpoint': '/api/v1/templates'
                     },
+                    'LIST_TEAMS': {
+                        'endpoint': 'api/v1/teams'
+                    },
                     'LIST_USERS':{
                         'endpoint': '/api/v1/users'
                     },
@@ -127,7 +130,12 @@ ENDPOINTS = {
                     'UPDATE_USER':{
                         'endpoint': '/api/v1/users/{}',
                         'required_vars': [],
-                        'data': {"user": {
+                        'data': {"user": {}}
+                    },
+                    'UPDATE_TEAM':{
+                        'endpoint': '/api/v1/teams/{}',
+                        'required_vars': [],
+                        'data': {"team": {
                                     "cost": '{cost}',
                                     "billing_period_start": '{billing_period_start}',
                                     "billing_period_end": '{billing_period_end}',

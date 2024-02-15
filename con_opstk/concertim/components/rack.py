@@ -1,9 +1,9 @@
 from con_opstk.concertim.components.component import ConcertimComponent
 
 class ConcertimRack(ConcertimComponent):
-    def __init__(self, concertim_id=None, openstack_id=None, concertim_name=None, openstack_name=None, user_id=None, height=42, description='', status=None, order_id=''):
+    def __init__(self, concertim_id=None, openstack_id=None, concertim_name=None, openstack_name=None, team_id=None, height=42, description='', status=None, order_id=''):
         super().__init__(concertim_id=concertim_id, openstack_id=openstack_id, concertim_name=concertim_name, openstack_name=openstack_name, description=description)
-        self.user_id = user_id
+        self.team_id = team_id
         self.height = height
         self.devices = []
         self.status = status
@@ -17,7 +17,7 @@ class ConcertimRack(ConcertimComponent):
 
     def __repr__(self):
         return (f"<ConcertimRack:{{id:{repr(self.id)}, name:{repr(self.name)}, description:{repr(self.description)}, status:{repr(self.status)}, "
-                f"user_id:{repr(self.user_id)}, order_id:{repr(self.order_id)}, height:{repr(self.height)}, devices:{repr(self.devices)}, output:{repr(self.output)}, "
+                f"team_id:{repr(self.team_id)}, order_id:{repr(self.order_id)}, height:{repr(self.height)}, devices:{repr(self.devices)}, output:{repr(self.output)}, "
                 f"network_details:{repr(self.network_details)}, metadata:{repr(self.metadata)}, cost:{repr(self.cost)}, _occupied:{repr(self._occupied)}, _creation_output:{repr(self._creation_output)}}}>")
 
     def __eq__(self, other):

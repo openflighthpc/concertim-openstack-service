@@ -45,8 +45,8 @@ class HostbillHandler(BillingHandler):
 
             logging.debug("openstack_project_id: %s", openstack_project_id)
 
-            # Updating User cost in Concertim
-            self.update_user_cost_concertim(openstack_project_id=openstack_project_id, begin=account_details["previous_invoice"], end = datetime.date.today() + datetime.timedelta(days=1) )
+            # Updating Team cost in Concertim
+            self.update_team_cost_concertim(openstack_project_id=openstack_project_id, begin=account_details["previous_invoice"], end = datetime.date.today() + datetime.timedelta(days=1) )
 
 
             rating_summary = self.openstack_service.handlers['cloudkitty'].get_rating_summary_project(project_id=openstack_project_id, begin = account_details["previous_invoice"], end = datetime.date.today() + datetime.timedelta(days=1))

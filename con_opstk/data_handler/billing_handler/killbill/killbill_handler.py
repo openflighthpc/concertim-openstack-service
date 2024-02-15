@@ -43,7 +43,7 @@ class KillbillHandler(BillingHandler):
                 break
 
         if openstack_project_id != None:
-            self.update_user_cost_concertim(openstack_project_id=openstack_project_id, begin=begin_date, end = end_date, billing_account_id = billing_account_id)
+            self.update_team_cost_concertim(openstack_project_id=openstack_project_id, begin=begin_date, end = end_date, billing_account_id = billing_account_id)
         else:
             #Killbill account not associated with any Openstack project
             return

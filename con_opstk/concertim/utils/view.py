@@ -3,6 +3,7 @@ class ConcertimOpenstackView(object):
         self.racks = {}
         self.devices = {}
         self.users = {}
+        self.teams = {}
         self.templates = {}
         self._needs_resync = False
 
@@ -26,6 +27,12 @@ class ConcertimOpenstackView(object):
 
     def remove_user(self, user):
         del self.users[user.id]
+
+    def add_team(self, team):
+        self.teams[team.id] = team
+
+    def remove_team(self, team):
+        del self.teams[team.id]
 
     def add_template(self, template):
         self.templates[template.id] = template

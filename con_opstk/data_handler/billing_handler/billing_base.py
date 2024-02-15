@@ -26,23 +26,23 @@ class BillingHandler(BaseHandler):
     def update_cost(self, type, amt):
         pass
         
-    def update_user_cost_concertim(self, openstack_project_id, begin, end, billing_account_id):
+    def update_team_cost_concertim(self, openstack_project_id, begin, end, billing_account_id):
         self.__LOGGER.info("\n\n********************************************\n\n")
-        self.__LOGGER.info ("*** Updating User cost %s (%s, %s) ***", openstack_project_id, begin, end)
+        self.__LOGGER.info ("*** Updating Team cost %s (%s, %s) ***", openstack_project_id, begin, end)
         
         user_found = False
         user = None
-        for tup in self.view.users:
-            user = self.view.users[tup]
+        for tup in self.view.teams:
+            team = self.view.teams[tup]
             # Checking for existence of associated openstack project id
-            if user.openstack_project_id == openstack_project_id:
-                user_found = True
+            if team.openstack_project_id == openstack_project_id:
+                team_found = True
                 break
-        if user_found == False or user == None:
+        if team_found == False or user == None:
             return 0
 
         # Obtain usage details from cloudkitty
-        rating_summary = self.openstack_service.get_ratings_project(user.openstack_project_id, begin=begin, end=end)
+        rating_summary = self.openstack_service.get_ratings_project(team.openstack_project_id, begin=begin, end=end)
 
         project_cost = 0
 
@@ -56,16 +56,16 @@ class BillingHandler(BaseHandler):
         if remaining_credits <= self._credit_threshold:
             self._account_shutdown(user.id)
 
-        # Update User Cost in Concertim
+        # Update Team Cost in Concertim
         try:
-            self.concertim_service.update_user(ID=user.id[0], variables_dict ={'cost' : project_cost, 'billing_period_start' : begin, 'billing_period_end' : end, 'credits' : remaining_credits})
+            self.concertim_service.update_team(ID=team.id[0], variables_dict ={'cost' : project_cost, 'billing_period_start' : begin, 'billing_period_end' : end, 'credits' : remaining_credits})
         except Exception as e:
             self.__LOGGER.debug(f" Exception Occurred : {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
 
         # Update Rack Cost
         for tup in self.view.racks:
             rack = self.view.racks[tup]
-            if rack.user_id == user.id[0]:
+            if rack.team_id == team.id[0]:
                 self.update_rack_cost_concertim(concertim_rack_id = rack.id[0], begin=begin, end=end)
 
     

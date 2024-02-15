@@ -43,6 +43,7 @@ class UpdateHandler(BaseHandler):
     def populate_view(self):
         self.__LOGGER.info(f"Starting - Populating Concertim View")
         self.fetch_concertim_users()
+        self.fetch_concertim_teams()
         self.fetch_concertim_templates()
         self.fetch_concertim_racks()
         self.fetch_concertim_devices()
@@ -77,17 +78,40 @@ class UpdateHandler(BaseHandler):
                                         openstack_name=f"CM_{user['login']}", 
                                         full_name=user['fullname'], 
                                         email=user['email'],
-                                        openstack_project_id=user['project_id'],
-                                        description='',
-                                        billing_acct_id=user['billing_acct_id'])
-                new_user.cost = float(user['cost'] if 'cost' in user and user['cost'] else 0.0)
-                new_user.billing_period_start = user['billing_period_start'] if 'billing_period_start' in user and user['billing_period_start'] else ''
-                new_user.billing_period_end = user['billing_period_end'] if 'billing_period_end' in user and user['billing_period_end'] else ''
+                                        description='')
                 self.view.add_user(new_user)
                 self.__LOGGER.debug(f"New ConcertimUser created in View : {new_user}")
             self.__LOGGER.debug(f"Finished - Fetching Concertim Users")
         except Exception as e:
             self.__LOGGER.error(f"Failed to fetch Users - {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
+            raise e
+
+    # populate/add new teams into self.view.teams if they exist in concertim but not in self.view.teams
+    def fetch_concertim_teams(self):
+        try:
+            self.__LOGGER.debug(f"Starting - Fetching Concertim Teams")
+            concertim_teams = self.concertim_service.list_teams()
+            # For each team in concertim, check if they exist in self.view.teams
+            #   if team does exist - move on
+            #   if team does not exist - create new component obj and add component obj to self.view.teams[component.id]
+            for team in concertim_teams:
+                if team['id'] in [id_tup[0] for id_tup in self.view.teams]:
+                    continue
+                self.__LOGGER.debug(f"Team '{team['id']}' not found in View - creating new ConcertimTeam")
+                new_team = ConcertimTeam(concertim_id=team['id'],
+                                        openstack_project_id=team['project_id'],
+                                        concertim_name=user['name'],
+                                        openstack_name=f"CM_{team['name']}_proj",
+                                        description='',
+                                        billing_acct_id=user['billing_acct_id'])
+                new_team.cost = float(team['cost'] if 'cost' in team and team['cost'] else 0.0)
+                new_team.billing_period_start = team['billing_period_start'] if 'billing_period_start' in team and team['billing_period_start'] else ''
+                new_team.billing_period_end = team['billing_period_end'] if 'billing_period_end' in team and team['billing_period_end'] else ''
+                self.view.add_team(new_team)
+                self.__LOGGER.debug(f"New ConcertimTeam created in View : {new_team}")
+            self.__LOGGER.debug(f"Finished - Fetching Concertim Teams")
+        except Exception as e:
+            self.__LOGGER.error(f"Failed to fetch Teams - {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
             raise e
 
     # populate/add new templates into self.view.templates if they exist in concertim but not in self.view.templates
@@ -135,7 +159,7 @@ class UpdateHandler(BaseHandler):
                                         openstack_id=opsk_stack_id, 
                                         concertim_name=rack['name'], 
                                         openstack_name=None, 
-                                        user_id=rack['owner']['id'], 
+                                        team_id=rack['owner']['id'],
                                         height=rack['u_height'], 
                                         description='Stack in Openstack',
                                         status=rack['status'],
@@ -196,36 +220,36 @@ class UpdateHandler(BaseHandler):
             self.__LOGGER.error(f"Failed to fetch Devices - {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
             raise e
 
-    # Map ConcertimRack components in self.view.racks to ConcertimUser.racks for ConcertimUsers in View 
-    def map_racks_to_user(self):
+    # Map ConcertimRack components in self.view.racks to ConcertimTeam.racks for ConcertimTeams in View
+    def map_racks_to_team(self):
         try:
-            self.__LOGGER.debug(f"Starting - Mapping Racks in View to their User's racks list")
-            # For each ConcertimRack.user_id in self.view.racks check if matching ConcertimUser exists in self.view.users
-            #   if matching ConcertimUser does not exist - skip this rack
-            #   if matching ConcertimUser does exist - check if matching ConcertimRack is in ConcertimUser.racks
+            self.__LOGGER.debug(f"Starting - Mapping Racks in View to their Team's racks list")
+            # For each ConcertimRack.team_id in self.view.racks check if matching ConcertimTeam exists in self.view.teams
+            #   if matching ConcertimTeam does not exist - skip this rack
+            #   if matching ConcertimTeam does exist - check if matching ConcertimRack is in ConcertimTeam.racks
             #       if matching ConcertimRack does exist - go to next rack
-            #       if matching ConcertimRack does not exist - add ConcertimRack to ConcertimUser.racks
+            #       if matching ConcertimRack does not exist - add ConcertimRack to ConcertimTeam.racks
             for rack_id_tup in self.view.racks:
                 rack = self.view.racks[rack_id_tup]
-                user_id_tup = None
-                for temp_user_id_tup in self.view.users:
-                    if temp_user_id_tup[0] == rack.user_id:
-                        user_id_tup = temp_user_id_tup
-                if not user_id_tup:
-                    self.__LOGGER.warning(f"Could not map rack '{rack}' - No User matching '{rack.user_id}' found in View")
+                team_id_tup = None
+                for temp_team_id_tup in self.view.teams:
+                    if temp_team_id_tup[0] == rack.team_id:
+                        team_id_tup = temp_team_id_tup
+                if not team_id_tup:
+                    self.__LOGGER.warning(f"Could not map rack '{rack}' - No Team matching '{rack.team_id}' found in View")
                     continue
                 rack_exists = False
-                for temp_rack_con_id in self.view.users[user_id_tup].racks:
+                for temp_rack_con_id in self.view.teams[team_id_tup].racks:
                     if temp_rack_con_id == rack.id[0]:
-                        self.__LOGGER.debug(f"Rack 'ID:{rack.id}' already exists for User 'ID:{user_id_tup}' - moving on")
+                        self.__LOGGER.debug(f"Rack 'ID:{rack.id}' already exists for Team 'ID:{team_id_tup}' - moving on")
                         rack_exists = True
                         break
                 if not rack_exists:
-                    self.__LOGGER.debug(f"Mapping rack 'ID:{rack_id_tup}' to user 'ID:{user_id_tup}'")
-                    self.view.users[user_id_tup].add_rack(rack.id[0])
-            self.__LOGGER.debug(f"Finished - Mapping Racks in View to their User's racks list")
+                    self.__LOGGER.debug(f"Mapping rack 'ID:{rack_id_tup}' to team 'ID:{team_id_tup}'")
+                    self.view.teams[team_id_tup].add_rack(rack.id[0])
+            self.__LOGGER.debug(f"Finished - Mapping Racks in View to their Team's racks list")
         except Exception as e:
-            self.__LOGGER.error(f"Failed to map Racks to Users - {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
+            self.__LOGGER.error(f"Failed to map Racks to Teams - {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
             raise e
 
     # Map ConcertimDevice components in self.view.devices to ConcertimRack.devices for ConcertimRacks in View 
@@ -266,12 +290,12 @@ class UpdateHandler(BaseHandler):
     def search_view(self, list_type, service, id_to_find):
         '''
         'list_type'     - the view list of objects to search in 
-                        ("racks", "devices", "users", "templates")
+                        ("racks", "devices", "users", "templates", "teams")
         'service'       - the service that the ID is coming from 
                         ("openstack","concertim")
         'id_to_find'    - id of the object in the service
         '''
-        __valid_list_types = ['racks','devices','users','templates']
+        __valid_list_types = ['racks','devices','users','templates', 'teams']
         __valid_services = ['openstack', 'concertim']
         if list_type.lower() not in __valid_list_types:
             raise InvalidSearchAttempt(f"Invalid list type - '{list_type.lower()}' - valid options {__valid_list_types}")
