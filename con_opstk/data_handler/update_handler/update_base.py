@@ -101,7 +101,7 @@ class UpdateHandler(BaseHandler):
                 new_team = ConcertimTeam(concertim_id=team['id'],
                                         openstack_project_id=team['project_id'],
                                         concertim_name=user['name'],
-                                        openstack_name=f"CM_{team['name']}_proj",
+                                        openstack_name=f"CM_{team['name'].replace(" ", "_")}_proj",
                                         description='',
                                         billing_acct_id=user['billing_acct_id'])
                 new_team.cost = float(team['cost'] if 'cost' in team and team['cost'] else 0.0)
