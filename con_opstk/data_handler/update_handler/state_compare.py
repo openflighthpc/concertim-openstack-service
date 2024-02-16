@@ -6,7 +6,7 @@ from con_opstk.concertim.components.device import ConcertimDevice
 from con_opstk.concertim.components.rack import ConcertimRack
 from con_opstk.concertim.components.template import ConcertimTemplate
 from con_opstk.concertim.components.user import ConcertimUser
-from con_opstk.concertim.components.user import ConcertimTeam
+from con_opstk.concertim.components.team import ConcertimTeam
 from con_opstk.concertim.components.location import Location
 from con_opstk.concertim.exceptions import ConcertimItemConflict, MissingRequiredArgs, MissingRequiredField
 # Py Packages

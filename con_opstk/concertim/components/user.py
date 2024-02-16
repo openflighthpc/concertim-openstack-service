@@ -12,8 +12,8 @@ class ConcertimUser(ConcertimComponent):
 
     def __eq__(self, other):
         if isinstance(other, ConcertimUser):
-            return (self.id[0] == other.id[0] 
-                and self.id[1] == other.id[1]
+            return (self.id[0] == other.id[0]
+                and self.id[1] == other.id[1])
         return NotImplemented
 
     def __ne__(self, other):

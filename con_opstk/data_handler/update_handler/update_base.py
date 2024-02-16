@@ -6,6 +6,7 @@ from con_opstk.concertim.components.device import ConcertimDevice
 from con_opstk.concertim.components.rack import ConcertimRack
 from con_opstk.concertim.components.template import ConcertimTemplate
 from con_opstk.concertim.components.user import ConcertimUser
+from con_opstk.concertim.components.team import ConcertimTeam
 from con_opstk.concertim.components.location import Location
 from con_opstk.data_handler.exceptions import InvalidSearchAttempt
 import con_opstk.app_definitions as app_paths
@@ -100,10 +101,10 @@ class UpdateHandler(BaseHandler):
                 self.__LOGGER.debug(f"Team '{team['id']}' not found in View - creating new ConcertimTeam")
                 new_team = ConcertimTeam(concertim_id=team['id'],
                                         openstack_project_id=team['project_id'],
-                                        concertim_name=user['name'],
-                                        openstack_name=f"CM_{team['name'].replace(" ", "_")}_proj",
+                                        concertim_name=team['name'],
+                                        openstack_name=f"CM_{team['name'].replace(' ', '_')}_proj",
                                         description='',
-                                        billing_acct_id=user['billing_acct_id'])
+                                        billing_acct_id=team['billing_acct_id'])
                 new_team.cost = float(team['cost'] if 'cost' in team and team['cost'] else 0.0)
                 new_team.billing_period_start = team['billing_period_start'] if 'billing_period_start' in team and team['billing_period_start'] else ''
                 new_team.billing_period_end = team['billing_period_end'] if 'billing_period_end' in team and team['billing_period_end'] else ''
