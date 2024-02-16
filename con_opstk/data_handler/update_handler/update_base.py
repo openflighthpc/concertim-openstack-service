@@ -54,7 +54,7 @@ class UpdateHandler(BaseHandler):
     # Map related View component objects
     def map_view_components(self):
         self.__LOGGER.info(f"Starting - Mapping related View components")
-        self.map_racks_to_user()
+        self.map_racks_to_team()
         self.map_devices_to_rack()
         self.__LOGGER.info(f"Finished - Mapping related View components")
 

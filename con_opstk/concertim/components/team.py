@@ -2,7 +2,7 @@ from con_opstk.concertim.components.component import ConcertimComponent
 
 class ConcertimTeam(ConcertimComponent):
     def __init__(self, concertim_id=None, concertim_name=None, openstack_name=None, openstack_project_id=None, description='', billing_acct_id=None):
-        super().__init__(concertim_id=concertim_id, openstack_id=openstack_id, concertim_name=concertim_name, openstack_name=openstack_name, description=description)
+        super().__init__(concertim_id=concertim_id, concertim_name=concertim_name, openstack_name=openstack_name, description=description)
         self.openstack_project_id = openstack_project_id
         self.racks = []
         self.billing_period_start = ''

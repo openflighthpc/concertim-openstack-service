@@ -76,6 +76,10 @@ class ConcertimService(object):
     def list_users(self):
         response = self._api_call('get', 'LIST_USERS')
         return response
+
+    def list_teams(self):
+        response = self._api_call('get', 'LIST_TEAMS')
+        return response
     
     def show_device(self, ID):
         response = self._api_call('get', 'SHOW_DEVICE', endpoint_var=str(ID))
@@ -93,6 +97,9 @@ class ConcertimService(object):
         response = self._api_call('patch', 'UPDATE_USER', variables_dict=variables_dict, endpoint_var=str(ID))
         return response
 
+    def update_team(self, ID, variables_dict):
+        response = self._api_call('patch', 'UPDATE_TEAM', variables_dict=variables_dict, endpoint_var=str(ID))
+        return response
 
     def update_device(self, ID, variables_dict):
         response = self._api_call('patch', 'UPDATE_DEVICE', variables_dict=variables_dict, endpoint_var=str(ID))

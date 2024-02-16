@@ -97,7 +97,7 @@ ENDPOINTS = {
                         'endpoint': '/api/v1/templates'
                     },
                     'LIST_TEAMS': {
-                        'endpoint': 'api/v1/teams'
+                        'endpoint': '/api/v1/teams'
                     },
                     'LIST_USERS':{
                         'endpoint': '/api/v1/users'

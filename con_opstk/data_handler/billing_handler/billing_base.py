@@ -30,15 +30,15 @@ class BillingHandler(BaseHandler):
         self.__LOGGER.info("\n\n********************************************\n\n")
         self.__LOGGER.info ("*** Updating Team cost %s (%s, %s) ***", openstack_project_id, begin, end)
         
-        user_found = False
-        user = None
+        team_found = False
+        team = None
         for tup in self.view.teams:
             team = self.view.teams[tup]
             # Checking for existence of associated openstack project id
             if team.openstack_project_id == openstack_project_id:
                 team_found = True
                 break
-        if team_found == False or user == None:
+        if team_found == False or team == None:
             return 0
 
         # Obtain usage details from cloudkitty
@@ -54,7 +54,7 @@ class BillingHandler(BaseHandler):
         remaining_credits = float(account_credits) - project_cost
 
         if remaining_credits <= self._credit_threshold:
-            self._account_shutdown(user.id)
+            self._account_shutdown(team.id)
 
         # Update Team Cost in Concertim
         try:
