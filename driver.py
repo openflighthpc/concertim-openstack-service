@@ -256,7 +256,7 @@ def run_billing_handler(test=False):
             if test:
                 break
             elif 'sleep_timer' in config and int(config["sleep_timer"]) > 0:
-                time.sleep(int(self.config["sleep_timer"]))
+                time.sleep(int(config["sleep_timer"]))
             else:
                 time.sleep(10)
     stop(logger,billing_handler)

@@ -134,9 +134,9 @@ class BillingHandler(BaseHandler):
     def _convert_date(self, datetime_str):
         return dt_parse(datetime_str).strftime('%Y-%m-%d')
 
-    def _account_shutdown(self, user_id_tup):
-        self.__LOGGER.info(f"User <ID:{user_id_tup}> has crossed the allowed credit threshold - starting shutdown procedure for User's racks")
-        for rack_concertim_id in self.view.users[user_id_tup].racks:
+    def _account_shutdown(self, team_id_tup):
+        self.__LOGGER.info(f"Team <ID:{team_id_tup}> has crossed the allowed credit threshold - starting shutdown procedure for Team's racks")
+        for rack_concertim_id in self.view.teams[team_id_tup].racks:
             for rack_id_tup in self.view.racks:
                 if rack_concertim_id == rack_id_tup[0]:
                     self.openstack_service.update_stack_status(rack_id_tup[1], 'suspend')
