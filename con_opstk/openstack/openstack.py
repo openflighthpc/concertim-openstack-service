@@ -393,6 +393,7 @@ class OpenstackService(object):
                     final_list.append(stack)
             return final_list
         stack_list = heat.list_stacks()
+        self.__LOGGER.debug(stack_list)
         return stack_list
 
     def get_stack(self, stack_id):

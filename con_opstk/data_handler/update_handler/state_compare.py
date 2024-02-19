@@ -118,9 +118,6 @@ class BulkUpdateHandler(UpdateHandler):
                 openstack_stacks = self.openstack_service.list_stacks(project_id=self.view.teams[team_id_tup].openstack_project_id)
                 for heat_stack_obj in openstack_stacks:
                     self.__LOGGER.debug(f"Checking Stack: {heat_stack_obj.stack_name} = {heat_stack_obj.id}")
-                    if not (str(heat_stack_obj.stack_owner) == str(self.view.teams[team_id_tup].name[1])):
-                        self.__LOGGER.debug(f"Stack belongs to different user - Skipping - [current_user={self.view.teams[team_id_tup].name[1]}, stack_owner={heat_stack_obj.stack_owner}]")
-                        continue
                     in_openstack.append(heat_stack_obj.id)
                     matching_racks = [con_rack for id_tup, con_rack in self.view.racks.items() if id_tup[1] == heat_stack_obj.id]
                     if matching_racks:
@@ -287,13 +284,13 @@ class BulkUpdateHandler(UpdateHandler):
                 new_rack.add_metadata(openstack_stack_status_reason=os_stack.stack_status_reason)
             if hasattr(os_stack, 'stack_owner') and os_stack.stack_owner:
                 new_rack.add_metadata(openstack_stack_owner=os_stack.stack_owner)
-            if hasattr(os_stack, 'stack_team_project_id') and os_stack.stack_team_project_id:
-                new_rack.add_metadata(openstack_stack_owner_id=os_stack.stack_team_project_id)
+            if hasattr(os_stack, 'stack_user_project_id') and os_stack.stack_user_project_id:
+                new_rack.add_metadata(openstack_stack_owner_id=os_stack.stack_user_project_id)
             concertim_response_rack = None
             # RETRIEVE BILLING ORDER FOR STACK
             try:
                 billing_stack_id = None
-                billing_acct = self.view.racks[team_id_tup].billing_acct_id
+                billing_acct = self.view.teams[team_id_tup].billing_acct_id
                 order_id = None
                 if billing_acct is not None:
                     bundles = self.billing_service.get_account_bundles(billing_acct)['data']
@@ -329,7 +326,7 @@ class BulkUpdateHandler(UpdateHandler):
                                                                 'openstack_stack_output': new_rack.output,
                                                                 'openstack_stack_status_reason':os_stack.stack_status_reason,
                                                                 'openstack_stack_owner':os_stack.stack_owner,
-                                                                'openstack_stack_owner_id' : os_stack.stack_team_project_id})
+                                                                'openstack_stack_owner_id' : os_stack.stack_user_project_id})
                 new_rack.id = (concertim_response_rack['id'],new_rack.id[1])
                 self.__LOGGER.debug(f"Successfully created new Rack: {new_rack}")
                 self.view.add_rack(new_rack)
@@ -356,6 +353,7 @@ class BulkUpdateHandler(UpdateHandler):
             if con_state_list:
                 con_state = con_state_list[0]
             else:
+                self.__LOGGER.debug(f"Unknown state: {con_state}. Setting as FAILED")
                 con_state = 'FAILED'
             matching_template_id_tup = [id_tup for id_tup, con_temp in self.view.templates.items() if id_tup[1] == os_instance.flavor['id']]
             if not matching_template_id_tup:
