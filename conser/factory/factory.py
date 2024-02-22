@@ -41,63 +41,62 @@ class Factory(object):
 #          MAIN GETs          #
 ###############################
     @staticmethod
-    def get_handler(handler_type, cloud_type, billing_app, log_file, log_level, cloud_auth_dict=None, enable_cloud_client=True, enable_billing_client=True):
+    def get_handler(handler_type, config, log_file, cloud_auth_dict=None, cloud_components_list=None, enable_concertim_client=True, enable_cloud_client=True, enable_billing_client=True):
         """
         Returns a concrete implementation of the given handler configuration
 
         REQUIRED:
             handler_type : type of HANDLER_OBJECT
-            cloud_type : type of cloud to connect with for the handler
-            billing_app : type of billing application being used
+            config : the dict of the config file
             log_file : the string of the log file location/name
         OPTIONAL:
             cloud_auth_dict : an optional alternative cloud auth than what is in the config file (used for API)
+            cloud_components_list : an optional list of cloud components to use for the cloud client (used for API)
             enable_cloud_client : flag to specify if handler needs a cloud client object
             enable_billing_client : flag to specify if a handler needs a billing client object
         """
+
         if handler_type not in Factory.HANDLER_OBJECTS:
             raise EXCP.InvalidHandler(handler_type)
-        if cloud_type not in Factory.CLIENT_OBJECTS['cloud']:
-            raise EXCP.InvalidClient(cloud_type)
-        if billing_app not in Factory.CLIENT_OBJECTS['billing']:
-            raise EXCP.InvalidClient(billing_app)
 
         if handler_type == "api":
-            handler = _build_api_handler(cloud_type, billing_app, log_file, log_level, cloud_auth_dict, enable_cloud_client, enable_billing_client)
+            handler = _build_api_handler(config, log_file, cloud_auth_dict, cloud_components_list, enable_concertim_client, enable_cloud_client, enable_billing_client)
         elif handler_type == "billing":
-            handler = _build_billing_handler(cloud_type, billing_app, log_file, log_level, enable_cloud_client, enable_billing_client)
+            handler = _build_billing_handler(config, log_file, enable_concertim_client, enable_cloud_client, enable_billing_client)
         elif handler_type == "metrics":
-            handler = _build_metrics_handler(cloud_type, billing_app, log_file, log_level, enable_cloud_client, enable_billing_client)
+            handler = _build_metrics_handler(config, log_file, enable_concertim_client, enable_cloud_client, enable_billing_client)
         elif handler_type == "update_sync":
-            handler = _build_sync_handler(cloud_type, billing_app, log_file, log_level, enable_cloud_client, enable_billing_client)
+            handler = _build_sync_handler(config, log_file, enable_concertim_client, enable_cloud_client, enable_billing_client)
         elif handler_type == "update_queue":
-            handler = _build_queue_handler(cloud_type, billing_app, log_file, log_level, enable_cloud_client, enable_billing_client)
+            handler = _build_queue_handler(config, log_file, enable_concertim_client, enable_cloud_client, enable_billing_client)
         else:
             raise EXCP.HandlerNotImplemented(handler_type)
 
         return handler
 
     @staticmethod
-    def get_client(client_type, client_config, log_file, log_level, client_name=None, components_list=None):
+    def get_client(client_type, client_config, log_file, log_level, client_subtype=None, components_list=None):
         """
         Returns a concrete implementation of the given client configuration
 
         REQUIRED:
             client_type : type of CLIENT_OBJECT (concertim, cloud, billing)
         OPTIONAL:
-            client_name : if cloud or billing client - a name for the specific app is needed
+            client_subtype : if cloud or billing client - a name for the specific app is needed
             components_list : list of components to add for the client
         """
 
         if client_type not in Factory.CLIENT_OBJECTS:
             raise EXCP.InvalidClient(client_type)
+        if client_type != 'concertim' and not client_subtype:
+            raise EXCP.MissingRequiredArgs(f'client_subtype')
 
         if client_type == "concertim":
             client = _build_concertim_client(client_config, log_file, log_level)
         elif client_type == "cloud":
-            client = _build_cloud_client(client_name, client_config, log_file, log_level, components_list=components_list)
+            client = _build_cloud_client(client_subtype, client_config, log_file, log_level, components_list=components_list)
         elif client_type == "billing":
-            client = _build_billing_client(cilent_name, client_config, log_file, log_level)
+            client = _build_billing_client(client_subtype, client_config, log_file, log_level)
         else:
             raise EXCP.ClientNotImplemented(client_type)
         
@@ -137,85 +136,330 @@ class Factory(object):
 
 # API
     @staticmethod
-    def _build_api_handler(cloud_type, billing_app, cloud_auth_dict, log_file, log_level, enable_cloud_client, enable_billing_client):
+    def _build_api_handler(config, cloud_auth_dict, cloud_components_list, log_file, enable_concertim_client, enable_cloud_client, enable_billing_client):
         # IMPORTS
+        from conser.modules.handlers.api_handler.handler import APIHandler
         # EXIT CASES
+        cloud_type = config['cloud_type']
+        billing_app = config['billing_platform']
+        if cloud_type not in Factory.CLIENT_OBJECTS['cloud']:
+            raise EXCP.InvalidClient(cloud_type)
+        if billing_app not in Factory.CLIENT_OBJECTS['billing']:
+            raise EXCP.InvalidClient(billing_app)
+
         # HANDLER DEFAULTS
-        #-- Load config file
+        log_level = config['log_level']
+        if cloud_auth_dict:
+            cloud_auth = cloud_auth_dict
+        else:
+            cloud_auth = config[cloud_type]
+        cloud_comps = cloud_components_list if cloud_components_list else Factory.CLIENT_OBJECTS['cloud'][cloud_type]['components']
+
         # CREATE CLIENT MAP
         #-- Create Concertim client
+        if enable_concertim_client:
+            concertim_client = get_client(
+                'concertim'
+                config['concertim'],
+                log_file,
+                log_level,
+            )
+        else:
+            concertim_client = None
         #-- Create Cloud client
+        if enable_cloud_client:
+            cloud_client = get_client(
+                'cloud'
+                config[cloud_type],
+                log_file,
+                log_level,
+                client_subtype=cloud_type
+                components_list=cloud_comps
+            )
+        else:
+            cloud_client = None
         #-- Create Billing client
+        if enable_billing_client:
+            billing_client = get_client(
+                'billing',
+                config[billing_app],
+                log_file,
+                log_level,
+                client_subtype=billing_app
+            )
+        else:
+            billing_client = None
+        handler_clients = {
+            'concertim': concertim_client,
+            'cloud': cloud_client,
+            'billing': billing_client
+        }
+
         # CREATE HANDLER
+        handler = APIHandler(
+            handler_clients,
+            log_file,
+            log_level
+        )
+
         # RETURN HANDLER
+        return handler
 
 # BILLING    
     @staticmethod
-    def _build_billing_handler(cloud_type, billing_app, log_file, log_level, enable_cloud_client, enable_billing_client):
+    def _build_billing_handler(config, log_file, enable_concertim_client, enable_cloud_client, enable_billing_client):
         # IMPORTS
+        from conser.modules.handlers.billing_handler.handler import BillingHandler
         # EXIT CASES
+        cloud_type = config['cloud_type']
+        billing_app = config['billing_platform']
+        if cloud_type not in Factory.CLIENT_OBJECTS['cloud']:
+            raise EXCP.InvalidClient(cloud_type)
+        if billing_app not in Factory.CLIENT_OBJECTS['billing']:
+            raise EXCP.InvalidClient(billing_app)
+        if not enable_concertim_client:
+            raise EXCP.MissingRequiredClient("A Concertim Client is required for Billing Handler")
         if not enable_billing_client:
             raise EXCP.MissingRequiredClient("A Billing Client is required for Billing Handler")
         if not enable_cloud_client:
             raise EXCP.MissingRequiredClient("A Cloud Client is required for Billing Handler")
+
         # HANDLER DEFAULTS
-        #-- Load config file
+        log_level = config['log_level']
+        cloud_comps = Factory.CLIENT_OBJECTS['cloud'][cloud_type]['components']
         # CREATE CLIENT MAP
         #-- Create Concertim client
+        concertim_client = get_client(
+            'concertim'
+            config['concertim'],
+            log_file,
+            log_level,
+        )
         #-- Create Cloud client
+        cloud_client = get_client(
+            'cloud'
+            config[cloud_type],
+            log_file,
+            log_level,
+            client_subtype=cloud_type
+            components_list=cloud_comps
+        )
         #-- Create Billing client
+        billing_client = get_client(
+            'billing',
+            config[billing_app],
+            log_file,
+            log_level,
+            client_subtype=billing_app
+        )
+        handler_clients = {
+            'concertim': concertim_client,
+            'cloud': cloud_client,
+            'billing': billing_client
+        }
+
         # CREATE HANDLER
+        handler = BillingHandler(
+            handler_clients,
+            log_file,
+            log_level
+        )
+
         # RETURN HANDLER
+        return handler
 
 # METRICS
     @staticmethod
-    def _build_metrics_handler(cloud_type, billing_app, log_file, log_level, enable_cloud_client, enable_billing_client):
+    def _build_metrics_handler(config, log_file, enable_concertim_client, enable_cloud_client, enable_billing_client):
         # IMPORTS
+        from conser.modules.handlers.metrics_handler.handler import MetricsHandler
         # EXIT CASES
+        cloud_type = config['cloud_type']
+        billing_app = config['billing_platform']
+        if cloud_type not in Factory.CLIENT_OBJECTS['cloud']:
+            raise EXCP.InvalidClient(cloud_type)
+        if billing_app not in Factory.CLIENT_OBJECTS['billing']:
+            raise EXCP.InvalidClient(billing_app)
+        if not enable_concertim_client:
+            raise EXCP.MissingRequiredClient("A Concertim Client is required for Metrics Handler")
         if not enable_cloud_client:
             raise EXCP.MissingRequiredClient("A Cloud Client is required for Metrics Handler")
+
         # HANDLER DEFAULTS
-        #-- Load config file
+        log_level = config['log_level']
+        cloud_comps = Factory.CLIENT_OBJECTS['cloud'][cloud_type]['components']
         # CREATE CLIENT MAP
         #-- Create Concertim client
+        concertim_client = get_client(
+            'concertim'
+            config['concertim'],
+            log_file,
+            log_level,
+        )
         #-- Create Cloud client
+        cloud_client = get_client(
+            'cloud'
+            config[cloud_type],
+            log_file,
+            log_level,
+            client_subtype=cloud_type
+            components_list=cloud_comps
+        )
         #-- Create Billing client
+        if enable_billing_client:
+            billing_client = get_client(
+                'billing',
+                config[billing_app],
+                log_file,
+                log_level,
+                client_subtype=billing_app
+            )
+        else:
+            billing_client = None
+        handler_clients = {
+            'concertim': concertim_client,
+            'cloud': cloud_client,
+            'billing': billing_client
+        }
+
         # CREATE HANDLER
+        handler = MetricsHandler(
+            handler_clients,
+            log_file,
+            log_level
+        )
+
         # RETURN HANDLER
+        return handler
 
 # SYNC
     @staticmethod
-    def _build_sync_handler(cloud_type, billing_app, log_file, log_level, enable_cloud_client, enable_billing_client):
+    def _build_sync_handler(config, log_file, enable_concertim_client, enable_cloud_client, enable_billing_client):
         # IMPORTS
+        from conser.modules.handlers.updates_handler.sync.handler import SyncHandler
         # EXIT CASES
+        cloud_type = config['cloud_type']
+        billing_app = config['billing_platform']
+        if cloud_type not in Factory.CLIENT_OBJECTS['cloud']:
+            raise EXCP.InvalidClient(cloud_type)
+        if billing_app not in Factory.CLIENT_OBJECTS['billing']:
+            raise EXCP.InvalidClient(billing_app)
+        if not enable_concertim_client:
+            raise EXCP.MissingRequiredClient("A Concertim Client is required for Sync Handler")
         if not enable_billing_client:
             raise EXCP.MissingRequiredClient("A Billing Client is required for Sync Handler")
         if not enable_cloud_client:
             raise EXCP.MissingRequiredClient("A Cloud Client is required for Sync Handler")
+
         # HANDLER DEFAULTS
-        #-- Load config file
+        log_level = config['log_level']
+        cloud_comps = Factory.CLIENT_OBJECTS['cloud'][cloud_type]['components']
         # CREATE CLIENT MAP
         #-- Create Concertim client
+        concertim_client = get_client(
+            'concertim'
+            config['concertim'],
+            log_file,
+            log_level,
+        )
         #-- Create Cloud client
+        cloud_client = get_client(
+            'cloud'
+            config[cloud_type],
+            log_file,
+            log_level,
+            client_subtype=cloud_type
+            components_list=cloud_comps
+        )
         #-- Create Billing client
+        billing_client = get_client(
+            'billing',
+            config[billing_app],
+            log_file,
+            log_level,
+            client_subtype=billing_app
+        )
+        handler_clients = {
+            'concertim': concertim_client,
+            'cloud': cloud_client,
+            'billing': billing_client
+        }
+
         # CREATE HANDLER
+        handler = SyncHandler(
+            handler_clients,
+            log_file,
+            log_level
+        )
+
         # RETURN HANDLER
+        return handler
 
 # QUEUE
     @staticmethod
-    def _build_queue_handler(cloud_type, billing_app, log_file, log_level, enable_cloud_client, enable_billing_client):
+    def _build_queue_handler(config, log_file, enable_concertim_client, enable_cloud_client, enable_billing_client):
         # IMPORTS
+        from conser.modules.handlers.updates_handler.queue.handler import QueueHandler
         # EXIT CASES
+        if 'message_queue' not in config:
+            raise MissingConfiguration('message_queue')
+        cloud_type = config['cloud_type']
+        billing_app = config['billing_platform']
+        queue_type = config['message_queue']
+        if cloud_type not in Factory.CLIENT_OBJECTS['cloud']:
+            raise EXCP.InvalidClient(cloud_type)
+        if billing_app not in Factory.CLIENT_OBJECTS['billing']:
+            raise EXCP.InvalidClient(billing_app)
+        if queue_type not in Factory.CLIENT_OBJECTS['cloud'][cloud_type]['queues']:
+            raise EXCP.InvalidClient(f"{cloud_type}.{queue_type}")
+        if not enable_concertim_client:
+            raise EXCP.MissingRequiredClient("A Concertim Client is required for Queue Handler")
         if not enable_cloud_client:
             raise EXCP.MissingRequiredClient("A Cloud Client is required for Queue Handler")
+
         # HANDLER DEFAULTS
-        #-- Load config file
+        log_level = config['log_level']
+        cloud_comps = Factory.CLIENT_OBJECTS['cloud'][cloud_type]['components']
         # CREATE CLIENT MAP
         #-- Create Concertim client
+        concertim_client = get_client(
+            'concertim'
+            config['concertim'],
+            log_file,
+            log_level,
+        )
         #-- Create Cloud client
+        cloud_client = get_client(
+            'cloud'
+            config[cloud_type],
+            log_file,
+            log_level,
+            client_subtype=cloud_type
+            components_list=cloud_comps
+        )
         #-- Create Billing client
+        billing_client = get_client(
+            'billing',
+            config[billing_app],
+            log_file,
+            log_level,
+            client_subtype=billing_app
+        )
+        handler_clients = {
+            'concertim': concertim_client,
+            'cloud': cloud_client,
+            'billing': billing_client
+        }
+
         # CREATE HANDLER
+        handler = QueueHandler(
+            handler_clients,
+            log_file,
+            log_level
+        )
+
         # RETURN HANDLER
+        return handler
 
 
 ###############################

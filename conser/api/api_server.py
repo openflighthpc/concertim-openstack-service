@@ -18,6 +18,7 @@ import traceback
 # Flask app
 app = Flask('Concertim Service API')
 conf_dict = None
+log_file = None
 
 """
 ----------- ROUTES -----------
@@ -66,10 +67,6 @@ app.add_url_rule('/key_pairs', endpoint='key_pair_delete',
                                 methods=['DELETE'])
 
 #### INVOICES
-app.add_url_rule('/get_user_invoice', endpoint='get_user_invoice', 
-                                view_func=get_user_invoice, 
-                                methods=['POST'])
-
 app.add_url_rule('/get_draft_invoice', endpoint='get_draft_invoice', 
                                 view_func=get_draft_invoice, 
                                 methods=['POST'])
@@ -113,7 +110,7 @@ def running():
 """
 
 def create_user():
-    app.logger.info("Starting - Creating new 'CM_' user in Cloud and Billing App")
+    app.logger.info("Starting - Creating new 'CM_' user in Cloud with a default project and Billing App Account")
     try:
         # Authenticate with JWT
         authenticate(request.headers)
@@ -131,9 +128,10 @@ def create_user():
         # Create API Handler
         handler = Factory.get_handler(
             "api", 
-            conf_dict["cloud_type"], 
-            conf_dict["billing_platform"], 
+            conf_dict,
+            log_file,
             cloud_auth_dict=request_data['cloud_env'],
+            enable_concertim_client=False,
             enable_cloud_client=True,
             enable_billing_client=True
         )
@@ -151,14 +149,15 @@ def create_user():
         resp = {
             'success': True,
             'username': request_data['username'],
-            'cloud_id': handler_return['user']['id'],
+            'user_cloud_id': handler_return['user']['id'],
+            'project_cloud_id': handler_return['project']['id'],
             'billing_acct_id': handler_return['billing_acct']['id']
         }
         return make_response(resp, 201)
     except Exception as e:
         return handle_exception(e)
     finally:
-        app.logger.info(f"Finished - Creating new 'CM_' user in Cloud and Billing App")
+        app.logger.info(f"Finished - Creating new 'CM_' user in Cloud with a default project and Billing App Account")
         disconnect_handler(handler)
 
 def delete_user():
@@ -173,23 +172,26 @@ def delete_user():
         verify_required_data(request_data, 
             'cloud_env', 
             'user_info', 
-            'cloud_user_id', 
-            'billing_acct_id')
+            'cloud_user_id',
+            'cloud_default_project_id',
+            'default_billing_acct_id')
         
         # Create API Handler
         handler = Factory.get_handler(
             "api", 
-            conf_dict["cloud_type"], 
-            conf_dict["billing_platform"], 
+            conf_dict,
+            log_file,
             cloud_auth_dict=request_data['cloud_env'],
+            enable_concertim_client=False,
             enable_cloud_client=True,
             enable_billing_client=True
         )
 
         # Call Function in API Handler
         handler_return = handler.delete_user(
-            cloud_user_id=request_data['user_info']['cloud_user_id'],
-            billing_account_id=request_data['user_info']['billing_acct_id']
+            user_cloud_id=request_data['user_info']['cloud_user_id'],
+            project_cloud_id=request_data['user_info']['cloud_default_project_id'],
+            project_billing_id=request_data['user_info']['default_billing_acct_id']
         )
         app.logger.debug(f"Handler Return Data - {handler_return}")
 
@@ -217,24 +219,29 @@ def change_user_details():
             'cloud_env', 
             'user_info', 
             'cloud_user_id', 
-            'billing_acct_id',
+            'cloud_default_project_id',
+            'default_billing_acct_id',
             'new_data')
         
         # Create API Handler
         handler = Factory.get_handler(
             "api", 
-            conf_dict["cloud_type"], 
-            conf_dict["billing_platform"], 
+            conf_dict,
+            log_file,
             cloud_auth_dict=request_data['cloud_env'],
+            enable_concertim_client=False,
             enable_cloud_client=True,
             enable_billing_client=True
         )
 
         # Call Function in API Handler
+        primary_accts_list = None if 'primary_user_billing_accounts' not in request_data['user_info'] else request_data['user_info']['primary_user_billing_accounts']
         handler_return = handler.change_user_details(
-            cloud_user_id=request_data['user_info']['cloud_user_id'],
-            billing_account_id=request_data['user_info']['billing_acct_id'],
-            new_data=request_data['new_data']
+            user_cloud_id=request_data['user_info']['cloud_user_id'],
+            proejct_cloud_id=request_data['user_info']['cloud_default_project_id'],
+            project_billing_id=request_data['user_info']['default_billing_acct_id'],
+            new_data=request_data['new_data'],
+            other_project_billing_ids=primary_accts_list
         )
         app.logger.debug(f"Handler Return Data - {handler_return}")
 
@@ -251,7 +258,7 @@ def change_user_details():
         disconnect_handler(handler)
 
 def create_project():
-    app.logger.info("Starting - Creating new 'CM_' project in Cloud")
+    app.logger.info("Starting - Creating new 'CM_' project in Cloud and corresponding billing account in Billing App")
     try:
         # Authenticate with JWT
         authenticate(request.headers)
@@ -261,34 +268,84 @@ def create_project():
         app.logger.debug(request_data)
         verify_required_data(request_data, 
             'cloud_env', 
-            'primary_user_cloud_id')
+            'name',
+            'primary_user_cloud_id',
+            'primary_user_email')
         
         # Create API Handler
         handler = Factory.get_handler(
             "api", 
-            conf_dict["cloud_type"], 
-            conf_dict["billing_platform"], 
+            conf_dict,
+            log_file,
             cloud_auth_dict=request_data['cloud_env'],
+            enable_concertim_client=False,
             enable_cloud_client=True,
             enable_billing_client=False
         )
 
         # Call Function in API Handler
         handler_return = handler.create_project(
-            primary_user_cloud_id=request_data['primary_user_cloud_id']
+            name=request_data['name']
+            primary_user_cloud_id=request_data['primary_user_cloud_id'],
+            primary_user_email=request_data['primary_user_email']
         )
         app.logger.debug(f"Handler Return Data - {handler_return}")
 
         # Return to Concertim
         resp = {
             'success': True,
-            'cloud_id': handler_return['project']['id']
+            'project_cloud_id': handler_return['project']['id'],
+            'billing_acct_id': handler_return['billing_acct']['id']
         }
         return make_response(resp, 201)
     except Exception as e:
         return handle_exception(e)
     finally:
-        app.logger.info(f"Finished - Creating new 'CM_' project in Cloud")
+        app.logger.info(f"Finished - Creating new 'CM_' project in Cloud and corresponding billing account in Billing App")
+        disconnect_handler(handler)
+
+def delete_project():
+    app.logger.info("Starting - Deleting project in Cloud and closing billing account")
+    try:
+        # Authenticate with JWT
+        authenticate(request.headers)
+
+        # Validate Required Data
+        request_data = request.get_json()
+        app.logger.debug(request_data)
+        verify_required_data(request_data, 
+            'cloud_env', 
+            'project_info', 
+            'cloud_project_id',
+            'billing_acct_id')
+        
+        # Create API Handler
+        handler = Factory.get_handler(
+            "api", 
+            conf_dict,
+            log_file,
+            cloud_auth_dict=request_data['cloud_env'],
+            enable_concertim_client=False,
+            enable_cloud_client=True,
+            enable_billing_client=True
+        )
+
+        # Call Function in API Handler
+        handler_return = handler.delete_project(
+            project_cloud_id=request_data['user_info']['cloud_project_id'],
+            project_billing_id=request_data['user_info']['billing_acct_id']
+        )
+        app.logger.debug(f"Handler Return Data - {handler_return}")
+
+        # Return to Concertim
+        resp = {
+            'success': True
+        }
+        return make_response(resp, 201)
+    except Exception as e:
+        return handle_exception(e)
+    finally:
+        app.logger.info(f"Finished - Deleting project in Cloud and closing billing account")
         disconnect_handler(handler)
 
 def update_status(obj_type, obj_id):
@@ -307,24 +364,25 @@ def update_status(obj_type, obj_id):
         # Create API Handler
         handler = Factory.get_handler(
             "api", 
-            conf_dict["cloud_type"], 
-            conf_dict["billing_platform"], 
+            conf_dict,
+            log_file,
             cloud_auth_dict=request_data['cloud_env'],
+            enable_concertim_client=False,
             enable_cloud_client=True,
-            enable_billing_client=False
+            enable_billing_client=True
         )
 
         # Call Function in API Handler
         handler_return = handler.update_status(
             concertim_obj_type=obj_type,
-            id=obj_id,
+            cloud_obj_id=obj_id,
             action=action
         )
         app.logger.debug(f"Handler Return Data - {handler_return}")
 
         # Return to Concertim
         resp = {
-            handler_return['outcome']: handler_return['message']
+            'cloud_response': handler_return['message']
         }
         return make_response(resp, handler_return['status_code'])
     except Exception as e:
@@ -349,18 +407,22 @@ def key_pair_create():
         # Create API Handler
         handler = Factory.get_handler(
             "api", 
-            conf_dict["cloud_type"], 
-            conf_dict["billing_platform"], 
+            conf_dict,
+            log_file,
             cloud_auth_dict=request_data['cloud_env'],
+            enable_concertim_client=False,
             enable_cloud_client=True,
             enable_billing_client=False
         )
 
         # Call Function in API Handler
+        pub_key = None if 'public_key' not in request_data['keypair'] else request_data['keypair']['public_key']
+        key_type = 'ssh' if 'key_type' not in request_data['keypair'] else request_data['keypair']['key_type']
+
         handler_return = handler.create_keypair(
             key_name=request_data['keypair']['name'],
-            key_type=request_data['keypair']['key_type'],
-            imported_public_key=request_data['keypair']['public_key']
+            key_type=key_type,
+            imported_public_key=pub_key
         )
         app.logger.debug(f"Handler Return Data - {handler_return}")
 
@@ -391,9 +453,10 @@ def key_pair_list():
         # Create API Handler
         handler = Factory.get_handler(
             "api", 
-            conf_dict["cloud_type"], 
-            conf_dict["billing_platform"], 
+            conf_dict,
+            log_file,
             cloud_auth_dict=request_data['cloud_env'],
+            enable_concertim_client=False,
             enable_cloud_client=True,
             enable_billing_client=False
         )
@@ -425,21 +488,22 @@ def key_pair_delete():
         app.logger.debug(request_data)
         verify_required_data(request_data, 
             'cloud_env', 
-            'keypair_name')
+            'keypair_id')
         
         # Create API Handler
         handler = Factory.get_handler(
             "api", 
-            conf_dict["cloud_type"], 
-            conf_dict["billing_platform"], 
+            conf_dict,
+            log_file,
             cloud_auth_dict=request_data['cloud_env'],
+            enable_concertim_client=False,
             enable_cloud_client=True,
             enable_billing_client=False
         )
 
         # Call Function in API Handler
         handler_return = handler.delete_keypair(
-            key_name=request_data['keypair_name']
+            key_id=request_data['keypair_name']
         )
         app.logger.debug(f"Handler Return Data - {handler_return}")
 
@@ -453,45 +517,6 @@ def key_pair_delete():
         return handle_exception(e)
     finally:
         app.logger.info(f"Finished - Deleting keypair")
-        disconnect_handler(handler)
-
-def get_user_invoice():
-    app.logger.info("Starting - Getting User's current invoice")
-    try:
-        # Authenticate with JWT
-        authenticate(request.headers)
-
-        # Validate Required Data
-        request_data = request.get_json()
-        app.logger.debug(request_data)
-        verify_required_data(request_data,
-            'billing_acct_id')
-        
-        # Create API Handler
-        handler = Factory.get_handler(
-            "api", 
-            conf_dict["cloud_type"], 
-            conf_dict["billing_platform"], 
-            enable_cloud_client=False,
-            enable_billing_client=True
-        )
-
-        # Call Function in API Handler
-        handler_return = handler.get_latest_invoice(
-            billing_acct_id=request_data['billing_acct_id']
-        )
-        app.logger.debug(f"Handler Return Data - {handler_return}")
-
-        # Return to Concertim
-        resp = {
-            'success': True,
-            'invoice_html': handler_return['invoice']['html']
-        }
-        return make_response(resp, 201)
-    except Exception as e:
-        return handle_exception(e)
-    finally:
-        app.logger.info(f"Finished - Getting User's current invoice")
         disconnect_handler(handler)
 
 def get_draft_invoice():
@@ -509,15 +534,16 @@ def get_draft_invoice():
         # Create API Handler
         handler = Factory.get_handler(
             "api", 
-            conf_dict["cloud_type"], 
-            conf_dict["billing_platform"], 
+            conf_dict,
+            log_file,
+            enable_concertim_client=False,
             enable_cloud_client=False,
             enable_billing_client=True
         )
 
         # Call Function in API Handler
         handler_return = handler.get_draft_invoice(
-            billing_acct_id=request_data['billing_acct_id']
+            project_billing_id=request_data['billing_acct_id']
         )
         app.logger.debug(f"Handler Return Data - {handler_return}")
 
@@ -548,8 +574,9 @@ def list_paginated_invoices():
         # Create API Handler
         handler = Factory.get_handler(
             "api", 
-            conf_dict["cloud_type"], 
-            conf_dict["billing_platform"], 
+            conf_dict,
+            log_file,
+            enable_concertim_client=False,
             enable_cloud_client=False,
             enable_billing_client=True
         )
@@ -560,7 +587,7 @@ def list_paginated_invoices():
 
         # Call Function in API Handler
         handler_return = handler.list_account_invoice_paginated(
-            billing_acct_id=request_data['billing_acct_id'],
+            project_billing_id=request_data['billing_acct_id'],
             offset=offset,
             limit=limit
         )
@@ -595,15 +622,16 @@ def get_account_invoice():
         # Create API Handler
         handler = Factory.get_handler(
             "api", 
-            conf_dict["cloud_type"], 
-            conf_dict["billing_platform"], 
+            conf_dict,
+            log_file,
+            enable_concertim_client=False,
             enable_cloud_client=False,
             enable_billing_client=True
         )
 
         # Call Function in API Handler
         handler_return = handler.get_invoice_by_id(
-            billing_acct_id=request_data['billing_acct_id'],
+            project_billing_id=request_data['billing_acct_id'],
             invoice_id=request_data['invoice_id']
         )
         app.logger.debug(f"Handler Return Data - {handler_return}")
@@ -636,8 +664,9 @@ def add_credits():
         # Create API Handler
         handler = Factory.get_handler(
             "api", 
-            conf_dict["cloud_type"], 
-            conf_dict["billing_platform"], 
+            conf_dict,
+            log_file,
+            enable_concertim_client=False,
             enable_cloud_client=False,
             enable_billing_client=True
         )
@@ -662,7 +691,7 @@ def add_credits():
         disconnect_handler(handler)
 
 def get_credits():
-    app.logger.info("Starting - Getting Credits for User's Account")
+    app.logger.info("Starting - Getting Credits for Account")
     try:
         # Authenticate with JWT
         authenticate(request.headers)
@@ -676,8 +705,9 @@ def get_credits():
         # Create API Handler
         handler = Factory.get_handler(
             "api", 
-            conf_dict["cloud_type"], 
-            conf_dict["billing_platform"], 
+            conf_dict,
+            log_file,
+            enable_concertim_client=False,
             enable_cloud_client=False,
             enable_billing_client=True
         )
@@ -697,7 +727,7 @@ def get_credits():
     except Exception as e:
         return handle_exception(e)
     finally:
-        app.logger.info(f"Finished - Getting Credits for User's Account")
+        app.logger.info(f"Finished - Getting Credits for Account")
         disconnect_handler(handler)
 
 def create_order():
@@ -715,21 +745,23 @@ def create_order():
         # Create API Handler
         handler = Factory.get_handler(
             "api", 
-            conf_dict["cloud_type"], 
-            conf_dict["billing_platform"], 
+            conf_dict,
+            log_file,
+            enable_concertim_client=False,
             enable_cloud_client=False,
             enable_billing_client=True
         )
 
         # Call Function in API Handler
         handler_return = handler.create_order(
-            billing_acct_id=request_data['billing_acct_id']
+            project_billing_id=request_data['billing_acct_id']
         )
         app.logger.debug(f"Handler Return Data - {handler_return}")
 
         # Return to Concertim
         resp = {
             'success': True,
+            'order_id': handler_return['order_id']
             'order': handler_return['order']
         }
         return make_response(resp, 201)
@@ -756,15 +788,16 @@ def add_order_tag():
         # Create API Handler
         handler = Factory.get_handler(
             "api", 
-            conf_dict["cloud_type"], 
-            conf_dict["billing_platform"], 
+            conf_dict,
+            log_file,
+            enable_concertim_client=False,
             enable_cloud_client=False,
             enable_billing_client=True
         )
 
         # Call Function in API Handler
-        handler_return = handler.create_order(
-            order_id=request_data['order_id'],
+        handler_return = handler.add_order_tag(
+            cluster_billing_id=request_data['order_id'],
             tag_name=request_data['tag_name'],
             tag_value=request_data['tag_value']
         )
@@ -835,9 +868,11 @@ def disconnect_handler(handler):
         
                 
 ### RUNNER
-def run_app(config_obj, log_file):
+def run_app(config_obj, log_f):
     global conf_dict
     conf_dict = config_obj
+    global log_file
+    log_file = log_f
 
     # Logging setup
     formatter = SensitiveFormatter('[%(asctime)s] - %(levelname)-8s: %(module)-12s: %(funcName)-26s===>  %(message)s')

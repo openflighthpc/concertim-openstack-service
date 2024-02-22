@@ -1,6 +1,6 @@
 # Local Imports
 from conser.utils.service_logger import create_logger
-import conser.utils.common as Helpers
+import conser.utils.common as UTILS
 import conser.app_definitions as app_paths
 import conser.factory.factory.Factory as Factory
 import conser.exceptions as EXCP
@@ -46,7 +46,7 @@ def main(args):
         raise argparse.ArgumentTypeError(f"Invalid process type -> {arguments.process}")
 
     # CREATE CONFIG DICT
-    conf_dict = Helpers.load_config()
+    conf_dict = UTILS.load_config()
     # CREATE LOG FILE STRING
     log_file = LOG_DIR + arguments.process + datetime.now().strftime("%d-%m-%Y") + ".log"
     # MAIN PROCESS TREE
@@ -78,9 +78,9 @@ def start_metrics_process(config, log_file, run_once=False):
     # CREATE HANDLER
     handler = Factory.get_handler(
         "metrics", 
-        config['cloud_type'], 
-        config['billing_platform'], 
+        config,
         log_file, 
+        enable_concertim_client=True,
         enable_cloud_client=True, 
         enable_billing_client=False
     )
@@ -116,9 +116,9 @@ def start_billing_process(config, log_file, run_once=False):
     # CREATE HANDLER
     handler = Factory.get_handler(
         "billing", 
-        config['cloud_type'], 
-        config['billing_platform'], 
+        config,
         log_file, 
+        enable_concertim_client=True,
         enable_cloud_client=True, 
         enable_billing_client=True
     )
@@ -155,9 +155,9 @@ def start_sync_process(config, log_file, run_once=False):
     # CREATE HANDLER
     handler = Factory.get_handler(
         "update_sync", 
-        config['cloud_type'], 
-        config['billing_platform'],
+        config,
         log_file, 
+        enable_concertim_client=True,
         enable_cloud_client=True, 
         enable_billing_client=True
     )
@@ -193,9 +193,9 @@ def start_queue_process(config, log_file, run_once=False):
     # CREATE HANDLER
     handler = Factory.get_handler(
         "update_queue", 
-        config['cloud_type'], 
-        config['billing_platform'], 
+        config,
         log_file, 
+        enable_concertim_client=True,
         enable_cloud_client=True, 
         enable_billing_client=False
     )

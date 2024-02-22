@@ -189,7 +189,7 @@ class KillbillClient(AbsBillingClient):
         # RETURN
         return return_dict
 
-    def add_currency(self, project_billing_id, amount):
+    def add_credits(self, project_billing_id, amount):
         """
         Function to add a currency/token/credit amount to aan Account.
         """
@@ -201,7 +201,7 @@ class KillbillClient(AbsBillingClient):
             raise EXCP.MissingRequiredArgs('project_billing_id')
         if not amount:
             raise EXCP.MissingRequiredArgs('amount')
-        if amount == 0:
+        if amount <= 0:
             raise ValueError("Must add more than 0 credits")
 
         # BILLING OBJECT LOGIC
@@ -223,15 +223,17 @@ class KillbillClient(AbsBillingClient):
         )
         resp_dict = self._get_dict_from_resp(resp)
         credit_list = []
+        amounts = 0.0
         for cred in resp_dict['data']:
             credit_list.append(cred.to_dict())
-        resp_dict['data'] = credit_list
+            amounts += cred.credit_amount
 
         # BUILD RETURN DICT
         self.__LOGGER.debug(f"Building Return dictionary")
         return_dict = {
             'submitted': True,
-            'currency': resp_dict['data']
+            'amount': amounts,
+            'credits': credit_list
         }
         # RETURN
         return return_dict
@@ -503,6 +505,78 @@ class KillbillClient(AbsBillingClient):
         return_dict = {
             'id': project_billing_id,
             'invoices': inv_list
+        }
+        # RETURN
+        return return_dict
+
+    def get_invoice(self, project_billing_id, invoice_id):
+        """
+        Get a specific invoice for an Account.
+        """
+        # EXIT CASES
+        if not self.apis['invoice']:
+            raise EXCP.NoComponentFound('InvoiceAPI')
+        if not invoice_id:
+            raise EXCP.MissingRequiredArgs('invoice_id')
+
+        # BILLING OBJECT LOGIC
+        resp = self.apis['invoice'].get_invoice_with_http_info(
+            invoice_id
+        )
+        resp_dict = self._get_dict_from_resp(resp)
+        invoice = self._build_invoice_dict(resp_dict['data'].to_dict())
+
+        # BUILD RETURN DICT
+        self.__LOGGER.debug(f"Building Return dictionary")
+        return_dict = {
+            'invoice': invoice
+        }
+        # RETURN
+        return return_dict
+
+    def get_credits(self, project_billing_id):
+        """
+        Get the actual credits for an account
+        """
+        # EXIT CASES
+        if not project_billing_id:
+            raise EXCP.MissingRequiredArgs('project_billing_id')
+
+        # BILLING OBJECT LOGIC
+        amount = self._get_remaining_credits(
+            project_billing_id=project_billing_id
+        )
+
+        # BUILD RETURN DICT
+        self.__LOGGER.debug(f"Building Return dictionary")
+        return_dict = {
+            'amount': amount
+        }
+        # RETURN
+        return return_dict
+
+    def add_order_tag(self, cluster_billing_id, tag_name, tag_value):
+        """
+        Add a custom tag to an existing cluster's order
+        """
+        # EXIT CASES
+        if not cluster_billing_id:
+            raise EXCP.MissingRequiredArgs('cluster_billing_id')
+        if not tag_name:
+            raise EXCP.MissingRequiredArgs('tag_name')
+
+        # BILLING OBJECT LOGIC
+        tag = self._add_custom_field(
+            obj_type='subscription', 
+            obj_id=cluster_billing_id, 
+            field_name=tag_name, 
+            field_value=tag_value
+        )
+
+        # BUILD RETURN DICT
+        self.__LOGGER.debug(f"Building Return dictionary")
+        return_dict = {
+            'tag': tag
         }
         # RETURN
         return return_dict

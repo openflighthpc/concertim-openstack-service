@@ -1,6 +1,5 @@
 # Local Imports
 from conser.utils.service_logger import create_logger
-from conser.factory.factory import Factory
 from conser.factory.abs_classes.clients import AbsCloudClient
 from conser.modules.clients.cloud.openstack.auth import OpenStackAuth
 import conser.exceptions as EXCP
@@ -134,7 +133,7 @@ class OpenstackClient(AbsCloudClient):
         # RETURN
         return return_dict
     
-    def create_cm_user(self, name, password, email):
+    def create_cm_user(self, username, password, email):
         """
         Create a new Concertim Managed user.
 
@@ -144,15 +143,15 @@ class OpenstackClient(AbsCloudClient):
             'user': new_user.__dict__['_info']
         }
         """
-        self.__LOGGER.debug(f"Creating new Concertim-managed User for '{name}'")
+        self.__LOGGER.debug(f"Creating new Concertim-managed User for '{username}'")
         # EXIT CASES
         if 'keystone' not in self.components or not self.components['keystone']:
             raise EXCP.NoComponentFound('keystone')
-        if not name or not password or not email:
-            raise EXCP.MissingRequiredArgs('name', 'email', 'password')
+        if not username or not password or not email:
+            raise EXCP.MissingRequiredArgs('username', 'email', 'password')
 
         # CLOUD OBJECT LOGIC
-        new_user = self.components['keystone'].create_user(name, password, 'default', email=email, desc="Concertim Managed User")
+        new_user = self.components['keystone'].create_user(username, password, 'default', email=email, desc="Concertim Managed User")
         self.__LOGGER.debug(f"New Concertim-managed User created successfully - '{new_user}'")
 
         # BUILD RETURN DICT
@@ -186,7 +185,11 @@ class OpenstackClient(AbsCloudClient):
         # BUILD RETURN DICT
         self.__LOGGER.debug(f"Building Return dictionary")
         return_dict = {
-            'key_pair': new_keypair._info
+            'key_pair': new_keypair._info,
+            'private_key': new_keypair.private_key,
+            'public_key': new_keypair.public_key,
+            'name': new_keypair.name,
+            'id': new_keypair.id
         }
 
         # RETURN
@@ -570,7 +573,8 @@ class OpenstackClient(AbsCloudClient):
         }
         for kp in key_pairs:
             return_dict['ids'].append(kp.id)
-            return_dict['key_pairs'][kp.id] = kp._info
+            return_dict['key_pairs'][kp.id]['name'] = kp.name
+            return_dict['key_pairs'][kp.id]['public_key'] = kp.public_key
 
         # RETURN
         return return_dict

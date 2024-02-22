@@ -172,9 +172,9 @@ class KeystoneComponent(OpstkBaseComponent):
     
     def update_user(self, user_id, **kwargs):
         try:
-            fields = list(kwargs.keys())
+            fields = {k:v for k, v in kwargs.items() if v is not None}
             self.__LOGGER.debug(f"Updating User '{user_id}' fields {fields}")
-            update_attempt = self.client.users.update(user=user_id, **kwargs)
+            update_attempt = self.client.users.update(user=user_id, **fields)
             return True
         except Exception as e:
             self.__LOGGER.error(f"An unexpected error : {type(e).__name__} - {e}")
@@ -182,9 +182,9 @@ class KeystoneComponent(OpstkBaseComponent):
 
     def update_project(self, project_id, **kwargs):
         try:
-            fields = list(kwargs.keys())
+            fields = {k:v for k, v in kwargs.items() if v is not None}
             self.__LOGGER.debug(f"Updating Project '{project_id}' fields {fields}")
-            update_attempt = self.client.users.update(project=project_id, **kwargs)
+            update_attempt = self.client.users.update(project=project_id, **fields)
             return True
         except Exception as e:
             self.__LOGGER.error(f"An unexpected error : {type(e).__name__} - {e}")

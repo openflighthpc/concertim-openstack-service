@@ -29,6 +29,13 @@ class APIAuthenticationError(Exception):
     def __str__(self):
         return f"{self.http_status} - API Could not authenticate with Concertim -> {self.message}"
 
+class InvalidAPICall(Exception):
+    def __init__(self, msg):
+        self.message = msg
+        self.http_status = 406
+    def __str__(self):
+        return f"{self.http_status} - Invalid API call attempted -> {self.message}"
+
 
 ### FACTORY
 class InvalidClient(Exception):

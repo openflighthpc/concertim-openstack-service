@@ -53,7 +53,7 @@ class AbsBillingClient(Client):
         """
 
     @abstractmethod
-    def add_currency(self):
+    def add_credits(self):
         """
         Function to add a currency/token/credit amount to a User.
         """
@@ -108,6 +108,18 @@ class AbsBillingClient(Client):
     
     @abstractmethod
     def get_all_invoices(self):
+        """
+        Get the invoice history for a User. Paginated if possible.
+        """
+
+    @abstractmethod
+    def get_invoice(self):
+        """
+        Get the invoice history for a User. Paginated if possible.
+        """
+
+    @abstractmethod
+    def get_credits(self):
         """
         Get the invoice history for a User. Paginated if possible.
         """

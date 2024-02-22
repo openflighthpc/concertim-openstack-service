@@ -14,12 +14,6 @@ class Handler(ABC):
             with each key representing an object and all relevant object
             data within a subdictionary under the key
     """
-    
-    @abstractmethod
-    def add_client(self):
-        """
-        Method to add a client into the Handler's clients list
-        """
 
     @abstractmethod
     def run_process(self):
