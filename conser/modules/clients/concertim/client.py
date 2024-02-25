@@ -16,6 +16,7 @@ class ConcertimClient(Client):
     ############
     # DEFAULTS #
     ############
+    DEFAULT_RACK_HEIGHT=42
 
     ########
     # INIT #
@@ -28,6 +29,7 @@ class ConcertimClient(Client):
         self._URL = self._CONFIG['concertim_url']
         self.__retry_count = 0
         self.__AUTH_TOKEN = self.get_connection_obj()
+        self.rack_height = ConcertimClient.DEFAULT_RACK_HEIGHT if 'default_rack_height' not in self._CONFIG else self._CONFIG['default_rack_height']
 
     #####################################
     # CONCERTIM CLIENT OBJECT FUNCTIONS #

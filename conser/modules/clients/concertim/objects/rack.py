@@ -5,7 +5,7 @@ class ConcertimRack(object):
         billing_id=None,
         concertim_name=None, 
         cloud_name=None, 
-        user_id=None, 
+        user_id_tuple=None, 
         height=42, 
         description='', 
         status=None
@@ -13,25 +13,32 @@ class ConcertimRack(object):
         self.id = tuple((concertim_id, cloud_id, billing_id))
         self.name = tuple((concertim_name, cloud_name))
         self.description = description
-        self.user_id = user_id
+        self.user_id_tuple = user_id_tuple
         self.height = height
         self.devices = []
+        self._base_name = ''
         self.status = status
+        self._status_reason = ''
         self._occupied = []
         self.output = []
         self._creation_output = ''
+        self._project_cloud_id = ''
         self.network_details = {}
         self.metadata = {}
         self.cost = 0.0
+        self._resources = {}
 
     def __repr__(self):
         return (
             f"<ConcertimRack:{{ \
                 id:{repr(self.id)}, \
                 name:{repr(self.name)}, \
+                _base_name:{repr(self._base_name)}, \
+                _project_cloud_id:{repr(self._project_cloud_id)}, \
                 description:{repr(self.description)}, \
                 status:{repr(self.status)}, \
-                user_id:{repr(self.user_id)}, \ 
+                _status_reason:{repr(self._status_reason)}, \
+                user_id_tuple:{repr(self.user_id_tuple)}, \ 
                 height:{repr(self.height)}, \
                 devices:{repr(self.devices)}, \
                 output:{repr(self.output)}, \
@@ -39,6 +46,7 @@ class ConcertimRack(object):
                 metadata:{repr(self.metadata)}, \
                 cost:{repr(self.cost)}, \
                 _occupied:{repr(self._occupied)}, \
+                _resources:{repr(self._resources)}, \
                 _creation_output:{repr(self._creation_output)}}}>"
         )
 

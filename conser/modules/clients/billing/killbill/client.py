@@ -23,6 +23,7 @@ class KillbillClient(AbsBillingClient):
     BILLING_CREDIT_THRESHOLD=25
     BILLING_CYCLE_DAYS=31
     BILLING_CURRENCY='USD'
+    CLUSTER_BILLING_ID_FIELD = 'openstack_stack_id'
     CUSTOM_FIELD_FUNCTIONS = {
         'add': {
             'account': 'create_account_custom_fields_with_http_info',
@@ -335,7 +336,7 @@ class KillbillClient(AbsBillingClient):
 
         # BILLING OBJECT LOGIC
         resp = self.apis['subscription'].get_subscription_with_http_info(
-            subscription_id=cluster_billing_id,
+            subscription_id=cluster_billing_id
         )
         resp_dict = self._get_dict_from_resp(resp)
         resp_dict['data'] = resp_dict['data'].to_dict()
@@ -348,6 +349,40 @@ class KillbillClient(AbsBillingClient):
         }
         # RETURN
         return return_dict
+
+    def lookup_cluster_billing_info(self, cluster_cloud_id):
+        """
+        Function for killbill to find the subscrition info given the cluster's cloud_id
+        """
+        self.__LOGGER.debug(f"Looking for subscription for Cluster {cluster_cloud_id}")
+        # EXIT CASES
+        if not self.apis['custom_field']:
+            raise EXCP.NoComponentFound('CustomFieldAPI')
+        if not cluster_cloud_id:
+            raise EXCP.MissingRequiredArgs('cluster_cloud_id')
+
+        # BILLING OBJECT LOGIC
+        resp = self.apis['custom_field'].search_custom_fields_with_http_info(
+            search_key=cluster_cloud_id
+        )
+        resp_dict = self._get_dict_from_resp(resp)
+        matches = {
+            'count': 0,
+            'subscriptions': {}
+        }
+        for cf in resp_dict['data']:
+            if cf.object_type != "SUBSCRIPTION" or cf.name != KillbillClient.CLUSTER_BILLING_ID_FIELD:
+                continue
+            sub = self.get_cluster_billing_info(
+                cluster_billing_id=cf.object_id
+            )
+            if sub.state != "ACTIVE":
+                continue
+            matches['subscriptions'][cf.object_id] = sub
+            matches['count'] += 1
+        if matches['count'] > 0:
+            return matches
+        return None
     
     def get_all_billing_accounts(self):
         """
@@ -598,7 +633,8 @@ class KillbillClient(AbsBillingClient):
             'subscription': killbill.api.SubscriptionApi(kb_api_client),
             'usage': killbill.api.UsageApi(kb_api_client),
             'invoice': killbill.api.InvoiceApi(kb_api_client),
-            'credit': killbill.api.CreditApi(kb_api_client)
+            'credit': killbill.api.CreditApi(kb_api_client),
+            'custom_field': killbill.api.CustomFieldApi(kb_api_client)
         }
         return api_dict
 

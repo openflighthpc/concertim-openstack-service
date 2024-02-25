@@ -10,10 +10,11 @@ class Factory(object):
     """
 
     HANDLER_OBJECTS = [
-        "update_sync",
-        "update_queue",
+        "view_sync",
+        "view_queue",
         "api",
-        "metrics",
+        "fe_metrics",
+        "fe_updates",
         "billing"
     ]
     CLIENT_OBJECTS = {
@@ -63,11 +64,11 @@ class Factory(object):
             handler = _build_api_handler(config, log_file, cloud_auth_dict, cloud_components_list, enable_concertim_client, enable_cloud_client, enable_billing_client)
         elif handler_type == "billing":
             handler = _build_billing_handler(config, log_file, enable_concertim_client, enable_cloud_client, enable_billing_client)
-        elif handler_type == "metrics":
+        elif handler_type == "fe_metrics":
             handler = _build_metrics_handler(config, log_file, enable_concertim_client, enable_cloud_client, enable_billing_client)
-        elif handler_type == "update_sync":
+        elif handler_type == "view_sync":
             handler = _build_sync_handler(config, log_file, enable_concertim_client, enable_cloud_client, enable_billing_client)
-        elif handler_type == "update_queue":
+        elif handler_type == "view_queue":
             handler = _build_queue_handler(config, log_file, enable_concertim_client, enable_cloud_client, enable_billing_client)
         else:
             raise EXCP.HandlerNotImplemented(handler_type)
@@ -336,7 +337,7 @@ class Factory(object):
     @staticmethod
     def _build_sync_handler(config, log_file, enable_concertim_client, enable_cloud_client, enable_billing_client):
         # IMPORTS
-        from conser.modules.handlers.updates_handler.sync.handler import SyncHandler
+        from conser.modules.handlers.view_handler.sync.handler import SyncHandler
         # EXIT CASES
         cloud_type = config['cloud_type']
         billing_app = config['billing_platform']
@@ -399,7 +400,7 @@ class Factory(object):
     @staticmethod
     def _build_queue_handler(config, log_file, enable_concertim_client, enable_cloud_client, enable_billing_client):
         # IMPORTS
-        from conser.modules.handlers.updates_handler.queue.handler import QueueHandler
+        from conser.modules.handlers.view_handler.queue.handler import QueueHandler
         # EXIT CASES
         if 'message_queue' not in config:
             raise MissingConfiguration('message_queue')

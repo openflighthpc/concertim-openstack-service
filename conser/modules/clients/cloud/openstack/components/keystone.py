@@ -43,26 +43,8 @@ class KeystoneComponent(OpstkBaseComponent):
         except Exception as e:
             self.__LOGGER.error(f"An unexpected error : {type(e).__name__} - {e}")
             raise e
-    
-    def get_project(self, name):
-        try:
-            self.__LOGGER.debug(f"Getting Openstack Project : {name}")
-            proj_list = self.client.projects.list(name=name)
-            if not proj_list:
-                self.__LOGGER.error(f"Project {name} not found, returning None")
-                return None
-            elif len(proj_list) > 1:
-                self.__LOGGER.debug(f"Multiple Projects matching name {name} found, returning list of matching Projects")
-                return proj_list
-            else:
-                project = proj_list[0]
-                self.__LOGGER.debug(f"Project {project} found.")
-                return project
-        except Exception as e:
-            self.__LOGGER.error(f"An unexpected error : {type(e).__name__} - {e}")
-            raise e
 
-    def get_project_by_id(self, ID):
+    def get_project(self, ID):
         try:
             self.__LOGGER.debug(f"Getting Openstack Project : {ID}")
             project = self.client.projects.get(ID)
@@ -100,30 +82,32 @@ class KeystoneComponent(OpstkBaseComponent):
             self.__LOGGER.error(f"An unexpected error : {type(e).__name__} - {e}")
             raise e
 
-    def get_user(self, name):
-        try:
-            self.__LOGGER.debug(f"Getting Openstack User : {name}")
-            users_list = self.client.users.list(name=name)
-            if not users_list:
-                self.__LOGGER.error(f"User {name} not found, returning None")
-                return None
-            elif len(users_list) > 1:
-                self.__LOGGER.debug(f"Multiple User matching name {name} found, returning list of matching Users")
-                return users_list
-            else:
-                user = users_list[0]
-                self.__LOGGER.debug(f"User {user} found.")
-                return user
-        except Exception as e:
-            self.__LOGGER.error(f"An unexpected error : {type(e).__name__} - {e}")
-            raise e
-
-    def get_user_by_id(self, ID):
+    def get_user(self, ID):
         try:
             self.__LOGGER.debug(f"Getting Openstack User : {ID}")
             user = self.client.users.get(ID)
             self.__LOGGER.debug(f"User {user} found.")
             return user
+        except Exception as e:
+            self.__LOGGER.error(f"An unexpected error : {type(e).__name__} - {e}")
+            raise e
+
+    def get_user_assignments(self, user_id):
+        try:
+            self.__LOGGER.debug(f"Getting Openstack User's role assignments : {ID}")
+            ra = self.client.role_assignments.list(user=user_id)
+            self.__LOGGER.debug(f"Roles for {user_id} found: {ra}")
+            return ra
+        except Exception as e:
+            self.__LOGGER.error(f"An unexpected error : {type(e).__name__} - {e}")
+            raise e
+
+    def get_project_assignments(self, project_id):
+        try:
+            self.__LOGGER.debug(f"Getting Openstack Project's role assignments : {ID}")
+            ra = self.client.role_assignments.list(project=project_id)
+            self.__LOGGER.debug(f"Roles for {project_id} found: {ra}")
+            return ra
         except Exception as e:
             self.__LOGGER.error(f"An unexpected error : {type(e).__name__} - {e}")
             raise e
@@ -142,6 +126,16 @@ class KeystoneComponent(OpstkBaseComponent):
                 role = roles_list[0]
                 self.__LOGGER.debug(f"Role {role} found.")
                 return role
+        except Exception as e:
+            self.__LOGGER.error(f"An unexpected error : {type(e).__name__} - {e}")
+            raise e
+
+    def get_role_by_id(self, ID):
+        try:
+            self.__LOGGER.debug(f"Getting Openstack Role : {ID}")
+            role = self.client.roles.get(ID)
+            self.__LOGGER.debug(f"Role {role} found.")
+            return role
         except Exception as e:
             self.__LOGGER.error(f"An unexpected error : {type(e).__name__} - {e}")
             raise e

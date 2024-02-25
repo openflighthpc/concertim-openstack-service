@@ -54,10 +54,10 @@ class AbsBillingHandler(Handler):
         Process for updating all cost data in the Billing Application.
         """
 
-class AbsUpdateHandler(Handler):
+class AbsViewHandler(Handler):
     """
-    Update Handler representaion:
-            Update Handlers are responsible for handling object status updates
+    View Handler representaion:
+            View Handlers are responsible for handling object status updates
             between the configured Cloud and Concertim. This is accomplished
             via APIs for the various services(Clients).
 

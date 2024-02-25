@@ -68,6 +68,21 @@ class OpenstackClient(AbsCloudClient):
         self.__LOGGER = create_logger(__name__, self._LOG_FILE, self._LOG_LEVEL)
         self.__LOGGER.info("CREATING OPENSTACK CLIENT")
         self.req_keystone_objs = self.__populate_required_objs('keystone', self.required_ks_objs)
+        self.CONCERTIM_STATE_MAP = {
+            'DEVICE':{
+                'ACTIVE': ['active', 'running'],
+                'STOPPED': ['stopped'],
+                'SUSPENDED': ['suspended'],
+                'IN_PROGRESS': ['building', 'deleting', 'scheduling', 'networking', 'block_device_mapping', 'spawning', 'deleted', 'powering-on', 'powering-off', 'suspending'],
+                'FAILED': []
+            },
+            'RACK':{
+                'ACTIVE': ['CREATE_COMPLETE','RESUME_COMPLETE'],
+                'STOPPED': ['SUSPEND_COMPLETE'],
+                'IN_PROGRESS': ['CREATE_IN_PROGRESS','SUSPEND_IN_PROGRESS','DELETE_IN_PROGRESS', 'DELETE_COMPLETE'],
+                'FAILED': ['CREATE_FAILED','DELETE_FAILED']
+            }
+        }
 
     ##########################################
     # CLOUD CLIENT OBJECT REQUIRED FUNCTIONS #
@@ -78,8 +93,9 @@ class OpenstackClient(AbsCloudClient):
 
         returns a dict in the format
         return_dict = {
-            'id': new_project.id,
-            'project': new_project.__dict__._info
+            'id': 
+            'name': 
+            'description': 
         }
         """
         self.__LOGGER.debug(f"Creating new Concertim-managed project '{name}'")
@@ -127,7 +143,8 @@ class OpenstackClient(AbsCloudClient):
         self.__LOGGER.debug(f"Building Return dictionary")
         return_dict = {
             'id': new_project.id,
-            'project': new_project._info
+            'name': new_project.name,
+            'description': new_project.description
         }
 
         # RETURN
@@ -139,8 +156,10 @@ class OpenstackClient(AbsCloudClient):
 
         Returns a dict in the format
         return_dict = {
-            'id': new_user.id,
-            'user': new_user.__dict__['_info']
+            'id':
+            'name':
+            'email': 
+            'description':
         }
         """
         self.__LOGGER.debug(f"Creating new Concertim-managed User for '{username}'")
@@ -157,7 +176,9 @@ class OpenstackClient(AbsCloudClient):
         # BUILD RETURN DICT
         return_dict = {
             'id': new_user.id,
-            'user': new_user._info
+            'name': new_user.name,
+            'email': new_user.email,
+            'description': new_user.description
         }
 
         # RETURN
@@ -166,6 +187,14 @@ class OpenstackClient(AbsCloudClient):
     def create_keypair(self, name, imported_pub_key=None, key_type='ssh', user_cloud_id=None):
         """
         Create a new KeyPair for a given User/Account
+
+        Returns a dict in the format
+        return_dict = {
+            'private_key': 
+            'public_key': 
+            'name': 
+            'id': 
+        }
         """
         self.__LOGGER.debug(f"Create new keypair '{name}")
         # EXIT CASES
@@ -185,7 +214,6 @@ class OpenstackClient(AbsCloudClient):
         # BUILD RETURN DICT
         self.__LOGGER.debug(f"Building Return dictionary")
         return_dict = {
-            'key_pair': new_keypair._info,
             'private_key': new_keypair.private_key,
             'public_key': new_keypair.public_key,
             'name': new_keypair.name,
@@ -197,19 +225,17 @@ class OpenstackClient(AbsCloudClient):
 
     def get_metrics(self, resource_type, resource_id, start, stop):
         """
-        Get the metrics for a resource for each given metric type in the provided metrics list
+        Get all metrics for a resource that are available in OpenstackClient.SUPPORTED_METRIC_GROUPS
 
         resource_id : the ID of the resource in the cloud
-        Valid resource_type options:
-            server
-           #(not implemeted) volume
-           #(not implemeted) network
-        Valid metric types are:
-            cpu_load
-            ram_usage
-            network_usage
-            throughput
-            iops
+        resource_type : the string type name of the resource in the cloud
+                      Valid resource_type options:
+                        server
+                        #(not implemeted) volume
+                        #(not implemeted) network
+        start: the datetime of when to start the metric accumulation
+        stop: the datetime of when to stop the metric accumulation
+        
         """
         # EXIT CASES
         if 'gnocchi' not in self.components or not self.components['gnocchi']:
@@ -373,61 +399,103 @@ class OpenstackClient(AbsCloudClient):
         # RETURN
         return metric_vals
 
-    def get_user_info(self, user_cloud_id=None, user_cloud_name=None):
+    def get_user_info(self, user_cloud_id=None):
         """
         Get a user's cloud info
+
+        returns a dict in the format
+        return_dict = {
+            'id': 
+            'name': 
+            'email': 
+            'description': 
+            'projects': {
+                'team_member': []
+                'team_admin': []
+            }
+        }
         """
         # EXIT CASES
         if 'keystone' not in self.components or not self.components['keystone']:
             raise EXCP.NoComponentFound('keystone')
-        if not user_cloud_id and not user_cloud_name:
-            raise EXCP.MissingRequiredArgs('user_cloud_id or user_cloud_name')
+        if not user_cloud_id:
+            raise EXCP.MissingRequiredArgs('user_cloud_id')
+        if not self.req_keystone_objs['role']['admin'] 
+            or not self.req_keystone_objs['role']['member']:
+            raise EXCP.MissingRequiredCloudObject(self.req_keystone_objs)
 
         # CLOUD OBJECT LOGIC
-        if user_cloud_id:
-            self.__LOGGER.debug(f"Fetching User info for {user_cloud_id}")
-            user = self.components['keystone'].get_user_by_id(user_cloud_id)
-        elif user_cloud_name:
-            self.__LOGGER.debug(f"Fetching User info for {user_cloud_name}")
-            user = self.components['keystone'].get_user(user_cloud_name)
-        else:
-            raise EXCP.InvalidArguments(user_cloud_id, user_cloud_name)
+        self.__LOGGER.debug(f"Fetching User info for {user_cloud_id}")
+        user = self.components['keystone'].get_user(user_cloud_id)
+        user_ras = self.components['keystone'].get_user_assignments(user_cloud_id)
+        user_projects = {
+            'team_member': [],
+            'team_admin': []
+        }
+        for ra in user_ras:
+            if ra._info['role']['id'] == self.req_keystone_objs['role']['admin']:
+                user_projects['team_admin'].append(ra._info['scope']['project']['id'])
+            if ra._info['role']['id'] == self.req_keystone_objs['role']['member']:
+                user_projects['team_member'].append(ra._info['scope']['project']['id'])
 
         # BUILD RETURN DICT
         self.__LOGGER.debug(f"Building Return dictionary")
         return_dict = {
             'id': user.id,
-            'user': user._info
+            'name': user.name,
+            'email': user.email,
+            'description': user.description
+            'user_projects': user_projects
         }
 
         # RETURN
         return return_dict
 
-    def get_project_info(self, project_cloud_id=None, project_cloud_name=None):
+    def get_project_info(self, project_cloud_id=None):
         """
         Get cloud info for the given account/project
+
+        returns a dict in the format
+        return_dict = {
+            'id': 
+            'name': 
+            'description': 
+            'users': {
+                'team_members': []
+                'team_admins': []
+            }
+        }
         """
         # EXIT CASES
         if 'keystone' not in self.components or not self.components['keystone']:
             raise EXCP.NoComponentFound('keystone')
-        if not project_cloud_id and not project_cloud_name:
-            raise EXCP.MissingRequiredArgs('project_cloud_id or project_cloud_name')
+        if not self.req_keystone_objs['role']['admin'] 
+            or not self.req_keystone_objs['role']['member']:
+            raise EXCP.MissingRequiredCloudObject(self.req_keystone_objs)
+        if not project_cloud_id:
+            raise EXCP.MissingRequiredArgs('project_cloud_id')
 
         # CLOUD OBJECT LOGIC
-        if project_cloud_id:
-            self.__LOGGER.debug(f"Fetching info for {project_cloud_id}")
-            project = self.components['keystone'].get_project_by_id(project_cloud_id)
-        elif project_cloud_name:
-            self.__LOGGER.debug(f"Fetching info for {project_cloud_name}")
-            project = self.components['keystone'].get_project(project_cloud_name)
-        else:
-            raise EXCP.InvalidArguments(project_cloud_id, project_cloud_name)
+        self.__LOGGER.debug(f"Fetching info for {project_cloud_name}")
+        project = self.components['keystone'].get_project(project_cloud_id)
+        project_ras = self.components['keystone'].get_project_assignments(user_cloud_id)
+        project_users = {
+            'team_members': [],
+            'team_admins': []
+        }
+        for ra in project_ras:
+            if ra._info['role']['id'] == self.req_keystone_objs['role']['admin']:
+                project_users['team_admins'].append(ra._info['user']['id'])
+            if ra._info['role']['id'] == self.req_keystone_objs['role']['member']:
+                project_users['team_members'].append(ra._info['user']['id'])
 
         # BUILD RETURN DICT
         self.__LOGGER.debug(f"Building Return dictionary")
         return_dict = {
             'id': project.id,
-            'project': project._info
+            'name': project.name,
+            'description': project.description,
+            'users': project_users
         }
 
         # RETURN
@@ -435,7 +503,12 @@ class OpenstackClient(AbsCloudClient):
 
     def get_all_cm_users(self):
         """
-        Get all Concertim Managed Users in the cloud.
+        Get all Concertim Managed Users IDs from the cloud.
+
+        returns a dict in the format
+        return_dict = {
+            'users': [ids]
+        }
         """
         # EXIT CASES
         self.__LOGGER.debug(f"Fetching all Concertim Managed Users")
@@ -444,23 +517,23 @@ class OpenstackClient(AbsCloudClient):
 
         # CLOUD OBJECT LOGIC
         users_list = self.components['keystone'].get_users()
-        return_dict = {
-            'ids': [],
-            'users': []
-        }
-        for user in users_list:
-            if 'CM_' in user.name:
-                return_dict['ids'].append(user.id)
-                return_dict['users'].append(user._info)
 
         # BUILD RETURN DICT
         self.__LOGGER.debug(f"Building Return dictionary")
+        return_dict = {
+            'users': [user.id for user in users_list if 'CM_' in user.name]
+        }
         # RETURN
         return return_dict
 
     def get_all_cm_projects(self):
         """
-        Get all Concertim Managed Accounts/Projects in the cloud.
+        Get all Concertim Managed Accounts/Projects IDs from the cloud.
+
+        returns a dict in the format
+        return_dict = {
+            'projects': [ids]
+        }
         """
         self.__LOGGER.debug(f"Fetching all Concertim Managed Projects")
         # EXIT CASES
@@ -469,17 +542,12 @@ class OpenstackClient(AbsCloudClient):
 
         # CLOUD OBJECT LOGIC
         projects_list = self.components['keystone'].get_projects()
-        return_dict = {
-            'ids': [],
-            'projects': []
-        }
-        for project in projects_list:
-            if 'CM_' in project.name:
-                return_dict['ids'].append(project.id)
-                return_dict['projects'].append(project._info)
 
         # BUILD RETURN DICT
         self.__LOGGER.debug(f"Building Return dictionary")
+        return_dict = {
+            'projects': [project.id for project in projects_list if 'CM_' in project.name]
+        }
         # RETURN
         return return_dict
     
@@ -490,6 +558,11 @@ class OpenstackClient(AbsCloudClient):
         Valid obj_types are :
             project
             instance
+
+        returns a dict in the format
+        return_dict = {
+            'cost': 
+        }
         """
         self.__LOGGER.debug(f"Fetching cost for {obj_type}.{obj_cloud_id} starting at {start} and ending at {stop}")
         # EXIT CASES
@@ -527,6 +600,13 @@ class OpenstackClient(AbsCloudClient):
     def get_keypair(self, key_cloud_id, user_cloud_id=None):
         """
         Get keypair info for a given User's/Account's keypair.
+
+        returns a dict in the format
+        return_dict = {
+            'id': 
+            'public_key': 
+            'name': 
+        }
         """
         self.__LOGGER.debug(f"Fetching keypair {key_cloud_id}")
         # EXIT CASES
@@ -544,8 +624,9 @@ class OpenstackClient(AbsCloudClient):
         # BUILD RETURN DICT
         self.__LOGGER.debug(f"Building Return dictionary")
         return_dict = {
-            'id': key_cloud_id,
-            'key_pair': key_pair._info
+            'id': key_pair.id,
+            'public_key': key_pair.public_key,
+            'name': key_pair.name
         }
         
         # RETURN
@@ -554,6 +635,17 @@ class OpenstackClient(AbsCloudClient):
     def get_all_keypairs(self, user_cloud_id=None):
         """
         Get all keypairs for a user/account
+
+        returns a dict in the format
+        return_dict = {
+            key_pairs: {
+                <key_id>: {
+                    'id': 
+                    'public_key': 
+                    'name': 
+                }
+            }
+        }
         """
         self.__LOGGER.debug(f"Fetching all keypairs")
         # EXIT CASES
@@ -568,11 +660,10 @@ class OpenstackClient(AbsCloudClient):
         # BUILD RETURN DICT
         self.__LOGGER.debug(f"Building Return dictionary")
         return_dict = {
-            'ids': [],
             'key_pairs': {}
         }
         for kp in key_pairs:
-            return_dict['ids'].append(kp.id)
+            return_dict['key_pairs'][kp.id]['id'] = kp.id
             return_dict['key_pairs'][kp.id]['name'] = kp.name
             return_dict['key_pairs'][kp.id]['public_key'] = kp.public_key
 
@@ -582,6 +673,19 @@ class OpenstackClient(AbsCloudClient):
     def get_server_info(self, server_cloud_id):
         """
         Get details for a given server/instance.
+
+        return_dict = {
+            'id': 
+            'name':
+            'status':
+            'project_cloud_id':
+            'template_cloud_id':
+            'public_ips': []
+            'private_ips': []
+            'ssh_key_name':
+            'volumes': []
+            'network_interfaces': []
+        }
         """
         self.__LOGGER.debug(f"Fetching info for Server {server_cloud_id}")
         # EXIT CASES
@@ -594,12 +698,31 @@ class OpenstackClient(AbsCloudClient):
         server = self.components['nova'].get_server(
             instance_id=server_cloud_id
         )
+        pub_ips = []
+        pri_ips = []
+        vols = []
+        for net, ad_list in server._info['addresses'].items():
+            for address in ad_list:
+                if 'OS-EXT-IPS:type' in address and address['OS-EXT-IPS:type'] == 'fixed':
+                    pri_ips.append(address['addr'])
+                if 'OS-EXT-IPS:type' in address and address['OS-EXT-IPS:type'] == 'floating':
+                    pub_ips.append(address['addr'])
+        for vol in server._info['os-extended-volumes:volumes_attached']:
+            vols.append(vol['id'])
 
         # BUILD RETURN DICT
         self.__LOGGER.debug(f"Building Return dictionary")
         return_dict = {
             'id': server.id,
-            'server': server._info
+            'name': server.name,
+            'status': server._info['OS-EXT-STS:vm_state'],
+            'project_cloud_id': server.tenant_id,
+            'template_cloud_id': server._info['flavor']['id'],
+            'public_ips': pub_ips
+            'private_ips': pri_ips
+            'ssh_key_name': server.key_name,
+            'volumes': vols,
+            'network_interfaces': server._info['addresses'].keys()
         }
 
         # RETURN
@@ -608,6 +731,29 @@ class OpenstackClient(AbsCloudClient):
     def get_cluster_info(self, cluster_cloud_id):
         """
         Get details for a given cluster.
+
+        return_dict = {
+            'id': 
+            'name': 
+            'base_name':
+            'project_cloud_id': 
+            'description': 
+            'user_cloud_name': 
+            'status': 
+            'status_reason': 
+            'cluster_resources': {
+                'servers': {
+                    <resource_id>: {
+                        'id':
+                        'name':
+                    }
+                }
+                'volumes': {}
+                'networks': {}
+                'other': {}
+            }
+            'cluster_outputs': [(output_key,output_details)]
+        }
         """
         self.__LOGGER.debug(f"Fetching all info for Cluster {cluster_cloud_id}")
         # EXIT CASES
@@ -643,18 +789,34 @@ class OpenstackClient(AbsCloudClient):
             #------ OS::Neutron::Port, OS::Neutron::FloatingIP, OS::Neutron::SecurityGroup, OS::Neutron::RouterInterface, OS::Neutron::Router, OS::Neutron::Net, OS::Neutron::Subnet
             if res_type[1] == 'Nova':
                 if res_type[2] != 'ServerGroup':
-                    resources['servers'][resource.physical_resource_id] = resource._info
+                    resources['servers'][resource.physical_resource_id] = {
+                        'id': resource._info['physical_resource_id'],
+                        'name': resource._info['resource_name']
+                    }
                 else:
                     server_group = self.components['nova'].get_server_group(
                         group_id=resource.physical_resource_id
                     )
-                    resources['servers'][resource.physical_resource_id] = server_group._info
+                    for inst_id in server_group._info['members']:
+                        resources['servers'][inst_id] = {
+                            'id': inst_id,
+                            'name': None
+                        }
             elif res_type[1] == 'Cinder':
-                resources['volumes'][resource.physical_resource_id] = resource._info
+                resources['volumes'][resource.physical_resource_id] = {
+                    'id': resource._info['physical_resource_id'],
+                    'name': resource._info['resource_name']
+                }
             elif res_type[1] == 'Neutron':
-                resources['networks'][resource.physical_resource_id] = resource._info
+                resources['networks'][resource.physical_resource_id] = {
+                    'id': resource._info['physical_resource_id'],
+                    'name': resource._info['resource_name']
+                }
             else:
-                resources['other'][resource.physical_resource_id] = resource._info
+                resources['other'][resource.physical_resource_id] = {
+                    'id': resource._info['physical_resource_id'],
+                    'name': resource._info['resource_name']
+                }
         #-- output from heat stack
         self.__LOGGER.debug(f"Getting Cluster output data")
         output = []
@@ -672,24 +834,37 @@ class OpenstackClient(AbsCloudClient):
         self.__LOGGER.debug(f"Building Return dictionary")
         return_dict = {
             'id': cluster_cloud_id,
-            'cluster_info': cluster._info,
-            'cluster_components': resources,
+            'name': cluster._info['stack_name'],
+            'base_name': cluster._info['stack_name'].split('--')[0],
+            'project_cloud_id': cluster._info['parameters']['OS::project_id'],
+            'description': cluster._info['description'],
+            'user_cloud_name': cluster._info['stack_owner'],
+            'status': cluster._info['stack_status'],
+            'status_reason': cluster._info['stack_status_reason'],
+            'cluster_resources': resources,
             'cluster_outputs': output
         }
 
         # RETURN
         return return_dict
 
-    def get_all_servers(self, project_cloud_id):
+    def get_all_servers(self, project_cloud_id=None):
         """
-        Get all servers for a given Project/Account.
+        Get all servers - optionally for a given Project/Account.
+
+        return_dict = {
+            'servers': {
+                <server_id>: {}
+            }
+        }
         """
+        msg = "Fetching all Servers info"
+        if project_cloud_id:
+            msg += f" for project {project_cloud_id}"
+        self.__LOGGER.debug(msg)
         # EXIT CASES
-        self.__LOGGER.debug(f"Fetching all Servers info for project {project_cloud_id}")
         if 'nova' not in self.components or not self.components['nova']:
             raise EXCP.NoComponentFound('nova')
-        if not project_cloud_id:
-            raise EXCP.MissingRequiredArgs('project_cloud_id')
 
         # CLOUD OBJECT LOGIC
         servers = self.components['nova'].list_servers(
@@ -699,57 +874,99 @@ class OpenstackClient(AbsCloudClient):
         # BUILD RETURN DICT
         self.__LOGGER.debug(f"Building Return dictionary")
         return_dict = {
-            'ids': [],
             'servers': {}
         }
         for inst in servers:
-            return_dict['ids'].append(inst.id)
-            return_dict['servers'][inst.id] = inst._info
+            # Format each Server object
+            pub_ips = []
+            pri_ips = []
+            vols = []
+            for net, ad_list in inst._info['addresses'].items():
+                for address in ad_list:
+                    if 'OS-EXT-IPS:type' in address and address['OS-EXT-IPS:type'] == 'fixed':
+                        pri_ips.append(address['addr'])
+                    if 'OS-EXT-IPS:type' in address and address['OS-EXT-IPS:type'] == 'floating':
+                        pub_ips.append(address['addr'])
+            for vol in inst._info['os-extended-volumes:volumes_attached']:
+                vols.append(vol['id'])
+
+            # BUILD RETURN DICT
+            self.__LOGGER.debug(f"Building Return dictionary")
+            server_dict = {
+                'id': inst.id,
+                'name': inst.name,
+                'status': inst._info['OS-EXT-STS:vm_state'],
+                'project_cloud_id': inst.tenant_id,
+                'template_cloud_id': inst._info['flavor']['id'],
+                'public_ips': pub_ips
+                'private_ips': pri_ips
+                'ssh_key_name': inst.key_name,
+                'volumes': vols,
+                'network_interfaces': server._info['addresses'].keys()
+            }
+            return_dict['servers'][inst.id] = server_dict
 
         # RETURN
         return return_dict
 
-    def get_all_clusters(self, project_cloud_id):
+    def get_all_clusters(self, project_cloud_id=None):
         """
-        Get all clusters for a given Project/Account.
+        Get all clusters - optionally for a given Project/Account.
+
+        return_dict = {
+            'clusters': {
+                <cluster_id>: {}
+            }
+        }
         """
-        self.__LOGGER.debug(f"Fetching all Clusters info for project {project_cloud_id}")
+        msg = "Fetching all Clusters info"
+        if project_cloud_id:
+            msg += f" for project {project_cloud_id}"
+        self.__LOGGER.debug(msg)
         # EXIT CASES
         if 'heat' not in self.components or not self.components['heat']:
             raise EXCP.NoComponentFound('heat')
         if 'nova' not in self.components or not self.components['nova']:
             raise EXCP.NoComponentFound('nova')
-        if not project_cloud_id:
-            raise EXCP.MissingRequiredArgs('project_cloud_id')
 
         # CLOUD OBJECT LOGIC
-        stack_id_list = []
         #-- List all stacks
         all_stacks = self.components['heat'].list_stacks()
-        self.__LOGGER.debug(f"Filtering stacks to only project={project_cloud_id}")
-        #-- Use only stacks that match the project
-        for stack in all_stacks:
-            if stack.project == project_cloud_id:
-                stack_id_list.append(stack.id)
+        if project_cloud_id:
+            self.__LOGGER.debug(f"Filtering stacks to only project={project_cloud_id}")
+            #-- Use only stacks that match the project
+            stack_list = [stack for stack in all_stacks if stack.project == project_cloud_id]
+        else:
+            stack_list = all_stacks
         #-- Get stack info for each stack
         # BUILD RETURN DICT
         self.__LOGGER.debug(f"Building Return dictionary")
         return_dict = {
-            'ids': [],
             'clusters': {}
         }
-        for stack_id in stack_id_list:
-            return_dict['ids'].append(stack_id)
-            return_dict['clusters'][stack_id] = self.get_cluster_info(
-                cluster_cloud_id=stack_id
+        for stack in stack_list:
+            return_dict['clusters'][stack.id] = self.get_cluster_info(
+                cluster_cloud_id=stack.id
             )
 
         # RETURN
         return return_dict
 
-    def get_flavors(self):
+    def get_all_flavors(self):
         """
         Get all available flavors for servers in the Cloud.
+
+        return_dict = {
+            'flavors': {
+                <flavor_id>: {
+                    'id':
+                    'name':
+                    'ram': 
+                    'disk': 
+                    'vcpus': 
+                }
+            }
+        }
         """
         self.__LOGGER.debug(f"Fetching all Flavors available")
         # EXIT CASES
@@ -762,12 +979,16 @@ class OpenstackClient(AbsCloudClient):
         # BUILD RETURN DICT
         self.__LOGGER.debug(f"Building Return dictionary")
         return_dict = {
-            'ids': []
             'flavors': {}
         }
         for flavor in flavors:
-            return_dict['ids'].append(flavor.id)
-            return_dict['flavors'][flavor.id] = flavor._info
+            return_dict['flavors'][flavor.id] = {
+                'id': flavor._info['id'],
+                'name': flavor._info['name'],
+                'ram': flavor._info['ram'],
+                'disk': flavor._info['disk'],
+                'vcpus': flavor._info['vcpus'],
+            }
 
         # RETURN
         return return_dict

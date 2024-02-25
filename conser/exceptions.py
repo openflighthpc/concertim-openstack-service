@@ -118,6 +118,16 @@ class ViewNotFound(Exception):
     def __str__(self):
         return f"Could not find View object; please check containers -> {self.message}"
 
+class NoClientFound(Exception):
+    def __init__(self, *args):
+        self.missing_handlers = args
+    def __str__(self):
+        return f"Client Components(s) Not Found -> Missing [{self.missing_handlers}]"
+
+class TooManyBillingOrders(Exception):
+    def __str__(self):
+        return f"Cluster ID returned too many billing Orders -> {self.message}"
+
 
 ### CONCERTIM
 class ConcertimItemConflict(Exception):

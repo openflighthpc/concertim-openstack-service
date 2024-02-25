@@ -7,7 +7,7 @@ class ConcertimUser(object):
         cloud_name=None, 
         full_name=None, 
         email=None, 
-        cloud_project_id=None, 
+        project_cloud_id=None, 
         description='', 
     ):
         self.id = tuple((concertim_id, cloud_id, billing_id))
@@ -15,7 +15,7 @@ class ConcertimUser(object):
         self.description = description
         self.full_name = full_name
         self.email = email
-        self.cloud_project_id = cloud_project_id
+        self.project_cloud_id = project_cloud_id
         self.racks = []
         self.billing_period_start = ''
         self.billing_period_end = ''
@@ -29,7 +29,7 @@ class ConcertimUser(object):
                 description:{repr(self.description)}, \
                 full_name:{repr(self.full_name)}, \
                 email:{repr(self.email)}, \
-                cloud_project_id:{repr(self.cloud_project_id)}, \
+                project_cloud_id:{repr(self.project_cloud_id)}, \
                 billing_period_start:{repr(self.billing_period_start)}, \
                 billing_period_end:{repr(self.billing_period_end)}, \
                 cost:{repr(self.cost)}, \
@@ -42,7 +42,7 @@ class ConcertimUser(object):
                 self.id[0] == other.id[0] 
                 and self.id[1] == other.id[1]
                 and self.id[2] == other.id[2]
-                and self.cloud_project_id == other.cloud_project_id
+                and self.project_cloud_id == other.project_cloud_id
             )
         return NotImplemented
 

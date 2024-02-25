@@ -5,9 +5,6 @@ import conser.app_definitions as app_paths
 import conser.factory.factory.Factory as Factory
 import conser.exceptions as EXCP
 # Py Packages
-import signal
-import sys
-import yaml
 import time
 import importlib
 import argparse
@@ -28,7 +25,7 @@ parser = argparse.ArgumentParser(prog="Concertim Cloud Service",
                                 description="This package is made for the purpose of facilitating communication between Alces Flight Ltd. Concertim"
                                             " and the backend applications configured.",)
 parser.add_argument("--process", type=str, required=True, help="The type of handler process to be run - possible values are "
-                                                             "metrics, update_sync, update_queue, billing, api")
+                                                             "fe_updates, fe_metrics, view_sync, view_queue, billing, api")
 parser.add_argument("--run_once", "-t", action="store_true", required=False, help="Specify whether to run the process only once (for testing purpose)")
 
 # Main method to call runners and pars args
@@ -36,9 +33,10 @@ def main(args):
     # PARSE ARGS
     arguments = parser.parse_args()
     valid_process = [
-        'metrics',
-        'update_sync',
-        'update_queue',
+        'fe_updates',
+        'fe_metrics',
+        'view_sync',
+        'view_queue',
         'api',
         'billing'
     ]
@@ -50,11 +48,11 @@ def main(args):
     # CREATE LOG FILE STRING
     log_file = LOG_DIR + arguments.process + datetime.now().strftime("%d-%m-%Y") + ".log"
     # MAIN PROCESS TREE
-    if arguments.process == 'metrics':
+    if arguments.process == 'fe_metrics':
         start_metrics_process(conf_dict, log_file, run_once=arguments.run_once)
-    elif arguments.process == 'update_sync':
+    elif arguments.process == 'view_sync':
         start_sync_process(conf_dict, log_file, run_once=arguments.run_once)
-    elif arguments.process == 'update_queue':
+    elif arguments.process == 'view_queue':
         start_queue_process(conf_dict, log_file, run_once=arguments.run_once)
     elif arguments.process == 'api':
         start_api_server(conf_dict, log_file)
@@ -77,7 +75,7 @@ def start_metrics_process(config, log_file, run_once=False):
 
     # CREATE HANDLER
     handler = Factory.get_handler(
-        "metrics", 
+        "fe_metrics", 
         config,
         log_file, 
         enable_concertim_client=True,
@@ -89,9 +87,10 @@ def start_metrics_process(config, log_file, run_once=False):
     while True:
         try:
             handler.run_process()
+            retries = 0
         except Exception as e:
             logger.error(f"Unexpected exception has caused the Metrics loop to terminate : {type(e).__name__} - {e}")
-            logger.warning(f"Continuing loop at next interval.")
+            logger.warning(f"Trying loop again in 5 seconds")
             retries += 1
             continue
         finally:
@@ -99,7 +98,6 @@ def start_metrics_process(config, log_file, run_once=False):
                 break
             if retries >= 5:
                 raise Exception(f"Metrics Loop continually failing - please check logs - {log_file}")
-            time.sleep(interval)
 
 
 def start_billing_process(config, log_file, run_once=False):
@@ -127,17 +125,18 @@ def start_billing_process(config, log_file, run_once=False):
     while True:
         try:
             handler.run_process()
+            retries = 0
         except Exception as e:
             logger.error(f"Unexpected exception has caused the Billing loop to terminate : {type(e).__name__} - {e}")
-            logger.warning(f"Continuing loop at next interval.")
+            logger.warning(f"Trying loop again in 5 seconds")
             retries += 1
+            time.sleep(5)
             continue
         finally:
             if run_once:
                 break
             if retries >= 5:
                 raise Exception(f"Billing Loop continually failing - please check logs - {log_file}")
-            time.sleep(interval)
 
 
 def start_sync_process(config, log_file, run_once=False):
@@ -147,14 +146,11 @@ def start_sync_process(config, log_file, run_once=False):
     logger.info(f"Log File: {log_file}")
 
     # SYNC SETUP
-    # interval = 15 to match concertim MRD polling interval
-    resync_interval = 15
-    resync_checks_amount = 10
     retries = 0
 
     # CREATE HANDLER
     handler = Factory.get_handler(
-        "update_sync", 
+        "view_sync", 
         config,
         log_file, 
         enable_concertim_client=True,
@@ -166,20 +162,19 @@ def start_sync_process(config, log_file, run_once=False):
     while True:
         try:
             handler.run_process()
+            retries = 0
         except Exception as e:
             logger.error(f"Unexpected exception has caused the Update Sync loop to terminate : {type(e).__name__} - {e}")
-            logger.warning(f"Continuing loop at next interval.")
+            logger.warning(f"Trying loop again in 5 seconds")
             retries += 1
+            time.sleep(5)
             continue
         finally:
             if run_once:
-                handler.check_resync()
                 break
             if retries >= 5:
-                raise Exception(f"Update Sync Loop continually failing - please check logs - {log_file}")
-            for _ in range(0,resync_checks_amount):
-                time.sleep(resync_interval)
-                handler.check_resync()
+                raise Exception(f"View Sync Loop continually failing - please check logs - {log_file}")
+            continue
 
 
 def start_queue_process(config, log_file, run_once=False):
@@ -192,7 +187,7 @@ def start_queue_process(config, log_file, run_once=False):
 
     # CREATE HANDLER
     handler = Factory.get_handler(
-        "update_queue", 
+        "view_queue", 
         config,
         log_file, 
         enable_concertim_client=True,
@@ -204,7 +199,7 @@ def start_queue_process(config, log_file, run_once=False):
     try:
         handler.run_process()
     except Exception as e:
-        logger.error(f"Unexpected exception has caused the Update Queue process to terminate : {type(e).__name__} - {e}")
+        logger.error(f"Unexpected exception has caused the View Queue process to terminate : {type(e).__name__} - {e}")
         raise e
 
 
