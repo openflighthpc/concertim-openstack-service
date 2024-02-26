@@ -318,3 +318,9 @@ class AbsCloudClient(Client):
         """
         Destroy a given server.
         """
+
+    @abstractmethod
+    def start_message_queue(self):
+        """
+        Start listening to the message queue and intercepting messages
+        """

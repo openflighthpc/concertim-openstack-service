@@ -59,14 +59,11 @@ class AbsViewHandler(Handler):
     View Handler representaion:
             View Handlers are responsible for handling object status updates
             between the configured Cloud and Concertim. This is accomplished
-            via APIs for the various services(Clients).
+            via APIs for the various services(Clients) and creating a mapping
+            between the states of the two applications
 
             Update flow from the Cloud -> Concertim, using the Cloud as the 
             source of object data.
-    """
 
-    @abstractmethod
-    def update_concertim(self):
-        """
-        Process for handling the necessary updates to Concertim.
-        """
+            This is saved as a view object for other processes to consume
+    """

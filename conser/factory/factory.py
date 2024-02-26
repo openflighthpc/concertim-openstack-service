@@ -76,7 +76,7 @@ class Factory(object):
         return handler
 
     @staticmethod
-    def get_client(client_type, client_config, log_file, log_level, client_subtype=None, components_list=None):
+    def get_client(client_type, client_config, log_file, log_level, client_subtype=None, components_list=None, mq_client=None, mq_config=None):
         """
         Returns a concrete implementation of the given client configuration
 
@@ -95,7 +95,7 @@ class Factory(object):
         if client_type == "concertim":
             client = _build_concertim_client(client_config, log_file, log_level)
         elif client_type == "cloud":
-            client = _build_cloud_client(client_subtype, client_config, log_file, log_level, components_list=components_list)
+            client = _build_cloud_client(client_subtype, client_config, log_file, log_level, components_list=components_list, mq_client=mq_client, mq_config=mq_config)
         elif client_type == "billing":
             client = _build_billing_client(client_subtype, client_config, log_file, log_level)
         else:
@@ -104,7 +104,7 @@ class Factory(object):
         return client
 
     @staticmethod
-    def get_opstk_component(component_name, session_obj, log_file, log_level):
+    def get_opstk_component(component_name, session_obj, log_file, log_level, mq_config=None):
         """
         Returns a concrete implementation of the given Openstack Component object 
         using the given keystoneauth1.session object.
@@ -125,6 +125,10 @@ class Factory(object):
             component = _build_gnocchi_component(session_obj, log_file, log_level)
         elif component_name == "cloudkitty":
             component = _build_cloudkitty_component(session_obj, log_file, log_level)
+        elif component_name == 'rmq':
+            if not mq_config:
+                raise EXCP.InvalidComponent(f"RMQ has no config passed")
+            component = _build_rmq_component(mq_config, log_file, log_level)
         else:
             raise EXCP.ComponentNotImplemented(f"{component_name}")
 
@@ -163,7 +167,7 @@ class Factory(object):
                 'concertim'
                 config['concertim'],
                 log_file,
-                log_level,
+                log_level
             )
         else:
             concertim_client = None
@@ -174,7 +178,7 @@ class Factory(object):
                 config[cloud_type],
                 log_file,
                 log_level,
-                client_subtype=cloud_type
+                client_subtype=cloud_type,
                 components_list=cloud_comps
             )
         else:
@@ -234,7 +238,7 @@ class Factory(object):
             'concertim'
             config['concertim'],
             log_file,
-            log_level,
+            log_level
         )
         #-- Create Cloud client
         cloud_client = get_client(
@@ -242,7 +246,7 @@ class Factory(object):
             config[cloud_type],
             log_file,
             log_level,
-            client_subtype=cloud_type
+            client_subtype=cloud_type,
             components_list=cloud_comps
         )
         #-- Create Billing client
@@ -295,7 +299,7 @@ class Factory(object):
             'concertim'
             config['concertim'],
             log_file,
-            log_level,
+            log_level
         )
         #-- Create Cloud client
         cloud_client = get_client(
@@ -303,7 +307,7 @@ class Factory(object):
             config[cloud_type],
             log_file,
             log_level,
-            client_subtype=cloud_type
+            client_subtype=cloud_type,
             components_list=cloud_comps
         )
         #-- Create Billing client
@@ -361,7 +365,7 @@ class Factory(object):
             'concertim'
             config['concertim'],
             log_file,
-            log_level,
+            log_level
         )
         #-- Create Cloud client
         cloud_client = get_client(
@@ -369,7 +373,7 @@ class Factory(object):
             config[cloud_type],
             log_file,
             log_level,
-            client_subtype=cloud_type
+            client_subtype=cloud_type,
             components_list=cloud_comps
         )
         #-- Create Billing client
@@ -398,58 +402,41 @@ class Factory(object):
 
 # QUEUE
     @staticmethod
-    def _build_queue_handler(config, log_file, enable_concertim_client, enable_cloud_client, enable_billing_client):
+    def _build_queue_handler(config, log_file, enable_cloud_client):
         # IMPORTS
         from conser.modules.handlers.view_handler.queue.handler import QueueHandler
         # EXIT CASES
         if 'message_queue' not in config:
             raise MissingConfiguration('message_queue')
         cloud_type = config['cloud_type']
-        billing_app = config['billing_platform']
         queue_type = config['message_queue']
         if cloud_type not in Factory.CLIENT_OBJECTS['cloud']:
             raise EXCP.InvalidClient(cloud_type)
-        if billing_app not in Factory.CLIENT_OBJECTS['billing']:
-            raise EXCP.InvalidClient(billing_app)
         if queue_type not in Factory.CLIENT_OBJECTS['cloud'][cloud_type]['queues']:
             raise EXCP.InvalidClient(f"{cloud_type}.{queue_type}")
-        if not enable_concertim_client:
-            raise EXCP.MissingRequiredClient("A Concertim Client is required for Queue Handler")
         if not enable_cloud_client:
             raise EXCP.MissingRequiredClient("A Cloud Client is required for Queue Handler")
 
         # HANDLER DEFAULTS
         log_level = config['log_level']
-        cloud_comps = Factory.CLIENT_OBJECTS['cloud'][cloud_type]['components']
         # CREATE CLIENT MAP
         #-- Create Concertim client
-        concertim_client = get_client(
-            'concertim'
-            config['concertim'],
-            log_file,
-            log_level,
-        )
         #-- Create Cloud client
         cloud_client = get_client(
             'cloud'
             config[cloud_type],
             log_file,
             log_level,
-            client_subtype=cloud_type
-            components_list=cloud_comps
+            client_subtype=cloud_type,
+            components_list=[],
+            mq_client=queue_type,
+            mq_config=config[queue_type]
         )
         #-- Create Billing client
-        billing_client = get_client(
-            'billing',
-            config[billing_app],
-            log_file,
-            log_level,
-            client_subtype=billing_app
-        )
         handler_clients = {
-            'concertim': concertim_client,
+            'concertim': None,
             'cloud': cloud_client,
-            'billing': billing_client
+            'billing': None
         }
 
         # CREATE HANDLER
@@ -469,10 +456,13 @@ class Factory(object):
 
 # CLOUD
     @staticmethod
-    def _build_cloud_client(cloud_type, cloud_config, log_file, log_level, components_list=None):
+    def _build_cloud_client(cloud_type, cloud_config, log_file, log_level, components_list=None, billing_enabled=False, mq_client=None, mq_config=None):
         # EXIT CASES
         if cloud_type not in Factory.CLIENT_OBJECTS['cloud']:
             raise EXCP.InvalidClient(cloud_type)
+        if mq_client:
+            if not mq_config:
+                raise EXCP.InvalidComponent(f"Cloud Message Queue component has no config passed")
 
         # CLIENT CREATION TREE
         if cloud_type == "openstack":
@@ -480,7 +470,10 @@ class Factory(object):
                 openstack_config=cloud_config,
                 components_list=components_list, 
                 log_file=log_file, 
-                log_level=log_level
+                log_level=log_level,
+                billing_enabled=billing_enabled,
+                mq_client=mq_client,
+                mq_config=mq_config
             )
         
         # RETURN CLIENT
@@ -527,7 +520,7 @@ class Factory(object):
 
 # OPENSTACK
     @staticmethod
-    def _build_openstack_client(openstack_config, components_list, log_file, log_level, billing_enabled=False):
+    def _build_openstack_client(openstack_config, components_list, log_file, log_level, billing_enabled=False, mq_client=None, mq_config=None):
         # IMPORTS
         from conser.modules.clients.cloud.openstack.client import OpenstackClient
         from conser.modules.clients.cloud.openstack.auth import OpenStackAuth
@@ -535,6 +528,22 @@ class Factory(object):
         for comp in components_list:
             if comp not in Factory.CLIENT_OBJECTS['cloud']['openstack']['components']:
                 raise EXCP.InvalidComponent(comp)
+        if mq_client:
+            mq_comp = get_opstk_component(
+                component_name=mq_client, 
+                session_obj=None, 
+                log_file=log_file, 
+                log_level=log_level, 
+                mq_config=mq_config
+            )
+            opstk_client = OpenstackClient(
+                openstack_config=openstack_config,
+                components={'mq': mq_comp}
+                log_file=log_file, 
+                log_level=log_level, 
+                required_ks_objs=None
+            )
+            return opstk_client
 
         # OPENSTACK DEFAULTS
         DEFAULT_REQUIRED_KS_OBJS = {
@@ -639,4 +648,13 @@ class Factory(object):
         # CREATE/RETURN COMPONENT
         gnocchi_component = GnocchiComponent(session_obj, log_file, log_level)
         return gnocchi_component
+        
+# RMQ
+    @staticmethod
+    def _build_rmq_component(mq_config, log_file, log_level):
+        # IMPORTS
+        from conser.modules.clients.cloud.openstack.components.rmq import RMQComponent
+        # CREATE/RETURN COMPONENT
+        rmq_component = RMQComponent(mq_config, log_file, log_level)
+        return rmq_component
         

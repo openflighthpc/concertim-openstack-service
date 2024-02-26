@@ -67,7 +67,9 @@ class OpenstackClient(AbsCloudClient):
         self.components = components
         self.__LOGGER = create_logger(__name__, self._LOG_FILE, self._LOG_LEVEL)
         self.__LOGGER.info("CREATING OPENSTACK CLIENT")
-        self.req_keystone_objs = self.__populate_required_objs('keystone', self.required_ks_objs)
+        self.req_keystone_objs = None 
+        if req_keystone_objs:
+            self.req_keystone_objs = self.__populate_required_objs('keystone', self.required_ks_objs)
         self.CONCERTIM_STATE_MAP = {
             'DEVICE':{
                 'ACTIVE': ['active', 'running'],
@@ -1239,6 +1241,15 @@ class OpenstackClient(AbsCloudClient):
         # BUILD RETURN DICT
         # RETURN
         return attempt
+
+    def start_message_queue(self):
+        """
+        Start listening to the message queue and intercepting messages
+        """
+        if 'mq' not in self.components or not self.components['mq']:
+            raise EXCP.NoComponentFound('mq')
+
+        self.components['mq'].start_listening()
 
 
     ####################################
