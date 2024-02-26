@@ -116,36 +116,40 @@ class BulkUpdateHandler(UpdateHandler):
             for team_id_tup in self.view.teams:
                 self.__LOGGER.debug(f"Updating Racks for Teams[IDs:{team_id_tup},project_id:{self.view.teams[team_id_tup].openstack_project_id}]")
                 openstack_stacks = self.openstack_service.list_stacks(project_id=self.view.teams[team_id_tup].openstack_project_id)
-                for heat_stack_obj in openstack_stacks:
-                    self.__LOGGER.debug(f"Checking Stack: {heat_stack_obj.stack_name} = {heat_stack_obj.id}")
-                    in_openstack.append(heat_stack_obj.id)
-                    matching_racks = [con_rack for id_tup, con_rack in self.view.racks.items() if id_tup[1] == heat_stack_obj.id]
-                    if matching_racks:
-                        self.__LOGGER.debug(f"Matching Rack found")
-                        temp_rack = matching_racks[0]
-                        if not temp_rack.name[1]:
-                            self.view.racks[temp_rack.id].name = (temp_rack.name[0], heat_stack_obj.stack_name)
-                        # Existing device found, check if it needs to update
-                        if heat_stack_obj.stack_status not in UpdateHandler.CONCERTIM_STATE_MAP['RACK'][temp_rack.status]:
-                            self.__LOGGER.debug(f"Matching Rack needs updated status - Updating")
-                            self.update_rack_status(heat_stack_obj, temp_rack.id)
-                        # Check rack output
-                        if self.__empty_output_data(temp_rack):
-                            self.__LOGGER.debug(f"Matching Rack has empty output values in ConcertimRack - Attempting to update")
-                            self.update_rack_output(heat_stack_obj, temp_rack.id)
-                        # Check rack network details
-                        #if not temp_rack.network_details:
-                        #    self.__LOGGER.debug(f"Matching Rack has empty network data in ConcertimRack - Attempting to update")
-                        #    self.update_rack_network(heat_stack_obj, temp_rack.id)
-                        # Check rack metadata
-                        for m_key, m_val in self.view.racks[temp_rack.id].metadata.items():
-                            if not m_val and m_key:
-                                self.__LOGGER.debug(f"Matching Rack has empty metadata in ConcertimRack - Attempting to update")
-                                self.update_rack_metadata(heat_stack_obj, temp_rack.id)
-                                break
-                        continue
-                    self.__LOGGER.debug(f"No Rack found for Openstack Stack[ID:{heat_stack_obj.id},Name:{heat_stack_obj.stack_name}] - Creating in Concertim")
-                    self.create_rack_in_concertim(heat_stack_obj, team_id_tup)
+                try:
+                    for heat_stack_obj in openstack_stacks:
+                        self.__LOGGER.debug(f"Checking Stack: {heat_stack_obj.stack_name} = {heat_stack_obj.id}")
+                        in_openstack.append(heat_stack_obj.id)
+                        matching_racks = [con_rack for id_tup, con_rack in self.view.racks.items() if id_tup[1] == heat_stack_obj.id]
+                        if matching_racks:
+                            self.__LOGGER.debug(f"Matching Rack found")
+                            temp_rack = matching_racks[0]
+                            if not temp_rack.name[1]:
+                                self.view.racks[temp_rack.id].name = (temp_rack.name[0], heat_stack_obj.stack_name)
+                            # Existing device found, check if it needs to update
+                            if heat_stack_obj.stack_status not in UpdateHandler.CONCERTIM_STATE_MAP['RACK'][temp_rack.status]:
+                                self.__LOGGER.debug(f"Matching Rack needs updated status - Updating")
+                                self.update_rack_status(heat_stack_obj, temp_rack.id)
+                            # Check rack output
+                            if self.__empty_output_data(temp_rack):
+                                self.__LOGGER.debug(f"Matching Rack has empty output values in ConcertimRack - Attempting to update")
+                                self.update_rack_output(heat_stack_obj, temp_rack.id)
+                            # Check rack network details
+                            #if not temp_rack.network_details:
+                            #     self.__LOGGER.debug(f"Matching Rack has empty network data in ConcertimRack - Attempting to update")
+                            #    self.update_rack_network(heat_stack_obj, temp_rack.id)
+                            # Check rack metadata
+                            for m_key, m_val in self.view.racks[temp_rack.id].metadata.items():
+                                if not m_val and m_key:
+                                    self.__LOGGER.debug(f"Matching Rack has empty metadata in ConcertimRack - Attempting to update")
+                                    self.update_rack_metadata(heat_stack_obj, temp_rack.id)
+                                    break
+                            continue
+                        self.__LOGGER.debug(f"No Rack found for Openstack Stack[ID:{heat_stack_obj.id},Name:{heat_stack_obj.stack_name}] - Creating in Concertim")
+                        self.create_rack_in_concertim(heat_stack_obj, team_id_tup)
+                except Exception as e:
+                    self.__LOGGER.warning(f"Unhandled Exception when updating rack {heat_stack_obj.id} - Moving to next - {type(e).__name__} - {e}")
+                    continue
             # End new rack creation
 
             self.__LOGGER.debug(f"--- Checking for stale Racks that are mapped to a non-existing Stacks in Openstack")
