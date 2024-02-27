@@ -28,18 +28,17 @@ class OpenstackClient(AbsCloudClient):
         }
         'resource_map': {
             'server': {
-                'metrics_list': ['cpu_load', 'ram_usage', 'network_usage', 'throughput', 'iops'],
                 'resource_ids': {
                     'instance': 'id',
                     'instance_disk': 'instance_id',
                     'instance_network_interface': 'instance_id'
-                }
-                'units': {
+                },
+                'metrics_list': {
                     'cpu_load': '%',
                     'ram_usage': '%',
                     'network_usage': 'B/s',
                     'throughput': 'B/s',
-                    'iops': 'OPS/s',
+                    'iops': 'OPS/s'
                 }
             }
         }
@@ -402,7 +401,7 @@ class OpenstackClient(AbsCloudClient):
             value, result = locals()[OpenstackClient.SUPPORTED_METRIC_GROUPS['metric_functions'][metric_type]]()
             metric_vals[metric_type] = {
                 'value': value, 
-                'unit': OpenstackClient.SUPPORTED_METRIC_GROUPS['resource_map'][resource_type]['units'][metric_type]
+                'unit': OpenstackClient.SUPPORTED_METRIC_GROUPS['resource_map'][resource_type]['metrics_list'][metric_type]
             }
             if not result:
                 self.__LOGGER.warning(f"A metric returned an empty result when calculating {metric_type}")
