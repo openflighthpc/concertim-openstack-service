@@ -15,14 +15,14 @@ ENDPOINTS = {
                         'endpoint': '/api/v1/nodes',
                         'required_vars': ['template_id', 'name', 'description', 'facing', 'rack_id', 'start_u', 'status'],
                         'data': {
-                            "template_id": '{template_concertim_id}',
+                            "template_id": '{template_id}',
                             "device": {
-                                "name": '{device_cloud_name}',
+                                "name": '{name}',
                                 "description": '{description}',
                                 "status" : "{status}",
                                 "location": {
                                     "facing": '{facing}',
-                                    "rack_id": '{cluster_concertim_id}',
+                                    "rack_id": '{rack_id}',
                                     "start_u": '{start_u}'
                                 },
                                 "public_ips": '{public_ips}',
@@ -31,9 +31,9 @@ ENDPOINTS = {
                                 "volume_details": '{volume_details}',
                                 "login_user": '{login_user}',
                                 "metadata" : {
-                                    "net_interfaces": "{network_interfaces}",
-                                    "openstack_instance_id" : "{device_cloud_id}"
-                                    "openstack_stack_id": "{cluster_cloud_id}"
+                                    "net_interfaces": "{net_interfaces}",
+                                    "openstack_instance_id" : "{openstack_instance_id}"
+                                    "openstack_stack_id": "{openstack_stack_id}"
                                 }
                             }
                         }
@@ -43,19 +43,19 @@ ENDPOINTS = {
                         'required_vars': ['user_id','name','u_height', 'status'],
                         'data': {
                             "rack": {
-                                "user_id": '{user_concertim_id}',
-                                "name": '{cluster_cloud_name}',
-                                "u_height": '{height}',
+                                "user_id": '{user_id}',
+                                "name": '{name}',
+                                "u_height": '{u_height}',
                                 "status" : "{status}",
                                 "network_details": '{network_details}',
                                 "creation_output": '{creation_output}',
-                                "order_id": '{cluster_billing_id}',
+                                "order_id": '{order_id}',
                                 "metadata" : {
-                                    "openstack_stack_id" : "{cluster_cloud_id}",
-                                    "openstack_stack_owner" : "{user_cloud_name}",
-                                    "openstack_stack_owner_id" : "{project_cloud_id}",
-                                    "stack_status_reason": "{status_reason}",
-                                    'openstack_stack_output': '{output}'
+                                    "openstack_stack_id" : "{openstack_stack_id}",
+                                    "openstack_stack_owner" : "{openstack_stack_owner}",
+                                    "openstack_stack_owner_id" : "{openstack_stack_owner_id}",
+                                    "stack_status_reason": "{stack_status_reason}",
+                                    'openstack_stack_output': '{openstack_stack_output}'
                                 }
                             }
                         }
@@ -65,13 +65,13 @@ ENDPOINTS = {
                         'required_vars': ['name','description','height', 'ram', 'disk', 'vcpus', 'foreign_id'],
                         'data': {
                             "template": {
-                                "name": '{template_cloud_name}',
+                                "name": '{name}',
                                 "description": '{description}',
                                 "height": '{height}',
                                 "ram" : '{ram}',
                                 "disk" :'{disk}',
                                 "vcpus" : '{vcpus}',
-                                "foreign_id" : '{template_cloud_id}'
+                                "foreign_id" : '{foreign_id}'
                             }
                         }
                     }
@@ -151,7 +151,7 @@ ENDPOINTS = {
                         'required_vars': [],
                         'data': {
                             "device": {
-                                "name": '{device_cloud_name}',
+                                "name": '{name}',
                                 "description": '{description}',
                                 "cost": '{cost}',
                                 "status" : '{status}',
@@ -161,9 +161,9 @@ ENDPOINTS = {
                                 "volume_details": '{volume_details}',
                                 "login_user": '{login_user}',
                                 "metadata" : {
-                                    "net_interfaces": "{network_interfaces}",
-                                    'openstack_instance_id': '{device_cloud_id}',
-                                    "openstack_stack_id": "{cluster_cloud_id}"
+                                    "net_interfaces": "{net_interfaces}",
+                                    'openstack_instance_id': '{openstack_instance_id}',
+                                    "openstack_stack_id": "{openstack_stack_id}"
                                 }
                             }
                         }
@@ -174,17 +174,17 @@ ENDPOINTS = {
                         'data': {
                             "rack": {
                                 "name": '{name}',
-                                "u_height": '{height}',
+                                "u_height": '{u_height}',
                                 "cost": '{cost}',
                                 "status" : '{status}',
                                 "network_details": '{network_details}',
                                 "creation_output": '{creation_output}',
                                 "metadata" : {
-                                    "openstack_stack_id" : "{cluster_cloud_id}",
-                                    "openstack_stack_owner" : "{user_cloud_name}",
-                                    "openstack_stack_owner_id" : "{project_cloud_id}",
-                                    "stack_status_reason": "{status_reason}",
-                                    'openstack_stack_output': '{output}'
+                                    "openstack_stack_id" : "{openstack_stack_id}",
+                                    "openstack_stack_owner" : "{openstack_stack_owner}",
+                                    "openstack_stack_owner_id" : "{openstack_stack_owner_id}",
+                                    "stack_status_reason": "{stack_status_reason}",
+                                    'openstack_stack_output': '{openstack_stack_output}'
                                 }
                             }
                         }
@@ -194,7 +194,7 @@ ENDPOINTS = {
                         'required_vars': ['name'],
                         'data': {
                             "template": {
-                                "name": '{template_cloud_name}',
+                                "name": '{name}',
                                 "description": '{description}'
                             }
                         }

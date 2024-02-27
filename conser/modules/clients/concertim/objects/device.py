@@ -24,6 +24,8 @@ class ConcertimDevice(object):
         self.volume_details = []
         self.login_user = ''
         self.cost = 0.0
+        self._delete_marker = True
+        self._updated = False
 
     def __repr__(self):
         return (

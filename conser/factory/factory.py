@@ -37,6 +37,27 @@ class Factory(object):
             "killbill"
         ]
     }
+    DEFAULT_CLOUD_COMPONENTS = {
+        'api': {
+            'openstack': ['keystone']
+        },
+        'billing': {
+            'openstack': ['cloudkitty']
+        },
+        'fe_updates': {
+            'openstack': []
+        },
+        'fe_metrics': {
+            'openstack': ['gnocchi']
+        },
+        'view_sync': {
+            'openstack': ['keystone', 'heat', 'nova']
+        },
+        'view_queue': {
+            'openstack': []
+        }
+
+    }
 
 ###############################
 #          MAIN GETs          #
@@ -66,6 +87,8 @@ class Factory(object):
             handler = _build_billing_handler(config, log_file, enable_concertim_client, enable_cloud_client, enable_billing_client)
         elif handler_type == "fe_metrics":
             handler = _build_metrics_handler(config, log_file, enable_concertim_client, enable_cloud_client, enable_billing_client)
+        elif handler_type == "fe_updates":
+            handler = _build_updates_handler(config, log_file, enable_concertim_client, enable_cloud_client, enable_billing_client)
         elif handler_type == "view_sync":
             handler = _build_sync_handler(config, log_file, enable_concertim_client, enable_cloud_client, enable_billing_client)
         elif handler_type == "view_queue":
@@ -158,7 +181,7 @@ class Factory(object):
             cloud_auth = cloud_auth_dict
         else:
             cloud_auth = config[cloud_type]
-        cloud_comps = cloud_components_list if cloud_components_list else Factory.CLIENT_OBJECTS['cloud'][cloud_type]['components']
+        cloud_comps = cloud_components_list if cloud_components_list else Factory.DEFAULT_CLOUD_COMPONENTS['api'][cloud_type]
 
         # CREATE CLIENT MAP
         #-- Create Concertim client
@@ -231,7 +254,7 @@ class Factory(object):
 
         # HANDLER DEFAULTS
         log_level = config['log_level']
-        cloud_comps = Factory.CLIENT_OBJECTS['cloud'][cloud_type]['components']
+        cloud_comps = Factory.DEFAULT_CLOUD_COMPONENTS['billing'][cloud_type]
         # CREATE CLIENT MAP
         #-- Create Concertim client
         concertim_client = get_client(
@@ -277,7 +300,7 @@ class Factory(object):
     @staticmethod
     def _build_metrics_handler(config, log_file, enable_concertim_client, enable_cloud_client, enable_billing_client):
         # IMPORTS
-        from conser.modules.handlers.metrics_handler.handler import MetricsHandler
+        from conser.modules.handlers.frontend_handler.metrics.handler import MetricsHandler
         # EXIT CASES
         cloud_type = config['cloud_type']
         billing_app = config['billing_platform']
@@ -292,7 +315,7 @@ class Factory(object):
 
         # HANDLER DEFAULTS
         log_level = config['log_level']
-        cloud_comps = Factory.CLIENT_OBJECTS['cloud'][cloud_type]['components']
+        cloud_comps = Factory.DEFAULT_CLOUD_COMPONENTS['fe_metrics'][cloud_type]
         # CREATE CLIENT MAP
         #-- Create Concertim client
         concertim_client = get_client(
@@ -337,6 +360,52 @@ class Factory(object):
         # RETURN HANDLER
         return handler
 
+# UPDATES
+    @staticmethod
+    def _build_updates_handler(config, log_file, enable_concertim_client, enable_cloud_client, enable_billing_client):
+        # IMPORTS
+        from conser.modules.handlers.frontend_handler.updates.handler import UpdatesHandler
+        # EXIT CASES
+        cloud_type = config['cloud_type']
+        billing_app = config['billing_platform']
+        if cloud_type not in Factory.CLIENT_OBJECTS['cloud']:
+            raise EXCP.InvalidClient(cloud_type)
+        if billing_app not in Factory.CLIENT_OBJECTS['billing']:
+            raise EXCP.InvalidClient(billing_app)
+        if not enable_concertim_client:
+            raise EXCP.MissingRequiredClient("A Concertim Client is required for Updates Handler")
+
+        # HANDLER DEFAULTS
+        log_level = config['log_level']
+        cloud_comps = Factory.DEFAULT_CLOUD_COMPONENTS['fe_updates'][cloud_type]
+        # CREATE CLIENT MAP
+        #-- Create Concertim client
+        concertim_client = get_client(
+            'concertim'
+            config['concertim'],
+            log_file,
+            log_level
+        )
+        #-- Create Cloud client
+        cloud_client = None
+        #-- Create Billing client
+        billing_client = None
+        handler_clients = {
+            'concertim': concertim_client,
+            'cloud': cloud_client,
+            'billing': billing_client
+        }
+
+        # CREATE HANDLER
+        handler = UpdatesHandler(
+            handler_clients,
+            log_file,
+            log_level
+        )
+
+        # RETURN HANDLER
+        return handler
+
 # SYNC
     @staticmethod
     def _build_sync_handler(config, log_file, enable_concertim_client, enable_cloud_client, enable_billing_client):
@@ -358,7 +427,7 @@ class Factory(object):
 
         # HANDLER DEFAULTS
         log_level = config['log_level']
-        cloud_comps = Factory.CLIENT_OBJECTS['cloud'][cloud_type]['components']
+        cloud_comps = Factory.DEFAULT_CLOUD_COMPONENTS['view_sync'][cloud_type]
         # CREATE CLIENT MAP
         #-- Create Concertim client
         concertim_client = get_client(
@@ -402,7 +471,7 @@ class Factory(object):
 
 # QUEUE
     @staticmethod
-    def _build_queue_handler(config, log_file, enable_cloud_client):
+    def _build_queue_handler(config, log_file, enable_concertim_client, enable_cloud_client, enable_billing_client):
         # IMPORTS
         from conser.modules.handlers.view_handler.queue.handler import QueueHandler
         # EXIT CASES
@@ -419,8 +488,10 @@ class Factory(object):
 
         # HANDLER DEFAULTS
         log_level = config['log_level']
+        cloud_comps = Factory.DEFAULT_CLOUD_COMPONENTS['view_queue'][cloud_type]
         # CREATE CLIENT MAP
         #-- Create Concertim client
+        concertim_client = None
         #-- Create Cloud client
         cloud_client = get_client(
             'cloud'
@@ -428,15 +499,17 @@ class Factory(object):
             log_file,
             log_level,
             client_subtype=cloud_type,
-            components_list=[],
+            components_list=cloud_comps,
             mq_client=queue_type,
             mq_config=config[queue_type]
         )
         #-- Create Billing client
+        billing_client = None
+
         handler_clients = {
-            'concertim': None,
+            'concertim': concertim_client,
             'cloud': cloud_client,
-            'billing': None
+            'billing': billing_client
         }
 
         # CREATE HANDLER
@@ -527,8 +600,10 @@ class Factory(object):
         # EXIT CASES
         for comp in components_list:
             if comp not in Factory.CLIENT_OBJECTS['cloud']['openstack']['components']:
-                raise EXCP.InvalidComponent(comp)
+                raise EXCP.InvalidComponent(f"openstack.{comp}")
         if mq_client:
+            if mq_client not in Factory.CLIENT_OBJECTS['cloud']['openstack']['queues']:
+                raise EXCP.InvalidComponent(f"openstack.queue.{mq_client}")
             mq_comp = get_opstk_component(
                 component_name=mq_client, 
                 session_obj=None, 

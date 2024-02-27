@@ -131,6 +131,7 @@ def create_user():
             conf_dict,
             log_file,
             cloud_auth_dict=request_data['cloud_env'],
+            cloud_components_list=['keystone'],
             enable_concertim_client=False,
             enable_cloud_client=True,
             enable_billing_client=True
@@ -182,6 +183,7 @@ def delete_user():
             conf_dict,
             log_file,
             cloud_auth_dict=request_data['cloud_env'],
+            cloud_components_list=['keystone'],
             enable_concertim_client=False,
             enable_cloud_client=True,
             enable_billing_client=True
@@ -229,6 +231,7 @@ def change_user_details():
             conf_dict,
             log_file,
             cloud_auth_dict=request_data['cloud_env'],
+            cloud_components_list=['keystone'],
             enable_concertim_client=False,
             enable_cloud_client=True,
             enable_billing_client=True
@@ -278,6 +281,7 @@ def create_project():
             conf_dict,
             log_file,
             cloud_auth_dict=request_data['cloud_env'],
+            cloud_components_list=['keystone'],
             enable_concertim_client=False,
             enable_cloud_client=True,
             enable_billing_client=False
@@ -325,6 +329,7 @@ def delete_project():
             conf_dict,
             log_file,
             cloud_auth_dict=request_data['cloud_env'],
+            cloud_components_list=['keystone'],
             enable_concertim_client=False,
             enable_cloud_client=True,
             enable_billing_client=True
@@ -367,6 +372,7 @@ def update_status(obj_type, obj_id):
             conf_dict,
             log_file,
             cloud_auth_dict=request_data['cloud_env'],
+            cloud_components_list=['nova', 'heat'],
             enable_concertim_client=False,
             enable_cloud_client=True,
             enable_billing_client=True
@@ -410,6 +416,7 @@ def key_pair_create():
             conf_dict,
             log_file,
             cloud_auth_dict=request_data['cloud_env'],
+            cloud_components_list=['nova'],
             enable_concertim_client=False,
             enable_cloud_client=True,
             enable_billing_client=False
@@ -456,6 +463,7 @@ def key_pair_list():
             conf_dict,
             log_file,
             cloud_auth_dict=request_data['cloud_env'],
+            cloud_components_list=['nova'],
             enable_concertim_client=False,
             enable_cloud_client=True,
             enable_billing_client=False
@@ -496,6 +504,7 @@ def key_pair_delete():
             conf_dict,
             log_file,
             cloud_auth_dict=request_data['cloud_env'],
+            cloud_components_list=['nova'],
             enable_concertim_client=False,
             enable_cloud_client=True,
             enable_billing_client=False

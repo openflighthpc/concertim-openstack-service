@@ -16,6 +16,7 @@ class OpenstackClient(AbsCloudClient):
     ############
     # DEFAULTS #
     ############
+    # Granularity set to 15 to match Concertim MRD polling rate
     DEFAULT_GRANULARITY = 15
     SUPPORTED_METRIC_GROUPS = {
         'metric_functions': {
@@ -32,6 +33,13 @@ class OpenstackClient(AbsCloudClient):
                     'instance': 'id',
                     'instance_disk': 'instance_id',
                     'instance_network_interface': 'instance_id'
+                }
+                'units': {
+                    'cpu_load': '%',
+                    'ram_usage': '%',
+                    'network_usage': 'B/s',
+                    'throughput': 'B/s',
+                    'iops': 'OPS/s',
                 }
             }
         }
@@ -392,7 +400,10 @@ class OpenstackClient(AbsCloudClient):
         metric_vals = {}
         for metric_type in OpenstackClient.SUPPORTED_METRIC_GROUPS['resource_map'][resource_type]['metrics_list']:
             value, result = locals()[OpenstackClient.SUPPORTED_METRIC_GROUPS['metric_functions'][metric_type]]()
-            metric_vals[metric_type] = value
+            metric_vals[metric_type] = {
+                'value': value, 
+                'unit': OpenstackClient.SUPPORTED_METRIC_GROUPS['resource_map'][resource_type]['units'][metric_type]
+            }
             if not result:
                 self.__LOGGER.warning(f"A metric returned an empty result when calculating {metric_type}")
 

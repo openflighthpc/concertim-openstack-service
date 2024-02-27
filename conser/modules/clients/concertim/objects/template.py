@@ -17,6 +17,7 @@ class ConcertimTemplate(object):
         self.disk = disk
         self.vcpus = vcpus
         self.size = size
+        self._updated=False
 
     def __repr__(self):
         return (

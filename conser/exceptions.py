@@ -120,9 +120,9 @@ class ViewNotFound(Exception):
 
 class NoClientFound(Exception):
     def __init__(self, *args):
-        self.missing_handlers = args
+        self.missing_clients = args
     def __str__(self):
-        return f"Client Components(s) Not Found -> Missing [{self.missing_handlers}]"
+        return f"Client Not Found -> Missing [{self.missing_clients}]"
 
 class TooManyBillingOrders(Exception):
     def __str__(self):

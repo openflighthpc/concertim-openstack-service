@@ -27,6 +27,8 @@ class ConcertimRack(object):
         self.metadata = {}
         self.cost = 0.0
         self._resources = {}
+        self._delete_marker = True
+        self._updated = False
 
     def __repr__(self):
         return (

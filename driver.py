@@ -50,6 +50,8 @@ def main(args):
     # MAIN PROCESS TREE
     if arguments.process == 'fe_metrics':
         start_metrics_process(conf_dict, log_file, run_once=arguments.run_once)
+    if arguments.process == 'fe_updates':
+        start_updates_process(conf_dict, log_file, run_once=arguments.run_once)
     elif arguments.process == 'view_sync':
         start_sync_process(conf_dict, log_file, run_once=arguments.run_once)
     elif arguments.process == 'view_queue':
@@ -69,10 +71,6 @@ def start_metrics_process(config, log_file, run_once=False):
     logger.info(f"Log File: {log_file}")
 
     # METRICS SETUP
-    # interval = 15 to match concertim MRD polling interval
-    interval = 15
-    retries = 0
-
     # CREATE HANDLER
     handler = Factory.get_handler(
         "fe_metrics", 
@@ -100,6 +98,40 @@ def start_metrics_process(config, log_file, run_once=False):
                 raise Exception(f"Metrics Loop continually failing - please check logs - {log_file}")
 
 
+def start_updates_process(config, log_file, run_once=False):
+    log_level = config["log_level"]
+    logger = create_logger(__name__, log_file, log_level)
+    logger.info("========== STARTING UPDATES PROCESS ==========")
+    logger.info(f"Log File: {log_file}")
+
+    # UPDATES SETUP
+    # CREATE HANDLER
+    handler = Factory.get_handler(
+        "fe_updates", 
+        config,
+        log_file, 
+        enable_concertim_client=True,
+        enable_cloud_client=False, 
+        enable_billing_client=False
+    )
+
+    # MAIN UPDATES LOOP
+    while True:
+        try:
+            handler.run_process()
+            retries = 0
+        except Exception as e:
+            logger.error(f"Unexpected exception has caused the Updates loop to terminate : {type(e).__name__} - {e}")
+            logger.warning(f"Trying loop again in 5 seconds")
+            retries += 1
+            continue
+        finally:
+            if run_once:
+                break
+            if retries >= 5:
+                raise Exception(f"Updates Loop continually failing - please check logs - {log_file}")
+
+
 def start_billing_process(config, log_file, run_once=False):
     log_level = config["log_level"]
     logger = create_logger(__name__, log_file, log_level)
@@ -107,10 +139,6 @@ def start_billing_process(config, log_file, run_once=False):
     logger.info(f"Log File: {log_file}")
 
     # BILLING SETUP
-    # interval = 15 to match concertim MRD polling interval
-    interval = 15
-    retries = 0
-
     # CREATE HANDLER
     handler = Factory.get_handler(
         "billing", 

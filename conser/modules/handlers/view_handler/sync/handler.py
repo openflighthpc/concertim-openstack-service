@@ -186,50 +186,8 @@ class SyncHandler(AbsViewHandler):
         con_devices_list = self.clients['concertim'].list_devices()
         for con_device in con_devices_list:
             self.__LOGGER.debug(f"Starting --- Creating new ConcertimDevice -> {con_device['id']}")
-            #-- Parse metadata
-            device_cloud_id = None
-            rack_cloud_id = None
-            device_metadata = {}
-            for k,v in con_device['metadata'].items():
-                if k in SyncHandler.METADATA_MAPPING['device']:
-                    if SyncHandler.METADATA_MAPPING['device'][k] == 'device_cloud_id':
-                        device_cloud_id = v
-                    elif SyncHandler.METADATA_MAPPING['device'][k] == 'cluster_cloud_id':
-                        rack_cloud_id = v
-                    else:
-                        device_metadata[SyncHandler.METADATA_MAPPING['device'][k]] = v
-            #-- Grab device Location 
-            device_location = Location(
-                start_u=device['location']['start_u'], 
-                end_u=device['location']['end_u'], 
-                facing=device['location']['facing']
-            )
-            #-- Grab device Template
-            device_template = self.view.search(
-                object_type='template', 
-                id_value=con_device['template_id'], 
-                id_origin='concertim'
-            )
-            #-- Grab IDs
-            rack_concertim_id = con_device['location']['rack_id']
-            #-- Create device
-            new_device = ConcertimDevice(
-                concertim_id=con_device['id'], 
-                cloud_id=device_cloud_id, 
-                concertim_name=con_device['name'], 
-                cloud_name=con_device['name'], 
-                rack_id_tuple=tuple((rack_concertim_id, rack_cloud_id, None)), 
-                template=device_template, 
-                location=device_location, 
-                description=con_device['description'], 
-                status=con_device['status']
-            )
-            new_device.ssh_key = con_device['ssh_key'] if 'ssh_key' in con_device and con_device['ssh_key'] else ''
-            new_device.volume_details = con_device['volume_details'] if 'volume_details' in con_device and con_device['volume_details'] else []
-            new_device.public_ips = con_device['public_ips'] if 'public_ips' in con_device and con_device['public_ips'] else ''
-            new_device.private_ips = con_device['private_ips'] if 'private_ips' in con_device and con_device['private_ips'] else ''
-            new_device.login_user = con_device['login_user'] if 'login_user' in con_device and con_device['login_user'] else ''
-            new_device.cost = float(con_device['cost'] if 'cost' in con_device and con_device['cost'] else 0.0)
+            #-- CHECK FOR DEVICE TYPE HERE
+            new_device = self._create_server_device_from_concertim(con_device)
             self.view.add_device(new_device)
             self.__LOGGER.debug(f"Finished --- New ConcertimDevice created in View : {new_device}")  
         self.__LOGGER.debug("Finished -- Fetching Concertim Devices")
@@ -379,6 +337,7 @@ class SyncHandler(AbsViewHandler):
         #-- Getting all Concertim Managed projects
         cm_projects_list = self.clients['cloud'].get_all_cm_projects()
         for project_cloud_id in cm_projects_list['projects']:
+            ## SERVER DEVICES LOGIC
             #---- For each project, get all servers (devices)
             cloud_servers_dict = self.clients['cloud'].get_all_servers(project_cloud_id=project_cloud_id)
             for server_cloud_id, cloud_server_dict in cloud_servers_dict['servers'].items():
@@ -391,10 +350,12 @@ class SyncHandler(AbsViewHandler):
                         id_origin='cloud'
                     )
                     if matching_device:
-                        self.update_device_from_cloud(cloud_server_dict, matching_device.id)
+                        self.update_server_device_from_cloud(cloud_server_dict, matching_device.id)
                         continue         
                 #------ If reaching here then need to create a new ConcertimDevice from cloud data
-                self.create_device_from_cloud(cloud_server_dict)
+                self.create_server_device_from_cloud(cloud_server_dict)
+            ## VOLS
+            ## NETS
         self.__LOGGER.debug("Finished -- Layering Cloud Devices onto existing View")
 
     def create_template_from_cloud(self, template_dict):
@@ -430,16 +391,20 @@ class SyncHandler(AbsViewHandler):
         con_template = self.view.templates[template_id_tup]
         if con_template.ram != template_dict['ram']:
             self.view.templates[template_id_tup].ram = template_dict['ram']
+            self.view.templates[template_id_tup]._updated = True
 
         if con_template.disk != template_dict['disk']:
             self.view.templates[template_id_tup].disk = template_dict['disk']
+            self.view.templates[template_id_tup]._updated = True
 
         if con_template.vcpus != template_dict['vcpus']:
             self.view.templates[template_id_tup].vcpus = template_dict['vcpus']
+            self.view.templates[template_id_tup]._updated = True
 
         cloud_template_size = min((int( template_dict['vcpus'] / 2 ) + 1), 4)
         if con_template.size != cloud_template_size:
             self.view.templates[template_id_tup].size = cloud_template_size
+            self.view.templates[template_id_tup]._updated = True
 
         self.__LOGGER.debug(f"Finished --- Updated existing ConcertimTemplate from cloud data")
 
@@ -499,6 +464,7 @@ class SyncHandler(AbsViewHandler):
                 new_rack.metadata[cloud_md] = cluster_dict[cloud_md]
         new_rack._resources = cluster_dict['cluster_resources']
         new_rack._status_reason = cluster_dict['status_reason']
+        new_rack._delete_marker = False
         self.view.add_rack(new_rack)
         self.__LOGGER.debug(f"Finished --- Created new ConcertimRack from cloud data")
 
@@ -511,7 +477,7 @@ class SyncHandler(AbsViewHandler):
         self.__LOGGER.debug(f"Starting --- Updating existing ConcertimRack '{rack_id_tup}' with cloud data")
 
         # OBJECT LOGIC
-        con_rack = self.view.racks(rack_id_tup)
+        con_rack = self.view.racks[rack_id_tup]
         #-- Get current accurate status
         cluster_status = 'FAILED'
         for con_status, valid_cloud_status_list in self.clients['cloud'].CONCERTIM_STATE_MAP['RACK']:
@@ -519,20 +485,25 @@ class SyncHandler(AbsViewHandler):
                 cluster_status = con_status
         #-- Check dynamic vals
         if con_rack.output != cluster_dict['cluster_outputs']:
-            self.view.racks(rack_id_tup).output = cluster_dict['cluster_outputs']
+            self.view.racks[rack_id_tup].output = cluster_dict['cluster_outputs']
+            self.view.racks[rack_id_tup]._updated = True
 
         if con_rack.status != cluster_status:
-            self.view.racks(rack_id_tup).status = cluster_status
+            self.view.racks[rack_id_tup].status = cluster_status
+            self.view.racks[rack_id_tup]._updated = True
 
         clust_output_string = self._get_output_as_string(cluster_dict['cluster_outputs'])
         if con_rack._creation_output != clust_output_string:
-            self.view.racks(rack_id_tup)._creation_output = clust_output_string
+            self.view.racks[rack_id_tup]._creation_output = clust_output_string
+            self.view.racks[rack_id_tup]._updated = True
 
         if con_rack._resources != cluster_dict['cluster_resources']:
-            self.view.racks(rack_id_tup)._resources = cluster_dict['cluster_resources']
+            self.view.racks[rack_id_tup]._resources = cluster_dict['cluster_resources']
+            self.view.racks[rack_id_tup]._updated = True
 
         if con_rack._status_reason != cluster_dict['status_reason']:
-            self.view.racks(rack_id_tup)._status_reason = cluster_dict['status_reason']
+            self.view.racks[rack_id_tup]._status_reason = cluster_dict['status_reason']
+            self.view.racks[rack_id_tup]._updated = True
 
         curr_cluster_metadata = {}
         for con_md, cloud_md in SyncHandler.METADATA_MAPPING['rack'].items():
@@ -540,12 +511,15 @@ class SyncHandler(AbsViewHandler):
                 curr_cluster_metadata = cluster_dict[cloud_md]
         for k,v in con_rack.metadata.items():
             if k in curr_cluster_metadata and v != curr_cluster_metadata[k]:
-                self.view.racks(rack_id_tup).metadata[k] = curr_cluster_metadata[k]
+                self.view.racks[rack_id_tup].metadata[k] = curr_cluster_metadata[k]
+                self.view.racks[rack_id_tup]._updated = True
         
         #TODO: Check/Update network_details
+
+        self.view.racks[rack_id_tup]._delete_marker=False
         self.__LOGGER.debug(f"Finished --- Updated existing ConcertimRack from cloud data")
 
-    def create_device_from_cloud(self, server_dict):
+    def create_server_device_from_cloud(self, server_dict):
         # EXIT CONDITIONS
         if not server_dict:
             raise EXCP.MissingRequiredArgs('server_dict')
@@ -598,10 +572,11 @@ class SyncHandler(AbsViewHandler):
         new_device.network_interfaces = server_dict['network_interfaces']
         #TODO: Get login user for server
         new_device.login_user = ''
+        new_device._delete_marker=False
         self.view.add_device(new_device)
         self.__LOGGER.debug(f"Finished --- Created new ConcertimDevice from cloud data")
 
-    def update_device_from_cloud(self, server_dict, device_id_tup):
+    def update_server_device_from_cloud(self, server_dict, device_id_tup):
         # EXIT CONDITIONS
         if not server_dict:
             raise EXCP.MissingRequiredArgs('server_dict')
@@ -619,19 +594,25 @@ class SyncHandler(AbsViewHandler):
         #-- Check dynamic values
         if con_device.status != device_status:
             self.view.devices[device_id_tup].status = device_status
+            self.view.devices[device_id_tup]._updated = True
 
         if con_device.volume_details != server_dict['volumes']:
             self.view.devices[device_id_tup].volume_details = server_dict['volumes']
+            self.view.devices[device_id_tup]._updated = True
 
         if con_device.public_ips != server_dict['public_ips']:
             self.view.devices[device_id_tup].public_ips = server_dict['public_ips']
+            self.view.devices[device_id_tup]._updated = True
 
         if con_device.private_ips != server_dict['private_ips']:
             self.view.devices[device_id_tup].private_ips = server_dict['private_ips']
+            self.view.devices[device_id_tup]._updated = True
 
         if con_device.network_interfaces != server_dict['network_interfaces']:
             self.view.devices[device_id_tup].network_interfaces = server_dict['network_interfaces']
+            self.view.devices[device_id_tup]._updated = True
 
+        self.view.devices[device_id_tup]._delete_marker=False
         self.__LOGGER.debug(f"Finished --- Updated existing ConcertimDevice from cloud data")
 
     ##############################
@@ -689,3 +670,50 @@ class SyncHandler(AbsViewHandler):
         for output_tup in output_list:
             output_str += f", {output_tup[0]}={output_tup[1]}" if output_str else f"{output_tup[0]}={output_tup[1]}"
         return output_str
+
+    def _create_server_device_from_concertim(self, con_device):
+        #-- Parse metadata
+            device_cloud_id = None
+            rack_cloud_id = None
+            device_metadata = {}
+            for k,v in con_device['metadata'].items():
+                if k in SyncHandler.METADATA_MAPPING['device']:
+                    if SyncHandler.METADATA_MAPPING['device'][k] == 'device_cloud_id':
+                        device_cloud_id = v
+                    elif SyncHandler.METADATA_MAPPING['device'][k] == 'cluster_cloud_id':
+                        rack_cloud_id = v
+                    else:
+                        device_metadata[SyncHandler.METADATA_MAPPING['device'][k]] = v
+            #-- Grab device Location 
+            device_location = Location(
+                start_u=device['location']['start_u'], 
+                end_u=device['location']['end_u'], 
+                facing=device['location']['facing']
+            )
+            #-- Grab device Template
+            device_template = self.view.search(
+                object_type='template', 
+                id_value=con_device['template_id'], 
+                id_origin='concertim'
+            )
+            #-- Grab IDs
+            rack_concertim_id = con_device['location']['rack_id']
+            #-- Create device
+            new_device = ConcertimDevice(
+                concertim_id=con_device['id'], 
+                cloud_id=device_cloud_id, 
+                concertim_name=con_device['name'], 
+                cloud_name=con_device['name'], 
+                rack_id_tuple=tuple((rack_concertim_id, rack_cloud_id, None)), 
+                template=device_template, 
+                location=device_location, 
+                description=con_device['description'], 
+                status=con_device['status']
+            )
+            new_device.ssh_key = con_device['ssh_key'] if 'ssh_key' in con_device and con_device['ssh_key'] else ''
+            new_device.volume_details = con_device['volume_details'] if 'volume_details' in con_device and con_device['volume_details'] else []
+            new_device.public_ips = con_device['public_ips'] if 'public_ips' in con_device and con_device['public_ips'] else ''
+            new_device.private_ips = con_device['private_ips'] if 'private_ips' in con_device and con_device['private_ips'] else ''
+            new_device.login_user = con_device['login_user'] if 'login_user' in con_device and con_device['login_user'] else ''
+            new_device.cost = float(con_device['cost'] if 'cost' in con_device and con_device['cost'] else 0.0)
+            return new_device
