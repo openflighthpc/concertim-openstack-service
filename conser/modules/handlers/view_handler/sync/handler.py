@@ -349,8 +349,8 @@ class SyncHandler(AbsViewHandler):
                 #-------- if so, move to update instead of create
                 if not create_all:
                     matching_device = self.view.search(
-                        object_type='device'
-                        id_value=server_cloud_id
+                        object_type='device',
+                        id_value=server_cloud_id,
                         id_origin='cloud'
                     )
                     if matching_device:
@@ -645,7 +645,7 @@ class SyncHandler(AbsViewHandler):
                 return
             if UTILS.check_resync_hold():
                 self.__LOGGER.debug(f"RESYNC HOLD FOUND - Waiting for hold to finish and resync.flag to appear")
-                i--
+                i -= 1
                 time.sleep(0.2)
                 continue
             time.sleep(SyncHandler.RESYNC_INTERVAL)
