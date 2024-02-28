@@ -690,9 +690,9 @@ class SyncHandler(AbsViewHandler):
                         device_metadata[SyncHandler.METADATA_MAPPING['device'][k]] = v
             #-- Grab device Location 
             device_location = Location(
-                start_u=device['location']['start_u'], 
-                end_u=device['location']['end_u'], 
-                facing=device['location']['facing']
+                start_u=con_device['location']['start_u'], 
+                end_u=con_device['location']['end_u'], 
+                facing=con_device['location']['facing']
             )
             #-- Grab device Template
             device_template = self.view.search(
