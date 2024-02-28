@@ -213,6 +213,7 @@ class UpdatesHandler(Handler):
         self.__LOGGER.debug(f"Starting --- Creating new device {device_obj.id}")
         # OBJECT LOGIC
         try:
+            details = device_obj.details
             self.clients['concertim'].create_device(
                 variables_dict={
                     "template_id": device_obj.template.id[0],
@@ -222,14 +223,10 @@ class UpdatesHandler(Handler):
                     "facing": device_obj.location.facing,
                     "rack_id": device_obj.rack_id_tuple[0],
                     "start_u": device_obj.location.start_u,
-                    "public_ips": device_obj.public_ips,
-                    "private_ips": device_obj.private_ips,
-                    "ssh_key": device_obj.ssh_key,
-                    "volume_details": device_obj.volume_details,
-                    "login_user": device_obj.login_user,
                     "net_interfaces": device_obj.network_interfaces,
                     'openstack_instance_id': device_obj.id[1],
-                    "openstack_stack_id": device_obj.rack_id_tuple[1]
+                    "openstack_stack_id": device_obj.rack_id_tuple[1],
+                    "details": device_obj.details
                 }
             )
         except Exception as e:

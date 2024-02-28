@@ -1,3 +1,6 @@
+from typing import Any
+
+
 class ConcertimDevice(object):
     def __init__(self, 
         concertim_id=None, 
@@ -18,11 +21,7 @@ class ConcertimDevice(object):
         self.location = location
         self.status = status
         self.network_interfaces = []
-        self.private_ips = ''
-        self.public_ips = ''
-        self.ssh_key = ''
-        self.volume_details = []
-        self.login_user = ''
+        self.details = DeviceDetails()
         self.cost = 0.0
         self._delete_marker = True
         self._updated = False
@@ -38,12 +37,9 @@ class ConcertimDevice(object):
                 template:{repr(self.template)}, \
                 location:{repr(self.location)}, \
                 network_interfaces:{repr(self.network_interfaces)}, \
-                private_ips:{repr(self.private_ips)}, \
-                public_ips:{repr(self.public_ips)}, \
-                ssh_key:{repr(self.ssh_key)}, \
-                login_user:{repr(self.login_user)}, \
-                volume_details:{repr(self.volume_details)}, \
-                cost:{repr(self.cost)}}}>"
+                cost:{repr(self.cost)}}}, \
+                details:{repr(self.details)} \
+                >"
         )
 
     def __eq__(self, other):
@@ -64,3 +60,20 @@ class ConcertimDevice(object):
     def add_metadata(self, **kwargs):
         for k,v in kwargs.items():
             self.metadata[str(k)] = v
+
+
+class DeviceDetails(object):
+
+    def __init__(self, attrs) -> None:
+        self._attrs = attrs
+
+    def __getattribute__(self, name: str) -> Any:
+        return self._attrs.get(name)
+
+    def __setattr__(self, name: str, value: Any) -> None:
+        self._attrs[name] = value
+
+    def __repr__(self) -> str:
+        return (f"<DeviceDetails
+                  {'\n'.join(map(lambda k,v: f'{k}: {repr(v)}', self._attrs.entries()))}
+                >")

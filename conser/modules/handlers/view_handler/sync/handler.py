@@ -4,7 +4,7 @@ from conser.factory.abs_classes.handlers import AbsViewHandler
 import conser.exceptions as EXCP
 import conser.utils.common as UTILS
 from conser.modules.clients.concertim.objects.view import ConcertimView
-from conser.modules.clients.concertim.objects.device import ConcertimDevice
+from conser.modules.clients.concertim.objects.device import ConcertimDevice, DeviceDetails
 from conser.modules.clients.concertim.objects.rack import ConcertimRack
 from conser.modules.clients.concertim.objects.template import ConcertimTemplate
 from conser.modules.clients.concertim.objects.user import ConcertimUser
@@ -714,11 +714,18 @@ class SyncHandler(AbsViewHandler):
                 description=con_device['description'], 
                 status=con_device['status']
             )
-            new_device.ssh_key = con_device['ssh_key'] if 'ssh_key' in con_device and con_device['ssh_key'] else ''
-            new_device.volume_details = con_device['volume_details'] if 'volume_details' in con_device and con_device['volume_details'] else []
-            new_device.public_ips = con_device['public_ips'] if 'public_ips' in con_device and con_device['public_ips'] else ''
-            new_device.private_ips = con_device['private_ips'] if 'private_ips' in con_device and con_device['private_ips'] else ''
-            new_device.login_user = con_device['login_user'] if 'login_user' in con_device and con_device['login_user'] else ''
+            new_device.cost = float(con_device['cost'] if 'cost' in con_device and con_device['cost'] else 0.0)
+
+            if 'details' in con_device:
+                new_device.details = DeviceDetails(con_device['details'])
+            else:
+                details = { 'type': 'Device::ComputeDetails' }
+                details['ssh_key'] = con_device['ssh_key'] if 'ssh_key' in con_device and con_device['ssh_key'] else ''
+                details['volume_details'] = con_device['volume_details'] if 'volume_details' in con_device and con_device['volume_details'] else []
+                details['public_ips'] = con_device['public_ips'] if 'public_ips' in con_device and con_device['public_ips'] else ''
+                details['private_ips'] = con_device['private_ips'] if 'private_ips' in con_device and con_device['private_ips'] else ''
+                details['login_user'] = con_device['login_user'] if 'login_user' in con_device and con_device['login_user'] else ''
+                new_device.details = DeviceDetails(details)
             return new_device
 
     def _build_teams_from_projects(self):
