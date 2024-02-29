@@ -26,6 +26,7 @@ class ConcertimRack(object):
         self.network_details = {}
         self.metadata = {}
         self.cost = 0.0
+        self._detailed_cost={}
         self._resources = {}
         self._delete_marker = True
         self._updated = False
@@ -47,6 +48,7 @@ class ConcertimRack(object):
                 network_details:{repr(self.network_details)}, \
                 metadata:{repr(self.metadata)}, \
                 cost:{repr(self.cost)}, \
+                _detailed_cost:{repr(self._detailed_cost)}, \
                 _occupied:{repr(self._occupied)}, \
                 _resources:{repr(self._resources)}, \
                 _creation_output:{repr(self._creation_output)}}}>"

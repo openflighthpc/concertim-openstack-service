@@ -11,7 +11,7 @@ from dateutil.parser import parse as dt_parse
 # Py Packages
 import sys
 import json
-import datetime
+from datetime import datetime, timedelta
 # Disable insecure warnings  
 import requests
 requests.packages.urllib3.disable_warnings() 
@@ -24,6 +24,7 @@ class KillbillClient(AbsBillingClient):
     BILLING_CYCLE_DAYS=31
     BILLING_CURRENCY='USD'
     CLUSTER_BILLING_ID_FIELD = 'openstack_stack_id'
+    PROJECT_BILLING_ID_FIELD = 'project_cloud_id'
     CUSTOM_FIELD_FUNCTIONS = {
         'add': {
             'account': 'create_account_custom_fields_with_http_info',
@@ -50,12 +51,16 @@ class KillbillClient(AbsBillingClient):
         self.__LOGGER.info("CREATING KILLBILL CLIENT")
         self.subscription_plan = self._CONFIG['plan_name']
         self.apis = self.get_connection_obj()
+        if 'credit_threshold' in self._CONFIG and self._CONFIG['credit_threshold']:
+            self._credit_threshold = float(self._CONFIG['credit_threshold'])
+        else:
+            self._credit_threshold = float(KillbillClient.BILLING_CREDIT_THRESHOLD)
 
     ############################################
     # BILLING CLIENT OBJECT REQUIRED FUNCTIONS #
     ############################################
 
-    def create_account(self, project_cloud_name, project_cloud_id, primary_user_email):
+    def create_account(self, project_cloud_name, project_cloud_id, primary_user_email, primary_user_cloud_id):
         """
         Function for creating object(s) to represent the Concertim Team for billing.
         """
@@ -69,6 +74,8 @@ class KillbillClient(AbsBillingClient):
             raise EXCP.MissingRequiredArgs('project_cloud_id')
         if not primary_user_email:
             raise EXCP.MissingRequiredArgs('primary_user_email')
+        if not primary_user_cloud_id:
+            raise EXCP.MissingRequiredArgs('primary_user_cloud_id')
 
         # BILLING OBJECT LOGIC
         #-- Create new account object
@@ -84,21 +91,29 @@ class KillbillClient(AbsBillingClient):
         )
         #-- Get response as dict and check for failures
         resp_dict = self._get_dict_from_resp(resp)
+        resp_dict['data'] = resp_dict['data'].to_dict()
         #-- Get account ID located at end of header
         acct_id = resp_dict['headers']['Location'].split('/')[-1]
         #-- Add cloud ID to account as custom field
         field_id = self._add_custom_field(
             obj_type='account', 
             obj_id=acct_id, 
-            field_name='project_cloud_id', 
+            field_name=KillbillClient.PROJECT_BILLING_ID_FIELD, 
             field_value=project_cloud_id
+        )
+        field_id = self._add_custom_field(
+            obj_type='account', 
+            obj_id=acct_id, 
+            field_name='primary_user_cloud_id', 
+            field_value=primary_user_cloud_id
         )
 
         # BUILD RETURN DICT
         self.__LOGGER.debug(f"Building Return dictionary")
         return_dict = {
             'id': acct_id,
-            'account': resp_dict['data']
+            'name': resp_dict['data']['name'],
+            'email': resp_dict['data']['email'],
         }
 
         # RETURN
@@ -116,7 +131,7 @@ class KillbillClient(AbsBillingClient):
             raise EXCP.MissingRequiredArgs('project_billing_id')
         #-- Verify account has enough credits
         remaining_credits = self._get_remaining_credits(project_billing_id)
-        if remaining_credits <= 0:
+        if remaining_credits <= self._credit_threshold:
             return {
                 'data' : "Not enough credits to create a new order for account " + project_billing_id,
                 'status' : 500,
@@ -133,6 +148,7 @@ class KillbillClient(AbsBillingClient):
             created_by="KillbillClient"
         )
         resp_dict = self._get_dict_from_resp(resp)
+        resp_dict['data'] = resp_dict['data'].to_dict()
         #-- Get subscription ID
         sub_id = resp_dict['headers']['Location'].split('/')[-1]
 
@@ -140,16 +156,19 @@ class KillbillClient(AbsBillingClient):
         self.__LOGGER.debug(f"Building Return dictionary")
         return_dict = {
             'id': sub_id,
-            'order': resp_dict['data']
+            'start_date': resp_dict['data']['start_date'],
+            'product_name': resp_dict['data']['product_name'],
+            'billing_period': resp_dict['data']['billing_period'],
+            'account_id': resp_dict['data']['account_id']
         }
         # RETURN
         return return_dict
     
-    def add_usage(self, usage_metric_type, usage_metric_value, cluster_billing_id):
+    def update_usage(self, usage_metric_type, usage_metric_value, cluster_billing_id):
         """
-        Function to add usage data to a User's cluster item in the billing app.
+        Function to update usage data for a User's cluster item in the billing app.
         """
-        self.__LOGGER.debug(f"Posting usage for {cluster_billing_id} : {usage_metric_type} - {usage_metric_value}")
+        self.__LOGGER.debug(f"Updating usage for {cluster_billing_id} : {usage_metric_type} -> {usage_metric_value}")
         # EXIT CASES
         if not self.apis['usage']:
             raise EXCP.NoComponentFound('UsageAPI')
@@ -159,7 +178,22 @@ class KillbillClient(AbsBillingClient):
             raise EXCP.MissingRequiredArgs('usage_metric_type')
 
         # BILLING OBJECT LOGIC
+        start_date = datetime.today().date().replace(day=1)
+        end_date = (begin_date + timedelta(days=32)).replace(day=1)
         METRIC_PREFIX = 'cloud_'
+        # Get current usage and subtract because killbill's record usage is accumlative
+        curr_usage_resp = self.apis['usage'].get_usage_with_http_info(
+            subscription_id=cluster_billing_id,
+            unit_type=METRIC_PREFIX + usage_metric_type,
+            start_date=start_date,
+            end_date=end_date
+        )
+        curr_usage_dict = self._get_dict_from_resp(curr_usage_resp)
+        if len(curr_usage_dict['data'].rolled_up_units) > 0:
+            amount_to_post = usage_metric_value - curr_usage_dict['data'].rolled_up_units[0].amount
+        else:
+            amount_to_post = usage_metric_value
+
         usage_body = {
             "subscriptionId": cluster_billing_id,
             "unitUsageRecords": [
@@ -168,7 +202,7 @@ class KillbillClient(AbsBillingClient):
                     "usageRecords": [
                         {
                             "recordDate": datetime.date.today().strftime("%Y-%m-%d"),
-                            "amount": usage_metric_value,
+                            "amount": amount_to_post,
                         }
                     ],
                 }
@@ -185,7 +219,7 @@ class KillbillClient(AbsBillingClient):
         self.__LOGGER.debug(f"Building Return dictionary")
         return_dict = {
             'submitted': True,
-            'usage': resp_dict['data']
+            'usage': resp_dict['data'].to_dict()
         }
         # RETURN
         return return_dict
@@ -311,6 +345,17 @@ class KillbillClient(AbsBillingClient):
             project_billing_id,
             account_with_balance_and_cba=True
         )
+        cfs = self._get_custom_fields(
+            obj_type='account',
+            obj_id=project_billing_id
+        )
+        puc_id = None
+        pcb_id = None
+        for cf in cfs['data']:
+            if cf['name'] == 'primary_user_cloud_id':
+                puc_id = cf['value']
+            elif cf['name'] == KillbillClient.PROJECT_BILLING_ID_FIELD:
+                pcb_id = cf['value']
         resp_dict = self._get_dict_from_resp(resp)
         resp_dict['data'] = resp_dict['data'].to_dict()
 
@@ -318,7 +363,10 @@ class KillbillClient(AbsBillingClient):
         self.__LOGGER.debug(f"Building Return dictionary")
         return_dict = {
             'id': project_billing_id,
-            'account': resp_dict['data']
+            'name': resp_dict['data']['name'],
+            'primary_user_cloud_id': puc_id,
+            KillbillClient.PROJECT_BILLING_ID_FIELD: pcb_id,
+            'credit_balance': resp['data']['account_cba']
         }
         # RETURN
         return return_dict
@@ -379,6 +427,40 @@ class KillbillClient(AbsBillingClient):
             if sub.state != "ACTIVE":
                 continue
             matches['subscriptions'][cf.object_id] = sub
+            matches['count'] += 1
+        if matches['count'] > 0:
+            return matches
+        return None
+
+    def lookup_project_billing_info(self, project_cloud_id):
+        """
+        Function for killbill to find the account info given the projects's cloud_id
+        """
+        self.__LOGGER.debug(f"Looking for account for Project {project_cloud_id}")
+        # EXIT CASES
+        if not self.apis['custom_field']:
+            raise EXCP.NoComponentFound('CustomFieldAPI')
+        if not project_cloud_id:
+            raise EXCP.MissingRequiredArgs('project_cloud_id')
+
+        # BILLING OBJECT LOGIC
+        resp = self.apis['custom_field'].search_custom_fields_with_http_info(
+            search_key=project_cloud_id
+        )
+        resp_dict = self._get_dict_from_resp(resp)
+        matches = {
+            'count': 0,
+            'accounts': {}
+        }
+        for cf in resp_dict['data']:
+            if cf.object_type != "ACCOUNT" or cf.name != KillbillClient.PROJECT_BILLING_ID_FIELD:
+                continue
+            acct = self.get_account_billing_info(
+                project_billing_id=cf.object_id
+            )
+            if acct.state != "ACTIVE":
+                continue
+            matches['accounts'][cf.object_id] = acct
             matches['count'] += 1
         if matches['count'] > 0:
             return matches
@@ -750,13 +832,11 @@ class KillbillClient(AbsBillingClient):
         self.__LOGGER.debug(f"Getting remaining available credits for account {project_billing_id}")
 
         acct_info = self.get_account_billing_info(project_billing_id)
-        account_credits = -1
-        if 'account_cba' in acct_info['account']:
-            account_credits = acct_info['account']['account_cba']
+        account_credits = acct_info['credit_balance']
 
         draft_invoice_amount = 0
         draft_invoice = self.get_invoice_preview(project_billing_id)
-        if 'amount' in draft_invoice['invoice'] and draft_invoice['invoice']['amount'] is not None and draft_invoice['invoice']['amount'] >= 0:
+        if 'amount' in draft_invoice['invoice'] and draft_invoice['invoice']['amount'] and draft_invoice['invoice']['amount'] >= 0:
             draft_invoice_amount = draft_invoice['invoice']['amount']
         
         self.__LOGGER.debug(f"Remaining credits = current_credits:{account_credits} - incoming_charges:{draft_invoice_amount}")

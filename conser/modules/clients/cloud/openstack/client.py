@@ -47,7 +47,7 @@ class OpenstackClient(AbsCloudClient):
         'project': {
             'id_field': 'project_id'
         },
-        'instance': {
+        'server': {
             'id_field': 'id'
         }
     }
@@ -411,7 +411,7 @@ class OpenstackClient(AbsCloudClient):
         # RETURN
         return metric_vals
 
-    def get_user_info(self, user_cloud_id=None):
+    def get_user_info(self, user_cloud_id):
         """
         Get a user's cloud info
 
@@ -463,7 +463,7 @@ class OpenstackClient(AbsCloudClient):
         # RETURN
         return return_dict
 
-    def get_project_info(self, project_cloud_id=None):
+    def get_project_info(self, project_cloud_id):
         """
         Get cloud info for the given account/project
 
@@ -569,11 +569,14 @@ class OpenstackClient(AbsCloudClient):
 
         Valid obj_types are :
             project
-            instance
+            server
 
         returns a dict in the format
         return_dict = {
-            'cost': 
+            'total_cost':
+            'detailed_cost': {
+                <charge_type>: cost
+            }
         }
         """
         self.__LOGGER.debug(f"Fetching cost for {obj_type}.{obj_cloud_id} starting at {start} and ending at {stop}")
@@ -596,14 +599,20 @@ class OpenstackClient(AbsCloudClient):
             begin=start, 
             end=stop
         )
-        cost = 0
-        for type_res in result_dict:
-            cost = cost + float(result_dict[type_res])
+        total_cost = 0.0
+        detailed_cost = {}
+        for res_type, cost in result_dict.items():
+            total_cost = total_cost + float(cost)
+            if res_type not in detailed_cost:
+                detailed_cost[res_type] = cost
+            else:
+                detailed_cost[res_type] += cost
 
         # BUILD RETURN DICT
         self.__LOGGER.debug(f"Building Return dictionary")
         return_dict = {
-            'cost': cost
+            'total_cost': cost,
+            'detailed_cost': detailed_cost
         }
         
         # RETURN

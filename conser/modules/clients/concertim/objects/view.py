@@ -5,12 +5,14 @@ class ConcertimView(object):
         self.devices = {}
         self.users = {}
         self.templates = {}
+        self.teams = {}
 
     def __repr__(self):
         return f"<ConcertimView: \
                     {{racks:{repr(self.racks)}, \
                     devices:{repr(self.devices)}, \
                     users:{repr(self.users)}, \
+                    teams:{repr(self.teams)}, \
                     templates:{repr(self.templates)}}}>"
 
     def add_device(self, device):
@@ -30,6 +32,12 @@ class ConcertimView(object):
 
     def remove_user(self, user):
         del self.users[user.id]
+
+    def add_team(self, team):
+        self.teams[team.id] = team
+
+    def remove_team(self, team):
+        del self.teams[team.id]
 
     def add_template(self, template):
         self.templates[template.id] = template
@@ -65,6 +73,8 @@ class ConcertimView(object):
             dict_to_search = self.users
         elif object_type == 'templates' or object_type == 'template':
             dict_to_search = self.templates
+        elif object_type == 'teams' or object_type == 'team':
+            dict_to_search = self.teams
         else:
             raise EXCP.InvalidSearchAttempt(object_type)
 
@@ -73,7 +83,7 @@ class ConcertimView(object):
         if id_origin == 'cloud':
             index_to_search = 1
         if id_origin == 'billing':
-            if object_type != 'racks' or object_type != 'rack' or  object_type != 'users' or  object_type != 'user':
+            if object_type not in ['rack', 'racks', 'user', 'users', 'team'. 'teams']:
                 raise EXCP.InvalidSearchAttempt(f"{object_type}.{id_origin}")
             index_to_search = 2
         else:

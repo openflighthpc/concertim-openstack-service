@@ -128,6 +128,10 @@ class TooManyBillingOrders(Exception):
     def __str__(self):
         return f"Cluster ID returned too many billing Orders -> {self.message}"
 
+class TooManyBillingAccounts(Exception):
+    def __str__(self):
+        return f"Project ID returned too many billing Accounts -> {self.message}"
+
 
 ### CONCERTIM
 class ConcertimItemConflict(Exception):

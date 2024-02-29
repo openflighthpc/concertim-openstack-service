@@ -47,9 +47,9 @@ class AbsBillingClient(Client):
         """
     
     @abstractmethod
-    def add_usage(self):
+    def update_usage(self):
         """
-        Function to add usage data to a User's cluster item in the billing app.
+        Function to update usage data for a User's cluster item in the billing app.
         """
 
     @abstractmethod

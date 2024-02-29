@@ -45,13 +45,13 @@ class AbsBillingHandler(Handler):
     @abstractmethod
     def concertim_cost_update(self):
         """
-        Process for updating all Concertim object costs.
+        Process for updating Concertim object costs.
         """
 
     @abstractmethod
     def billing_app_cost_update(self):
         """
-        Process for updating all cost data in the Billing Application.
+        Process for updating cost data in the Billing Application.
         """
 
 class AbsViewHandler(Handler):

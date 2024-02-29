@@ -1,23 +1,18 @@
-class ConcertimUser(object):
+class ConcertimTeam(object):
     def __init__(self, 
         concertim_id=None, 
         cloud_id=None, 
         billing_id=None,
         concertim_name=None, 
         cloud_name=None, 
-        full_name=None, 
-        email=None, 
-        default_project_cloud_id=None, 
-        description='', 
+        description=''
     ):
         self.id = tuple((concertim_id, cloud_id, billing_id))
         self.name = tuple((concertim_name, cloud_name))
         self.description = description
-        self.full_name = full_name
-        self.email = email
-        self.default_project_cloud_id = default_project_cloud_id
-        self.admin_projects_cloud_ids = []
-        self.racks = []
+        self.team_members = []
+        self.team_admins = []
+        self._primary_billing_user_cloud_id = None
         self.billing_period_start = ''
         self.billing_period_end = ''
         self.cost = 0.0
@@ -25,19 +20,17 @@ class ConcertimUser(object):
 
     def __repr__(self):
         return (
-            f"<ConcertimUser:{{ \
+            f"<ConcertimTeam:{{ \
                 id:{repr(self.id)}, \
                 name:{repr(self.name)}, \
                 description:{repr(self.description)}, \
-                full_name:{repr(self.full_name)}, \
-                email:{repr(self.email)}, \
-                default_project_cloud_id:{repr(self.default_project_cloud_id)}, \
-                admin_projects_cloud_ids:{repr(self.admin_projects_cloud_ids)}, \
+                team_members:{repr(self.team_members)}, \
+                team_admins:{repr(self.team_admins)}, \
+                _primary_billing_user_cloud_id:{repr(self._primary_billing_user_cloud_id)}, \
                 billing_period_start:{repr(self.billing_period_start)}, \
                 billing_period_end:{repr(self.billing_period_end)}, \
-                cost:{repr(self.cost)}, \
                 credits:{repr(self.credits)}, \
-                racks:{repr(self.racks)}}}>"
+                cost:{repr(self.cost)}}}>"
         )
 
     def __eq__(self, other):
@@ -46,7 +39,8 @@ class ConcertimUser(object):
                 self.id[0] == other.id[0] 
                 and self.id[1] == other.id[1]
                 and self.id[2] == other.id[2]
-                and self.default_project_cloud_id == other.default_project_cloud_id
+                and self.team_members == other.team_members
+                and self.team_admins == other.team_admins
             )
         return NotImplemented
 
@@ -56,8 +50,14 @@ class ConcertimUser(object):
             return NotImplemented
         return not temp
 
-    def add_rack(self, rack_id_tup):
-        self.racks.append(rack_id_tup)
+    def add_member(self, user_id_tup):
+        self.team_members.append(user_id_tup)
 
-    def remove_rack(self, rack_id_tup):
-        self.racks.remove(rack_id_tup)
+    def remove_member(self, user_id_tup):
+        self.team_members.remove(user_id_tup)
+
+    def add_admin(self, user_id_tup):
+        self.team_admins.append(user_id_tup)
+
+    def remove_admin(self, user_id_tup):
+        self.team_admins.remove(user_id_tup)

@@ -8,6 +8,7 @@ from conser.modules.clients.concertim.objects.device import ConcertimDevice
 from conser.modules.clients.concertim.objects.rack import ConcertimRack
 from conser.modules.clients.concertim.objects.template import ConcertimTemplate
 from conser.modules.clients.concertim.objects.user import ConcertimUser
+from conser.modules.clients.concertim.objects.team import ConcertimTeam
 from conser.modules.clients.concertim.objects.location import Location
 
 # Py Packages
@@ -70,6 +71,10 @@ class SyncHandler(AbsViewHandler):
 
     def pull_concertim_view(self):
         self.__LOGGER.info(f"Starting - Populating Concertim View")
+        #self.fetch_concertim_teams() -- to be implemented with new teams concept - temp solution for now
+        # /TEMP
+        self._build_teams_from_projects()
+        # TEMP/
         self.fetch_concertim_users()
         self.fetch_concertim_templates()
         self.fetch_concertim_racks()
@@ -98,10 +103,9 @@ class SyncHandler(AbsViewHandler):
                 cloud_name='CM_' + con_user['login'], 
                 full_name=con_user['fullname'], 
                 email=con_user['email'], 
-                project_cloud_id=None if not con_user['project_id'] else con_user['project_id'], 
+                default_project_cloud_id=None if not con_user['project_id'] else con_user['project_id'], 
                 description=con_user['description'], 
             )
-            new_user.cost = float(con_user['cost'] if 'cost' in con_user and con_user['cost'] else 0.0)
             new_user.billing_period_start = con_user['billing_period_start'] if 'billing_period_start' in con_user and con_user['billing_period_start'] else ''
             new_user.billing_period_end = con_user['billing_period_end'] if 'billing_period_end' in con_user and con_user['billing_period_end'] else ''
             self.view.add_user(new_user)
@@ -172,7 +176,6 @@ class SyncHandler(AbsViewHandler):
                 new_rack.network_details = con_rack['network_details']
             if 'creation_output' in con_rack and con_rack['creation_output']:
                 new_rack._creation_output = con_rack['creation_output']
-            new_rack.cost = float(rack['cost'] if 'cost' in rack and rack['cost'] else 0.0)
             self.__LOGGER.debug(f"Finished --- New ConcertimRack created in View : {new_rack}")
         self.__LOGGER.debug("Finished -- Fetching Concertim Racks")
 
@@ -194,6 +197,7 @@ class SyncHandler(AbsViewHandler):
 
     def map_concertim_components(self):
         self.__LOGGER.debug("Starting -- Mapping Concertim data to each other")
+        #self.map_users_to_teams() -- to be implemented with new teams concept - _build_teams_from_projects does this currently
         self.map_racks_to_users()
         self.map_devices_to_racks()
         self.__LOGGER.debug("Finished -- Mapping Concertim data")
@@ -203,8 +207,7 @@ class SyncHandler(AbsViewHandler):
         # EXIT CONDITIONS
         # OBJECT LOGIC
         #-- Loop over all existing racks in concertim (View has just finished pulling all concertim data)
-        for rack_id_tup in self.view.racks:
-            rack = self.view.racks[rack_id_tup]
+        for rack_id_tup, rack in self.view.racks.items():
             self.__LOGGER.debug(f"Starting ---- Attempting to map rack {rack.id} to a user")
             #---- Get the rack's corresponding user object (check for cloud_id, then concertim_id if no cloud_id present)
             user = None
@@ -227,6 +230,7 @@ class SyncHandler(AbsViewHandler):
             #---- Reaching here means user is found, so add rack_id_tup to user's racks list
             if rack.id not in self.view.users[user.id].racks:
                 self.view.users[user.id].add_rack(rack.id)
+                self.view.racks[rack.id].user_id_tuple = user.id
                 self.__LOGGER.debug(f"Finished ---- Mapped rack {rack.id} to user {user.id}")
         self.__LOGGER.debug("Finished --- Mapping Racks to existing Users")
 
@@ -234,8 +238,7 @@ class SyncHandler(AbsViewHandler):
         self.__LOGGER.debug("Starting --- Mapping Devices to existing Racks")
         # EXIT CONDITIONS
         #-- Loop over all existing devices in concertim (View has just finished pulling all concertim data)
-        for device_id_tup in self.view.devices:
-            device = self.view.devices[device_id_tup]
+        for device_id_tup, device in self.view.devices.items():
             self.__LOGGER.debug(f"Starting ---- Attempting to map device {device.id} to a rack")
             #---- Get the device's corresponding rack object (check for cloud_id, then concertim_id if no cloud_id present)
             rack = None
@@ -258,6 +261,7 @@ class SyncHandler(AbsViewHandler):
             #---- Reaching here means rack is found, so add device_id_tup to rack's devices list
             if device.id not in self.view.racks[rack.id].devices:
                 self.view.racks[rack.id].add_device(device.id)
+                self.view.devices[device.id].rack_id_tuple = rack.id
                 self.__LOGGER.debug(f"Finished ---- Mapped device {device.id} to rack {rack.id}")
         # OBJECT LOGIC
         self.__LOGGER.debug("Finished --- Mapping Devices to existing Racks")
@@ -715,5 +719,50 @@ class SyncHandler(AbsViewHandler):
             new_device.public_ips = con_device['public_ips'] if 'public_ips' in con_device and con_device['public_ips'] else ''
             new_device.private_ips = con_device['private_ips'] if 'private_ips' in con_device and con_device['private_ips'] else ''
             new_device.login_user = con_device['login_user'] if 'login_user' in con_device and con_device['login_user'] else ''
-            new_device.cost = float(con_device['cost'] if 'cost' in con_device and con_device['cost'] else 0.0)
             return new_device
+
+    def _build_teams_from_projects(self):
+        self.__LOGGER.debug("Starting -- Building Concertim Teams in view based on Concertim Managed projects in cloud")
+        # EXIT CASES
+        if 'cloud' not in self.clients or not self.clients['cloud']:
+            raise EXCP.NoClientFound('cloud')
+        if 'billing' not in self.clients or not self.clients['billing']:
+            raise EXCP.NoClientFound('billing')
+
+        # OBJECT LOGIC
+        cm_projects = self.clients['cloud'].get_all_cm_projects()
+        #-- Loop over all CM_<project>s and find their billing acct
+        for project_cloud_id in cm_projects:
+            self.__LOGGER.debug(f"Starting --- Creating new ConcertimTeam for project {project_cloud_id}")
+            billing_accts = None
+            try:
+                billing_accts = self.clients['billing'].lookup_project_billing_info(
+                    project_cloud_id=project_cloud_id
+                )
+            except Exception as e:
+                self.__LOGGER.error(f"FAILED - Could not retrieve billing info for project {project_cloud_id} - {e} - skipping")
+                continue
+            if billing_accts['count'] < 1:
+                self.__LOGGER.warning(f"WARNING - Not billing account found for project {project_cloud_id} - skipping")
+                continue
+            elif billing_accts['count'] > 1:
+                raise EXCP.TooManyBillingAccounts(project_cloud_id)
+            #-- Reaching here means that the billing acct is found and only 1 exists for the project - get project info and build team
+            project_info = self.clients['cloud'].get_project_info(
+                project_cloud_id=project_cloud_id
+            )
+            billing_acct = billing_accts['accounts'][0]
+            new_team = ConcertimTeam(
+                concertim_id=None, 
+                cloud_id=project_cloud_id, 
+                billing_id=billing_acct['id'],
+                concertim_name=project_info['name'], 
+                cloud_name=project_info['name'], 
+                description="Team created from Cloud by Concertim Service"
+            )
+            new_team.team_members = project_info['users']['team_members']
+            new_team.team_admins = project_info['users']['admins']
+            new_team._primary_billing_user_cloud_id = billing_acct['primary_user_cloud_id']
+            self.view.add_team(new_team)
+            self.__LOGGER.debug(f"Finished --- New ConcertimTeam created in View : {new_team}")
+        self.__LOGGER.debug("Finished -- Building Concertim Teams in view based on Concertim Managed projects in cloud")
