@@ -8,7 +8,7 @@ ARG BUILD_REVISION
 LABEL org.opencontainers.image.created=$BUILD_DATE
 LABEL org.opencontainers.image.version=$BUILD_VERSION
 LABEL org.opencontainers.image.revision=$BUILD_REVISION
-LABEL org.opencontainers.image.title="Concertim Service MQ Listener"
+LABEL org.opencontainers.image.title="Concertim Service Sync View"
 
 # Set the working directory in the container to /app
 WORKDIR /app
@@ -21,4 +21,4 @@ RUN apt-get update -y && apt-get install gcc -y
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Run driver for All-In-One updates process when the container launches
-CMD ["python", "driver.py", "--process=update_queue"]
+CMD ["python", "driver.py", "--process=view_sync"]

@@ -1,0 +1,24 @@
+# Use an official Python runtime as a parent image
+FROM python:3.8-slim-buster
+
+ARG BUILD_DATE
+ARG BUILD_VERSION
+ARG BUILD_REVISION
+
+LABEL org.opencontainers.image.created=$BUILD_DATE
+LABEL org.opencontainers.image.version=$BUILD_VERSION
+LABEL org.opencontainers.image.revision=$BUILD_REVISION
+LABEL org.opencontainers.image.title="Concertim Service Front-End Metrics Updates"
+
+# Set the working directory in the container to /app
+WORKDIR /app
+# Copy the directory contents into the container at /app
+COPY . /app
+
+# REQUIREMENTS
+# Install any needed packages specified in requirements.txt
+RUN apt-get update -y && apt-get install gcc -y
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Run driver for metrics process when the container launches
+CMD ["python", "driver.py", "--process=fe_metrics"]
