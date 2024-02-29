@@ -189,8 +189,7 @@ class SyncHandler(AbsViewHandler):
         con_devices_list = self.clients['concertim'].list_devices()
         for con_device in con_devices_list:
             self.__LOGGER.debug(f"Starting --- Creating new ConcertimDevice -> {con_device['id']}")
-            #-- CHECK FOR DEVICE TYPE HERE
-            new_device = self._create_server_device_from_concertim(con_device)
+            new_device = self._create_device_from_concertim(con_device)
             self.view.add_device(new_device)
             self.__LOGGER.debug(f"Finished --- New ConcertimDevice created in View : {new_device}")  
         self.__LOGGER.debug("Finished -- Fetching Concertim Devices")
@@ -675,7 +674,7 @@ class SyncHandler(AbsViewHandler):
             output_str += f", {output_tup[0]}={output_tup[1]}" if output_str else f"{output_tup[0]}={output_tup[1]}"
         return output_str
 
-    def _create_server_device_from_concertim(self, con_device):
+    def _create_device_from_concertim(self, con_device):
         #-- Parse metadata
             device_cloud_id = None
             rack_cloud_id = None
