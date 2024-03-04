@@ -23,7 +23,7 @@ class Factory(object):
             "openstack": {
                 "queues": [
                     "rmq"
-                ]
+                ],
                 "components": [
                     "cloudkitty",
                     "gnocchi",
@@ -62,8 +62,8 @@ class Factory(object):
 ###############################
 #          MAIN GETs          #
 ###############################
-    @staticmethod
-    def get_handler(handler_type, config, log_file, cloud_auth_dict=None, cloud_components_list=None, enable_concertim_client=True, enable_cloud_client=True, enable_billing_client=True):
+    @classmethod
+    def get_handler(cls, handler_type, config, log_file, cloud_auth_dict=None, cloud_components_list=None, enable_concertim_client=True, enable_cloud_client=True, enable_billing_client=True):
         """
         Returns a concrete implementation of the given handler configuration
 
@@ -82,24 +82,24 @@ class Factory(object):
             raise EXCP.InvalidHandler(handler_type)
 
         if handler_type == "api":
-            handler = _build_api_handler(config, log_file, cloud_auth_dict, cloud_components_list, enable_concertim_client, enable_cloud_client, enable_billing_client)
+            handler = cls._build_api_handler(config, log_file, cloud_auth_dict, cloud_components_list, enable_concertim_client, enable_cloud_client, enable_billing_client)
         elif handler_type == "billing":
-            handler = _build_billing_handler(config, log_file, enable_concertim_client, enable_cloud_client, enable_billing_client)
+            handler = cls._build_billing_handler(config, log_file, enable_concertim_client, enable_cloud_client, enable_billing_client)
         elif handler_type == "fe_metrics":
-            handler = _build_metrics_handler(config, log_file, enable_concertim_client, enable_cloud_client, enable_billing_client)
+            handler = cls._build_metrics_handler(config, log_file, enable_concertim_client, enable_cloud_client, enable_billing_client)
         elif handler_type == "fe_updates":
-            handler = _build_updates_handler(config, log_file, enable_concertim_client, enable_cloud_client, enable_billing_client)
+            handler = cls._build_updates_handler(config, log_file, enable_concertim_client, enable_cloud_client, enable_billing_client)
         elif handler_type == "view_sync":
-            handler = _build_sync_handler(config, log_file, enable_concertim_client, enable_cloud_client, enable_billing_client)
+            handler = cls._build_sync_handler(config, log_file, enable_concertim_client, enable_cloud_client, enable_billing_client)
         elif handler_type == "view_queue":
-            handler = _build_queue_handler(config, log_file, enable_concertim_client, enable_cloud_client, enable_billing_client)
+            handler = cls._build_queue_handler(config, log_file, enable_concertim_client, enable_cloud_client, enable_billing_client)
         else:
             raise EXCP.HandlerNotImplemented(handler_type)
 
         return handler
 
-    @staticmethod
-    def get_client(client_type, client_config, log_file, log_level, client_subtype=None, components_list=None, mq_client=None, mq_config=None):
+    @classmethod
+    def get_client(cls, client_type, client_config, log_file, log_level, client_subtype=None, components_list=None, mq_client=None, mq_config=None):
         """
         Returns a concrete implementation of the given client configuration
 
@@ -116,18 +116,18 @@ class Factory(object):
             raise EXCP.MissingRequiredArgs(f'client_subtype')
 
         if client_type == "concertim":
-            client = _build_concertim_client(client_config, log_file, log_level)
+            client = cls._build_concertim_client(client_config, log_file, log_level)
         elif client_type == "cloud":
-            client = _build_cloud_client(client_subtype, client_config, log_file, log_level, components_list=components_list, mq_client=mq_client, mq_config=mq_config)
+            client = cls._build_cloud_client(client_subtype, client_config, log_file, log_level, components_list=components_list, mq_client=mq_client, mq_config=mq_config)
         elif client_type == "billing":
-            client = _build_billing_client(client_subtype, client_config, log_file, log_level)
+            client = cls._build_billing_client(client_subtype, client_config, log_file, log_level)
         else:
             raise EXCP.ClientNotImplemented(client_type)
         
         return client
 
-    @staticmethod
-    def get_opstk_component(component_name, session_obj, log_file, log_level, mq_config=None):
+    @classmethod
+    def get_opstk_component(cls, component_name, session_obj, log_file, log_level, mq_config=None):
         """
         Returns a concrete implementation of the given Openstack Component object 
         using the given keystoneauth1.session object.
@@ -139,19 +139,19 @@ class Factory(object):
         """
         component = None
         if component_name == "keystone":
-            component = _build_keystone_component(session_obj, log_file, log_level)
+            component = cls._build_keystone_component(session_obj, log_file, log_level)
         elif component_name == "nova":
-            component = _build_nova_component(session_obj, log_file, log_level)
+            component = cls._build_nova_component(session_obj, log_file, log_level)
         elif component_name == "heat":
-            component = _build_heat_component(session_obj, log_file, log_level)
+            component = cls._build_heat_component(session_obj, log_file, log_level)
         elif component_name == "gnocchi":
-            component = _build_gnocchi_component(session_obj, log_file, log_level)
+            component = cls._build_gnocchi_component(session_obj, log_file, log_level)
         elif component_name == "cloudkitty":
-            component = _build_cloudkitty_component(session_obj, log_file, log_level)
+            component = cls._build_cloudkitty_component(session_obj, log_file, log_level)
         elif component_name == 'rmq':
             if not mq_config:
                 raise EXCP.InvalidComponent(f"RMQ has no config passed")
-            component = _build_rmq_component(mq_config, log_file, log_level)
+            component = cls._build_rmq_component(mq_config, log_file, log_level)
         else:
             raise EXCP.ComponentNotImplemented(f"{component_name}")
 
@@ -163,8 +163,8 @@ class Factory(object):
 ###############################
 
 # API
-    @staticmethod
-    def _build_api_handler(config, cloud_auth_dict, cloud_components_list, log_file, enable_concertim_client, enable_cloud_client, enable_billing_client):
+    @classmethod
+    def _build_api_handler(cls, config, cloud_auth_dict, cloud_components_list, log_file, enable_concertim_client, enable_cloud_client, enable_billing_client):
         # IMPORTS
         from conser.modules.handlers.api_handler.handler import APIHandler
         # EXIT CASES
@@ -186,8 +186,8 @@ class Factory(object):
         # CREATE CLIENT MAP
         #-- Create Concertim client
         if enable_concertim_client:
-            concertim_client = get_client(
-                'concertim'
+            concertim_client = cls.get_client(
+                'concertim',
                 config['concertim'],
                 log_file,
                 log_level
@@ -196,8 +196,8 @@ class Factory(object):
             concertim_client = None
         #-- Create Cloud client
         if enable_cloud_client:
-            cloud_client = get_client(
-                'cloud'
+            cloud_client = cls.get_client(
+                'cloud',
                 config[cloud_type],
                 log_file,
                 log_level,
@@ -208,7 +208,7 @@ class Factory(object):
             cloud_client = None
         #-- Create Billing client
         if enable_billing_client:
-            billing_client = get_client(
+            billing_client = cls.get_client(
                 'billing',
                 config[billing_app],
                 log_file,
@@ -234,8 +234,8 @@ class Factory(object):
         return handler
 
 # BILLING    
-    @staticmethod
-    def _build_billing_handler(config, log_file, enable_concertim_client, enable_cloud_client, enable_billing_client):
+    @classmethod
+    def _build_billing_handler(cls, config, log_file, enable_concertim_client, enable_cloud_client, enable_billing_client):
         # IMPORTS
         from conser.modules.handlers.billing_handler.handler import BillingHandler
         # EXIT CASES
@@ -257,15 +257,15 @@ class Factory(object):
         cloud_comps = Factory.DEFAULT_CLOUD_COMPONENTS['billing'][cloud_type]
         # CREATE CLIENT MAP
         #-- Create Concertim client
-        concertim_client = get_client(
-            'concertim'
+        concertim_client = cls.get_client(
+            'concertim',
             config['concertim'],
             log_file,
             log_level
         )
         #-- Create Cloud client
-        cloud_client = get_client(
-            'cloud'
+        cloud_client = cls.get_client(
+            'cloud',
             config[cloud_type],
             log_file,
             log_level,
@@ -273,7 +273,7 @@ class Factory(object):
             components_list=cloud_comps
         )
         #-- Create Billing client
-        billing_client = get_client(
+        billing_client = cls.get_client(
             'billing',
             config[billing_app],
             log_file,
@@ -297,8 +297,8 @@ class Factory(object):
         return handler
 
 # METRICS
-    @staticmethod
-    def _build_metrics_handler(config, log_file, enable_concertim_client, enable_cloud_client, enable_billing_client):
+    @classmethod
+    def _build_metrics_handler(cls, config, log_file, enable_concertim_client, enable_cloud_client, enable_billing_client):
         # IMPORTS
         from conser.modules.handlers.frontend_handler.metrics.handler import MetricsHandler
         # EXIT CASES
@@ -318,15 +318,15 @@ class Factory(object):
         cloud_comps = Factory.DEFAULT_CLOUD_COMPONENTS['fe_metrics'][cloud_type]
         # CREATE CLIENT MAP
         #-- Create Concertim client
-        concertim_client = get_client(
-            'concertim'
+        concertim_client = cls.get_client(
+            'concertim',
             config['concertim'],
             log_file,
             log_level
         )
         #-- Create Cloud client
-        cloud_client = get_client(
-            'cloud'
+        cloud_client = cls.get_client(
+            'cloud',
             config[cloud_type],
             log_file,
             log_level,
@@ -335,7 +335,7 @@ class Factory(object):
         )
         #-- Create Billing client
         if enable_billing_client:
-            billing_client = get_client(
+            billing_client = cls.get_client(
                 'billing',
                 config[billing_app],
                 log_file,
@@ -361,8 +361,8 @@ class Factory(object):
         return handler
 
 # UPDATES
-    @staticmethod
-    def _build_updates_handler(config, log_file, enable_concertim_client, enable_cloud_client, enable_billing_client):
+    @classmethod
+    def _build_updates_handler(cls, config, log_file, enable_concertim_client, enable_cloud_client, enable_billing_client):
         # IMPORTS
         from conser.modules.handlers.frontend_handler.updates.handler import UpdatesHandler
         # EXIT CASES
@@ -380,8 +380,8 @@ class Factory(object):
         cloud_comps = Factory.DEFAULT_CLOUD_COMPONENTS['fe_updates'][cloud_type]
         # CREATE CLIENT MAP
         #-- Create Concertim client
-        concertim_client = get_client(
-            'concertim'
+        concertim_client = cls.get_client(
+            'concertim',
             config['concertim'],
             log_file,
             log_level
@@ -407,8 +407,8 @@ class Factory(object):
         return handler
 
 # SYNC
-    @staticmethod
-    def _build_sync_handler(config, log_file, enable_concertim_client, enable_cloud_client, enable_billing_client):
+    @classmethod
+    def _build_sync_handler(cls, config, log_file, enable_concertim_client, enable_cloud_client, enable_billing_client):
         # IMPORTS
         from conser.modules.handlers.view_handler.sync.handler import SyncHandler
         # EXIT CASES
@@ -430,15 +430,15 @@ class Factory(object):
         cloud_comps = Factory.DEFAULT_CLOUD_COMPONENTS['view_sync'][cloud_type]
         # CREATE CLIENT MAP
         #-- Create Concertim client
-        concertim_client = get_client(
-            'concertim'
+        concertim_client = cls.get_client(
+            'concertim',
             config['concertim'],
             log_file,
             log_level
         )
         #-- Create Cloud client
-        cloud_client = get_client(
-            'cloud'
+        cloud_client = cls.get_client(
+            'cloud',
             config[cloud_type],
             log_file,
             log_level,
@@ -446,7 +446,7 @@ class Factory(object):
             components_list=cloud_comps
         )
         #-- Create Billing client
-        billing_client = get_client(
+        billing_client = cls.get_client(
             'billing',
             config[billing_app],
             log_file,
@@ -470,13 +470,13 @@ class Factory(object):
         return handler
 
 # QUEUE
-    @staticmethod
-    def _build_queue_handler(config, log_file, enable_concertim_client, enable_cloud_client, enable_billing_client):
+    @classmethod
+    def _build_queue_handler(cls, config, log_file, enable_concertim_client, enable_cloud_client, enable_billing_client):
         # IMPORTS
         from conser.modules.handlers.view_handler.queue.handler import QueueHandler
         # EXIT CASES
         if 'message_queue' not in config:
-            raise MissingConfiguration('message_queue')
+            raise EXCP.MissingConfiguration('message_queue')
         cloud_type = config['cloud_type']
         queue_type = config['message_queue']
         if cloud_type not in Factory.CLIENT_OBJECTS['cloud']:
@@ -493,8 +493,8 @@ class Factory(object):
         #-- Create Concertim client
         concertim_client = None
         #-- Create Cloud client
-        cloud_client = get_client(
-            'cloud'
+        cloud_client = cls.get_client(
+            'cloud',
             config[cloud_type],
             log_file,
             log_level,
@@ -528,8 +528,8 @@ class Factory(object):
 ###############################
 
 # CLOUD
-    @staticmethod
-    def _build_cloud_client(cloud_type, cloud_config, log_file, log_level, components_list=None, billing_enabled=False, mq_client=None, mq_config=None):
+    @classmethod
+    def _build_cloud_client(cls, cloud_type, cloud_config, log_file, log_level, components_list=None, billing_enabled=False, mq_client=None, mq_config=None):
         # EXIT CASES
         if cloud_type not in Factory.CLIENT_OBJECTS['cloud']:
             raise EXCP.InvalidClient(cloud_type)
@@ -539,7 +539,7 @@ class Factory(object):
 
         # CLIENT CREATION TREE
         if cloud_type == "openstack":
-            cloud_client = _build_openstack_client(
+            cloud_client = cls._build_openstack_client(
                 openstack_config=cloud_config,
                 components_list=components_list, 
                 log_file=log_file, 
@@ -553,15 +553,15 @@ class Factory(object):
         return cloud_client
 
 # BILLING    
-    @staticmethod
-    def _build_billing_client(billing_app, billing_config, log_file, log_level):
+    @classmethod
+    def _build_billing_client(cls, billing_app, billing_config, log_file, log_level):
         # EXIT CASES
         if billing_app not in Factory.CLIENT_OBJECTS['billing']:
             raise EXCP.InvalidClient(billing_app)
         
         # CLIENT CREATION TREE
         if billing_app == "killbill":
-            billing_client = _build_killbill_client(log_file, log_level)
+            billing_client = cls._build_killbill_client(log_file, log_level)
         
         # RETURN CLIENT
         return billing_client
@@ -577,9 +577,11 @@ class Factory(object):
         # IMPORTS
         from conser.modules.clients.concertim.client import ConcertimClient
         # EXIT CASES
-        if 'concertim_url' not in concertim_config
-        or 'concertim_username' not in concertim_config
-        or 'concertim_password' not in concertim_config:
+        if (
+            'concertim_url' not in concertim_config
+            or 'concertim_username' not in concertim_config
+            or 'concertim_password' not in concertim_config
+        ):
             raise EXCP.MissingConfiguration('concertim_url', 'concertim_username', 'concertim_password')
 
         # CONCERTIM DEFAULTS
@@ -592,8 +594,8 @@ class Factory(object):
         return concertim_client
 
 # OPENSTACK
-    @staticmethod
-    def _build_openstack_client(openstack_config, components_list, log_file, log_level, billing_enabled=False, mq_client=None, mq_config=None):
+    @classmethod
+    def _build_openstack_client(cls, openstack_config, components_list, log_file, log_level, billing_enabled=False, mq_client=None, mq_config=None):
         # IMPORTS
         from conser.modules.clients.cloud.openstack.client import OpenstackClient
         from conser.modules.clients.cloud.openstack.auth import OpenStackAuth
@@ -604,7 +606,7 @@ class Factory(object):
         if mq_client:
             if mq_client not in Factory.CLIENT_OBJECTS['cloud']['openstack']['queues']:
                 raise EXCP.InvalidComponent(f"openstack.queue.{mq_client}")
-            mq_comp = get_opstk_component(
+            mq_comp = cls.get_opstk_component(
                 component_name=mq_client, 
                 session_obj=None, 
                 log_file=log_file, 
@@ -613,7 +615,7 @@ class Factory(object):
             )
             opstk_client = OpenstackClient(
                 openstack_config=openstack_config,
-                components={'mq': mq_comp}
+                components={'mq': mq_comp},
                 log_file=log_file, 
                 log_level=log_level, 
                 required_ks_objs=None
@@ -638,13 +640,13 @@ class Factory(object):
         sess = OpenStackAuth.get_session(openstack_config)   
         components_dict = {}
         for component_name in components_list:
-            components_dict[component_name] = get_opstk_component(component_name, sess, log_file, log_level)
+            components_dict[component_name] = cls.get_opstk_component(component_name, sess, log_file, log_level)
 
         # CREATE CLIENT
         #-- Create/Return Openstack Client
         opstk_client = OpenstackClient(
             openstack_config=openstack_config,
-            components=components_dict
+            components=components_dict,
             log_file=log_file, 
             log_level=log_level, 
             required_ks_objs=keystone_objs
@@ -652,17 +654,19 @@ class Factory(object):
         return opstk_client
     
 # KILLBILL
-    @staticmethod
-    def _build_killbill_client(killbill_config, log_file, log_level):
+    @classmethod
+    def _build_killbill_client(cls, killbill_config, log_file, log_level):
         # IMPORTS
         from conser.modules.clients.billing.killbill.client import KillbillClient
         # EXIT CASES
-        if 'api_host' not in concertim_config
-        or 'username' not in concertim_config
-        or 'password' not in concertim_config
-        or 'apikey' not in concertim_config
-        or 'apisecret' not in concertim_config
-        or 'plan_name' not in concertim_config:
+        if (
+            'api_host' not in killbill_config
+            or 'username' not in killbill_config
+            or 'password' not in killbill_config
+            or 'apikey' not in killbill_config
+            or 'apisecret' not in killbill_config
+            or 'plan_name' not in killbill_config
+        ):
             raise EXCP.MissingConfiguration('api_host', 'username', 'password', 'apikey', 'apisecret', 'plan_name')
 
         # KILLBILL DEFAULTS
