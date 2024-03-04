@@ -83,7 +83,7 @@ class ConcertimView(object):
         if id_origin == 'cloud':
             index_to_search = 1
         if id_origin == 'billing':
-            if object_type not in ['rack', 'racks', 'user', 'users', 'team'. 'teams']:
+            if object_type not in ['rack', 'racks', 'user', 'users', 'team', 'teams']:
                 raise EXCP.InvalidSearchAttempt(f"{object_type}.{id_origin}")
             index_to_search = 2
         else:
@@ -118,7 +118,7 @@ class ConcertimView(object):
         """
         dicts_to_merge = ['templates', 'devices', 'racks', 'users']
         for dict_name in dicts_to_merge:
-            getattr(self, dict_name) = getattr(other_view, dict_name)
+            self[dict_name] = { **self.get(dict_name, {}), **other_view.get(dict_name, {}) }
 
     def delete_stale_items(self):
         """
@@ -149,6 +149,3 @@ class ConcertimView(object):
                 matching = True
                 break
         return matching
-
-
-

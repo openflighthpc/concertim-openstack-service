@@ -7,10 +7,12 @@ from conser.modules.clients.concertim.objects.view import ConcertimView
 import pickle
 import os
 from datetime import datetime
+import yaml
+
 
 # HELPERS
 def load_config():
-    CONFIG_FILE = app_paths.CONFIG_FILE
+    config_file = app_paths.CONFIG_FILE
     with open(config_file, 'r') as f:
         config = yaml.safe_load(f)
     

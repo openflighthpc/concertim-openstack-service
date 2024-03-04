@@ -1,14 +1,15 @@
 # Local Imports
+from conser.factory.factory import Factory
 from conser.utils.service_logger import create_logger
 import conser.utils.common as UTILS
 import conser.app_definitions as app_paths
-import conser.factory.factory.Factory as Factory
 import conser.exceptions as EXCP
 # Py Packages
 import time
 import importlib
 import argparse
 from datetime import datetime
+import sys
 
 # GLOBAL VARS
 CONFIG_FILE = app_paths.CONFIG_FILE
