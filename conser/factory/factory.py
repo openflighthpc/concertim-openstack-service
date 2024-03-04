@@ -23,7 +23,7 @@ class Factory(object):
             "openstack": {
                 "queues": [
                     "rmq"
-                ]
+                ],
                 "components": [
                     "cloudkitty",
                     "gnocchi",
@@ -187,7 +187,7 @@ class Factory(object):
         #-- Create Concertim client
         if enable_concertim_client:
             concertim_client = get_client(
-                'concertim'
+                'concertim',
                 config['concertim'],
                 log_file,
                 log_level
@@ -197,7 +197,7 @@ class Factory(object):
         #-- Create Cloud client
         if enable_cloud_client:
             cloud_client = get_client(
-                'cloud'
+                'cloud',
                 config[cloud_type],
                 log_file,
                 log_level,
@@ -258,14 +258,14 @@ class Factory(object):
         # CREATE CLIENT MAP
         #-- Create Concertim client
         concertim_client = get_client(
-            'concertim'
+            'concertim',
             config['concertim'],
             log_file,
             log_level
         )
         #-- Create Cloud client
         cloud_client = get_client(
-            'cloud'
+            'cloud',
             config[cloud_type],
             log_file,
             log_level,
@@ -319,14 +319,14 @@ class Factory(object):
         # CREATE CLIENT MAP
         #-- Create Concertim client
         concertim_client = get_client(
-            'concertim'
+            'concertim',
             config['concertim'],
             log_file,
             log_level
         )
         #-- Create Cloud client
         cloud_client = get_client(
-            'cloud'
+            'cloud',
             config[cloud_type],
             log_file,
             log_level,
@@ -381,7 +381,7 @@ class Factory(object):
         # CREATE CLIENT MAP
         #-- Create Concertim client
         concertim_client = get_client(
-            'concertim'
+            'concertim',
             config['concertim'],
             log_file,
             log_level
@@ -431,14 +431,14 @@ class Factory(object):
         # CREATE CLIENT MAP
         #-- Create Concertim client
         concertim_client = get_client(
-            'concertim'
+            'concertim',
             config['concertim'],
             log_file,
             log_level
         )
         #-- Create Cloud client
         cloud_client = get_client(
-            'cloud'
+            'cloud',
             config[cloud_type],
             log_file,
             log_level,
@@ -494,7 +494,7 @@ class Factory(object):
         concertim_client = None
         #-- Create Cloud client
         cloud_client = get_client(
-            'cloud'
+            'cloud',
             config[cloud_type],
             log_file,
             log_level,
@@ -577,9 +577,9 @@ class Factory(object):
         # IMPORTS
         from conser.modules.clients.concertim.client import ConcertimClient
         # EXIT CASES
-        if 'concertim_url' not in concertim_config
+        if ('url' not in concertim_config
         or 'concertim_username' not in concertim_config
-        or 'concertim_password' not in concertim_config:
+        or 'concertim_password' not in concertim_config):
             raise EXCP.MissingConfiguration('concertim_url', 'concertim_username', 'concertim_password')
 
         # CONCERTIM DEFAULTS
@@ -613,7 +613,7 @@ class Factory(object):
             )
             opstk_client = OpenstackClient(
                 openstack_config=openstack_config,
-                components={'mq': mq_comp}
+                components={'mq': mq_comp},
                 log_file=log_file, 
                 log_level=log_level, 
                 required_ks_objs=None
@@ -644,7 +644,7 @@ class Factory(object):
         #-- Create/Return Openstack Client
         opstk_client = OpenstackClient(
             openstack_config=openstack_config,
-            components=components_dict
+            components=components_dict,
             log_file=log_file, 
             log_level=log_level, 
             required_ks_objs=keystone_objs
@@ -657,12 +657,12 @@ class Factory(object):
         # IMPORTS
         from conser.modules.clients.billing.killbill.client import KillbillClient
         # EXIT CASES
-        if 'api_host' not in concertim_config
+        if ('api_host' not in concertim_config
         or 'username' not in concertim_config
         or 'password' not in concertim_config
         or 'apikey' not in concertim_config
         or 'apisecret' not in concertim_config
-        or 'plan_name' not in concertim_config:
+        or 'plan_name' not in concertim_config):
             raise EXCP.MissingConfiguration('api_host', 'username', 'password', 'apikey', 'apisecret', 'plan_name')
 
         # KILLBILL DEFAULTS
