@@ -11,7 +11,7 @@ ENDPOINTS = {
                             }
                         }
                     },
-                    'CREATE_DEVICE':{
+                    'CREATE_COMPUTE_DEVICE':{
                         'endpoint': '/api/v1/nodes',
                         'required_vars': ['template_id', 'name', 'description', 'facing', 'rack_id', 'start_u', 'status'],
                         'data': {

@@ -243,7 +243,7 @@ class UpdatesHandler(Handler):
         self.__LOGGER.debug(f"Starting --- Creating new device {device_obj.id}")
         # OBJECT LOGIC
         try:
-            self.clients['concertim'].create_device(
+            self.clients['concertim'].create_compute_device(
                 variables_dict={
                     "template_id": device_obj.template.id[0],
                     "name": device_obj.name[1],
