@@ -84,8 +84,8 @@ class CloudkittyComponent(OpstkBaseComponent):
             self.__LOGGER.debug("Object rating summary: %s", resource_rating_summary)
             return resource_rating_summary
         except ValueError as ve:
-            self.__LOGGER.error("Cloudkitty rating empty for object %s", obj_id)
-            raise ve
+            self.__LOGGER.warning("Cloudkitty rating empty for object %s - returning empty dict", obj_id)
+            return {}
         except Exception as e:
             self.__LOGGER.error("Error getting rating summary: %s", e)
             raise e

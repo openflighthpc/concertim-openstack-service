@@ -614,7 +614,7 @@ class OpenstackClient(AbsCloudClient):
         # BUILD RETURN DICT
         self.__LOGGER.debug(f"Building Return dictionary")
         return_dict = {
-            'total_cost': cost,
+            'total_cost': total_cost,
             'detailed_cost': detailed_cost
         }
         

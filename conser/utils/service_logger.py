@@ -48,7 +48,7 @@ def create_logger(name, log_file, level):
 class SensitiveFormatter(logging.Formatter):
     def format(self, record):
         original = logging.Formatter.format(self, record)
-        pattern = r'(\b\w*password\w*\b:)\s?[\w\d!@#$%^&*.]+,*'
+        pattern = r'(\b\w*password\w*\b[\'\"]?:)\s?[\w\d!@#$%^&*.\'\"]+,*'
         split = re.split(pattern, original)
         filtered = ""
         needs_comma = False
@@ -57,7 +57,7 @@ class SensitiveFormatter(logging.Formatter):
                 filtered += ","
                 needs_comma = False
             if "password" in s:
-                filtered += f"{s}*****"
+                filtered += f"{s}************"
                 needs_comma = True
             else:
                 filtered += s

@@ -176,6 +176,7 @@ class SyncHandler(AbsViewHandler):
                 new_rack.network_details = con_rack['network_details']
             if 'creation_output' in con_rack and con_rack['creation_output']:
                 new_rack._creation_output = con_rack['creation_output']
+            self.view.add_rack(new_rack)
             self.__LOGGER.debug(f"Finished --- New ConcertimRack created in View : '{new_rack}'")
         self.__LOGGER.debug("Finished -- Fetching Concertim Racks")
 
@@ -212,12 +213,14 @@ class SyncHandler(AbsViewHandler):
             #---- Get the rack's corresponding user object (check for cloud_id, then concertim_id if no cloud_id present)
             user = None
             if rack.user_id_tuple[1] and not user:
+                self.__LOGGER.debug(f"Searching for User using Cloud ID")
                 user = self.view.search(
                     object_type='user',
                     id_value=rack.user_id_tuple[1],
                     id_origin='cloud'
                 )
             if rack.user_id_tuple[0] and not user:
+                self.__LOGGER.debug(f"Searching for User using Concertim ID")
                 user = self.view.search(
                     object_type='user',
                     id_value=rack.user_id_tuple[0],
@@ -243,12 +246,14 @@ class SyncHandler(AbsViewHandler):
             #---- Get the device's corresponding rack object (check for cloud_id, then concertim_id if no cloud_id present)
             rack = None
             if device.rack_id_tuple[1] and not rack:
+                self.__LOGGER.debug(f"Searching for rack using Cloud ID")
                 rack = self.view.search(
                     object_type='rack',
                     id_value=device.rack_id_tuple[1],
                     id_origin='cloud'
                 )
             if device.rack_id_tuple[0] and not rack:
+                self.__LOGGER.debug(f"Searching for rack using Concertim ID")
                 rack = self.view.search(
                     object_type='rack',
                     id_value=device.rack_id_tuple[0],
@@ -260,7 +265,7 @@ class SyncHandler(AbsViewHandler):
                 continue
             #---- Reaching here means rack is found, so add device_id_tup to rack's devices list
             if device.id not in self.view.racks[rack.id].devices:
-                self.view.racks[rack.id].add_device(device.id)
+                self.view.racks[rack.id].add_device(device.id, device.location)
                 self.view.devices[device.id].rack_id_tuple = rack.id
                 self.__LOGGER.debug(f"Finished ---- Mapped device '{device.id}' to rack '{rack.id}'")
         # OBJECT LOGIC

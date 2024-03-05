@@ -1,6 +1,6 @@
 # Local Imports
 from conser.utils.service_logger import create_logger
-import conser.api.exceptions as EXCP
+import conser.exceptions as EXCP
 from conser.factory.abs_classes.components import Component
 import conser.utils.common as UTILS
 
@@ -14,25 +14,22 @@ class RMQComponent(Component):
         self._LOG_LEVEL = log_level
         self.__LOGGER = create_logger(__name__, self._LOG_FILE, self._LOG_LEVEL)
         self.__LOGGER.info("CREATING RABBIT MQ COMPONENT")
-        self.client = self.get_connection_obj(queue_config)
-        ############
-        # DEFAULTS #
-        ############
         self.event_types = [
             'compute.instance',
             'orchestration.stack'
         ]
         self.queue = 'notifications.info'
+        self.client = self.get_connection_obj(queue_config)
 
     def get_connection_obj(self, config_dict):
         # Get creds
-        mq_username = config_dict['rmq']['rmq_username']
-        mq_password = config_dict['rmq']['rmq_password']
+        mq_username = config_dict['rmq_username']
+        mq_password = config_dict['rmq_password']
         creds = pika.PlainCredentials(mq_username, mq_password)
         # Get Params
-        mq_address = config_dict['rmq']['rmq_address']
-        mq_port = config_dict['rmq']['rmq_port']
-        mq_path = config_dict['rmq']['rmq_path']
+        mq_address = config_dict['rmq_address']
+        mq_port = config_dict['rmq_port']
+        mq_path = config_dict['rmq_path']
         parameters = pika.ConnectionParameters(mq_address, mq_port, mq_path, creds)
         # Get channel
         connection = pika.BlockingConnection(parameters)
@@ -64,7 +61,7 @@ class RMQComponent(Component):
         self.__LOGGER.debug(f"Creating RESYNC HOLD file")
         UTILS.check_resync_hold()
         for evnt_t in self.event_types:
-            if message['event_type'].startswith(evnt_t)
+            if message['event_type'].startswith(evnt_t):
                 self.__LOGGER.debug(f"Creating RESYNC FLAG file")
                 UTILS.create_resync_flag()
                 self.__LOGGER.debug(f"Deleting RESYNC HOLD file")

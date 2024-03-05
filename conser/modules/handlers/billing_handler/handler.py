@@ -1,6 +1,6 @@
 # Local Imports
 from conser.utils.service_logger import create_logger
-from conser.factory.abs_classes.handlers import Handler
+from conser.factory.abs_classes.handlers import AbsBillingHandler
 import conser.exceptions as EXCP
 import conser.utils.common as UTILS
 
@@ -37,7 +37,7 @@ class BillingHandler(AbsBillingHandler):
 
         # OBJECT LOGIC
         start_date = datetime.today().date().replace(day=1)
-        end_date = (begin_date + timedelta(days=32)).replace(day=1)
+        end_date = (start_date + timedelta(days=32)).replace(day=1)
 
         self.update_device_costs(start_date, end_date)
         self.update_rack_costs(start_date, end_date)
@@ -150,7 +150,7 @@ class BillingHandler(AbsBillingHandler):
             ],
             'rack': [
                 'cost'
-            ]
+            ],
             'user': [
                 'cost',
                 'billing_period_start',
