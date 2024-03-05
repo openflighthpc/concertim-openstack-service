@@ -1,13 +1,13 @@
 class ConcertimDevice(object):
-    def __init__(self,  
+    def __init__(self,
         concertim_id=None,
-        cloud_id=None, 
-        concertim_name=None, 
-        cloud_name=None, 
-        rack_id_tuple=None, 
-        template=None, 
-        location=None, 
-        description='', 
+        cloud_id=None,
+        concertim_name=None,
+        cloud_name=None,
+        rack_id_tuple=None,
+        template=None,
+        location=None,
+        description='',
         status=None
     ):
         self.id = tuple((concertim_id, cloud_id))
