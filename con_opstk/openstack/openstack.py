@@ -396,11 +396,20 @@ class OpenstackService(object):
         instances = []
         stack_instance_resources = heat.list_stack_resources(stack_id=stack_id, type='OS::Nova::Server')
         stack_server_group_resources = heat.list_stack_resources(stack_id=stack_id, type='OS::Nova::ServerGroup')
+        stack_resource_group_resources = heat.list_stack_resources(stack_id=stack_id, type='OS::Heat::ResourceGroup')
         # server group parsing
         if stack_server_group_resources:
             for sg_r in stack_server_group_resources:
                 nova_sg = nova.get_server_group(sg_r.physical_resource_id)
                 instance_ids = instance_ids + nova_sg._info['members']
+        # resource group parsing
+        if stack_resource_group_resources:
+            for top_level_rg in stack_resource_group_resources:
+                group_entries = heat.list_stack_resources(stack_id=top_level_rg.physical_resource_id)
+                for entry in group_entries:
+                    servers = heat.list_stack_resources(stack_id=entry.physical_resource_id, type='OS::Nova::Server')
+                    for s in servers:
+                        instance_ids.append(s.physical_resource_id)
         # instance parsing
         if stack_instance_resources:
             for inst_r in stack_instance_resources:
