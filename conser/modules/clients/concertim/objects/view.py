@@ -116,11 +116,9 @@ class ConcertimView(object):
         """
         As of v1.2.0 merging consists of using all data from the other view, overwriting existing data
         """
-        self.users = other_view.users
-        self.racks = other_view.racks
-        self.devices = other_view.devices
-        self.templates = other_view.templates
-        self.teams = other_view.teams
+        dicts_to_merge = ['templates', 'devices', 'racks', 'users', 'teams']
+        for dict_name in dicts_to_merge:
+            setattr(self, dict_name, getattr(other_view, dict_name))
 
     def delete_stale_items(self):
         """
