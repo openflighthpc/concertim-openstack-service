@@ -6,12 +6,13 @@ from conser.modules.clients.concertim.objects.view import ConcertimView
 # Py Packages
 import pickle
 import os
+import yaml
 from datetime import datetime
 
 # HELPERS
 def load_config():
     CONFIG_FILE = app_paths.CONFIG_FILE
-    with open(config_file, 'r') as f:
+    with open(CONFIG_FILE, 'r') as f:
         config = yaml.safe_load(f)
     
     if "cloud_type" not in config:
@@ -37,7 +38,7 @@ def load_view():
             view = pickle.load(pkl_file)
         return view
     except Exception as e:
-        raise e(f"Could not load view from {view_location}")
+        raise Exception(f"Could not load view from {view_location} -> {e}")
 
 def merge_views():
     view_location = app_paths.DATA_DIR
@@ -53,8 +54,11 @@ def merge_views():
         # Grab only view files with a timestamp
         if file_name.endswith('.pickle') and '~' in file_name:
             # Merge
+            print(f"Merging {file_name}")
             with open(view_location+file_name, 'rb') as t_view:
-                latest_view = latest_view.merge(t_view)
+                temp_view = pickle.load(t_view)
+                latest_view.merge(temp_view)
+            os.remove(view_location+file_name)
 
     # Delete any stale items from the view after merge
     latest_view.delete_stale_items()
@@ -67,9 +71,7 @@ def merge_views():
         with open(save_location, 'wb') as pkl_file:
             pickle.dump(latest_view, pkl_file, protocol=pickle.HIGHEST_PROTOCOL)
     except Exception as e:
-        raise e(f"Could not save View after merging to {save_location}")
-
-
+        raise Exception(f"Could not save View after merging to {save_location} -> {e}")
 
 def save_view(view_to_save):
     view_location = app_paths.DATA_DIR + "view~" + datetime.now().strftime("%Y-%m-%d-%H-%M-%S") + ".pickle"
@@ -79,7 +81,7 @@ def save_view(view_to_save):
         with open(view_location, 'wb') as pkl_file:
             pickle.dump(view_to_save, pkl_file, protocol=pickle.HIGHEST_PROTOCOL)
     except Exception as e:
-        raise e(f"Could not save View to {view_location}")
+        raise Exception(f"Could not save View to {view_location} -> {e}")
 
 def create_resync_flag():
     flag_location = app_paths.DATA_DIR + "resync.flag"
@@ -89,7 +91,7 @@ def create_resync_flag():
         with open(flag_location, 'wb') as flag_file:
             flag_file.write(" ")
     except Exception as e:
-        raise e(f"Could not create flag file at {flag_location}")
+        raise Exception(f"Could not create flag file at {flag_location} -> {e}")
 
 def check_resync_flag():
     flag_location = app_paths.DATA_DIR + "resync.flag"
@@ -98,7 +100,7 @@ def check_resync_flag():
             return True
         return False
     except Exception as e:
-        raise e(f"Could not check for flag file at {flag_location}")
+        raise Exception(f"Could not check for flag file at {flag_location} -> {e}")
 
 def delete_resync_flag():
     flag_location = app_paths.DATA_DIR + "resync.flag"
@@ -106,7 +108,7 @@ def delete_resync_flag():
         if os.path.exists(flag_location):
             os.remove(flag_location)
     except Exception as e:
-        raise e(f"Could not delete flag file at {flag_location}")
+        raise Exception(f"Could not delete flag file at {flag_location} -> {e}")
 
 def create_resync_hold():
     hold_location = app_paths.DATA_DIR + "resync.hold"
@@ -116,7 +118,7 @@ def create_resync_hold():
         with open(hold_location, 'wb') as hold_file:
             hold_file.write(" ")
     except Exception as e:
-        raise e(f"Could not create hold file at {hold_location}")
+        raise Exception(f"Could not create hold file at {hold_location} -> {e}")
 
 def check_resync_hold():
     hold_location = app_paths.DATA_DIR + "resync.hold"
@@ -125,7 +127,7 @@ def check_resync_hold():
             return True
         return False
     except Exception as e:
-        raise e(f"Could not check for hold file at {hold_location}")
+        raise Exception(f"Could not check for hold file at {hold_location} -> {e}")
 
 def delete_resync_hold():
     hold_location = app_paths.DATA_DIR + "resync.hold"
@@ -133,4 +135,4 @@ def delete_resync_hold():
         if os.path.exists(hold_location):
             os.remove(hold_location)
     except Exception as e:
-        raise e(f"Could not delete hold file at {hold_location}")
+        raise Exception(f"Could not delete hold file at {hold_location} -> {e}")

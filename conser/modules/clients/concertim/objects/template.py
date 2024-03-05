@@ -21,14 +21,14 @@ class ConcertimTemplate(object):
 
     def __repr__(self):
         return (
-            f"<ConcertimTemplate:{{ \
-                id:{repr(self.id)}, \
-                name:{repr(self.name)}, \
-                description:{repr(self.description)}, \
-                size:{repr(self.size)}, \
-                vcpus:{repr(self.vcpus)}, \
-                disk:{repr(self.disk)}, \
-                ram:{repr(self.ram)}}}>"
+            f"<ConcertimTemplate:{{ "
+                f"id:{repr(self.id)}, "
+                f"name:{repr(self.name)}, "
+                f"description:{repr(self.description)}, "
+                f"size:{repr(self.size)}, "
+                f"vcpus:{repr(self.vcpus)}, "
+                f"disk:{repr(self.disk)}, "
+                f"ram:{repr(self.ram)}}}>"
         )
     
     def __eq__(self, other):

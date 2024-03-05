@@ -20,17 +20,17 @@ class ConcertimTeam(object):
 
     def __repr__(self):
         return (
-            f"<ConcertimTeam:{{ \
-                id:{repr(self.id)}, \
-                name:{repr(self.name)}, \
-                description:{repr(self.description)}, \
-                team_members:{repr(self.team_members)}, \
-                team_admins:{repr(self.team_admins)}, \
-                _primary_billing_user_cloud_id:{repr(self._primary_billing_user_cloud_id)}, \
-                billing_period_start:{repr(self.billing_period_start)}, \
-                billing_period_end:{repr(self.billing_period_end)}, \
-                credits:{repr(self.credits)}, \
-                cost:{repr(self.cost)}}}>"
+            f"<ConcertimTeam:{{ "
+                f"id:{repr(self.id)}, "
+                f"name:{repr(self.name)}, "
+                f"description:{repr(self.description)}, "
+                f"team_members:{repr(self.team_members)}, "
+                f"team_admins:{repr(self.team_admins)}, "
+                f"_primary_billing_user_cloud_id:{repr(self._primary_billing_user_cloud_id)}, "
+                f"billing_period_start:{repr(self.billing_period_start)}, "
+                f"billing_period_end:{repr(self.billing_period_end)}, "
+                f"credits:{repr(self.credits)}, "
+                f"cost:{repr(self.cost)}}}>"
         )
 
     def __eq__(self, other):

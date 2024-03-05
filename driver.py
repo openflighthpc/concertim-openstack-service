@@ -2,10 +2,11 @@
 from conser.utils.service_logger import create_logger
 import conser.utils.common as UTILS
 import conser.app_definitions as app_paths
-import conser.factory.factory.Factory as Factory
+from conser.factory.factory import Factory
 import conser.exceptions as EXCP
 # Py Packages
 import time
+import sys
 import importlib
 import argparse
 from datetime import datetime
@@ -46,11 +47,11 @@ def main(args):
     # CREATE CONFIG DICT
     conf_dict = UTILS.load_config()
     # CREATE LOG FILE STRING
-    log_file = LOG_DIR + arguments.process + datetime.now().strftime("%d-%m-%Y") + ".log"
+    log_file = LOG_DIR + arguments.process + '~' + datetime.now().strftime("%d-%m-%Y") + ".log"
     # MAIN PROCESS TREE
     if arguments.process == 'fe_metrics':
         start_metrics_process(conf_dict, log_file, run_once=arguments.run_once)
-    if arguments.process == 'fe_updates':
+    elif arguments.process == 'fe_updates':
         start_updates_process(conf_dict, log_file, run_once=arguments.run_once)
     elif arguments.process == 'view_sync':
         start_sync_process(conf_dict, log_file, run_once=arguments.run_once)
@@ -88,9 +89,8 @@ def start_metrics_process(config, log_file, run_once=False):
             retries = 0
         except Exception as e:
             logger.error(f"Unexpected exception has caused the Metrics loop to terminate : {type(e).__name__} - {e}")
-            logger.warning(f"Trying loop again in 5 seconds")
+            logger.warning(f"Trying loop again in 5 seconds\n")
             retries += 1
-            continue
         finally:
             if run_once:
                 break
@@ -122,9 +122,8 @@ def start_updates_process(config, log_file, run_once=False):
             retries = 0
         except Exception as e:
             logger.error(f"Unexpected exception has caused the Updates loop to terminate : {type(e).__name__} - {e}")
-            logger.warning(f"Trying loop again in 5 seconds")
+            logger.warning(f"Trying loop again in 5 seconds\n")
             retries += 1
-            continue
         finally:
             if run_once:
                 break
@@ -156,10 +155,9 @@ def start_billing_process(config, log_file, run_once=False):
             retries = 0
         except Exception as e:
             logger.error(f"Unexpected exception has caused the Billing loop to terminate : {type(e).__name__} - {e}")
-            logger.warning(f"Trying loop again in 5 seconds")
+            logger.warning(f"Trying loop again in 5 seconds\n")
             retries += 1
             time.sleep(5)
-            continue
         finally:
             if run_once:
                 break
@@ -193,16 +191,14 @@ def start_sync_process(config, log_file, run_once=False):
             retries = 0
         except Exception as e:
             logger.error(f"Unexpected exception has caused the Update Sync loop to terminate : {type(e).__name__} - {e}")
-            logger.warning(f"Trying loop again in 5 seconds")
+            logger.warning(f"Trying loop again in 5 seconds\n")
             retries += 1
             time.sleep(5)
-            continue
         finally:
             if run_once:
                 break
             if retries >= 5:
                 raise Exception(f"View Sync Loop continually failing - please check logs - {log_file}")
-            continue
 
 
 def start_queue_process(config, log_file, run_once=False):

@@ -32,7 +32,7 @@ class OpenStackAuth:
     }
 
     def get_session(config_dict):
-        password_obj, auth_dict = _get_auth_set(conf_dict)
+        password_obj, auth_dict = OpenStackAuth._get_auth_set(config_dict)
         return session.Session(auth=password_obj(**auth_dict))
 
     def _get_auth_set(config_dict):
@@ -44,7 +44,7 @@ class OpenStackAuth:
         # VALIDATE
         valid = False
         pass_obj = None
-        for method, auth_sets in OpenStackAuth.AUTHENTICATION_AUTHORIZED_SETS:
+        for method, auth_sets in OpenStackAuth.AUTHENTICATION_AUTHORIZED_SETS.items():
             for auth_set in auth_sets:
                 if auth_set.issubset(auth_dict.keys()):
                     valid = True

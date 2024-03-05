@@ -12,7 +12,7 @@ class KeystoneComponent(OpstkBaseComponent):
         super().__init__(sess, log_file, log_level)
         self.__LOGGER = create_logger(__name__, self._LOG_FILE, self._LOG_LEVEL)
         self.__LOGGER.info("CREATING KEYSTONE COMPONENT")
-        self.client = self.get_connection_obj(self._SESSION)
+        self.client = self.get_connection_obj(sess)
 
     def get_connection_obj(self, sess):
         start_time = time.time()
@@ -38,7 +38,7 @@ class KeystoneComponent(OpstkBaseComponent):
                 return projects
             self.__LOGGER.debug(f"Getting all projects")
             projects = self.client.projects.list()
-            self.__LOGGER.debug(f"PROJECTS : {projects}")
+            #self.__LOGGER.debug(f"PROJECTS : {projects}")
             return projects
         except Exception as e:
             self.__LOGGER.error(f"An unexpected error : {type(e).__name__} - {e}")
@@ -50,6 +50,24 @@ class KeystoneComponent(OpstkBaseComponent):
             project = self.client.projects.get(ID)
             self.__LOGGER.debug(f"Project {project} found.")
             return project
+        except Exception as e:
+            self.__LOGGER.error(f"An unexpected error : {type(e).__name__} - {e}")
+            raise e
+
+    def get_project_by_name(self, name):
+        try:
+            self.__LOGGER.debug(f"Getting Openstack Project : {name}")
+            proj_list = self.client.projects.list(name=name)
+            if not proj_list:
+                self.__LOGGER.error(f"Project {name} not found, returning None")
+                return None
+            elif len(proj_list) > 1:
+                self.__LOGGER.debug(f"Multiple Projects matching name {name} found, returning list of matching Projects")
+                return proj_list
+            else:
+                project = proj_list[0]
+                self.__LOGGER.debug(f"Project {project} found.")
+                return project
         except Exception as e:
             self.__LOGGER.error(f"An unexpected error : {type(e).__name__} - {e}")
             raise e
@@ -76,7 +94,7 @@ class KeystoneComponent(OpstkBaseComponent):
         try:
             self.__LOGGER.debug(f"Getting all users")
             users = self.client.users.list()
-            self.__LOGGER.debug(f"USERS : {users}")
+            #self.__LOGGER.debug(f"USERS : {users}")
             return users
         except Exception as e:
             self.__LOGGER.error(f"An unexpected error : {type(e).__name__} - {e}")
@@ -88,6 +106,24 @@ class KeystoneComponent(OpstkBaseComponent):
             user = self.client.users.get(ID)
             self.__LOGGER.debug(f"User {user} found.")
             return user
+        except Exception as e:
+            self.__LOGGER.error(f"An unexpected error : {type(e).__name__} - {e}")
+            raise e
+
+    def get_user_by_name(self, name):
+        try:
+            self.__LOGGER.debug(f"Getting Openstack User : {name}")
+            users_list = self.client.users.list(name=name)
+            if not users_list:
+                self.__LOGGER.error(f"User {name} not found, returning None")
+                return None
+            elif len(users_list) > 1:
+                self.__LOGGER.debug(f"Multiple User matching name {name} found, returning list of matching Users")
+                return users_list
+            else:
+                user = users_list[0]
+                self.__LOGGER.debug(f"User {user} found.")
+                return user
         except Exception as e:
             self.__LOGGER.error(f"An unexpected error : {type(e).__name__} - {e}")
             raise e
@@ -112,7 +148,7 @@ class KeystoneComponent(OpstkBaseComponent):
             self.__LOGGER.error(f"An unexpected error : {type(e).__name__} - {e}")
             raise e
 
-    def get_role(self, name):
+    def get_role_by_name(self, name):
         try:
             self.__LOGGER.debug(f"Getting Openstack Role : {name}")
             roles_list = self.client.roles.list(name=name)
@@ -130,7 +166,7 @@ class KeystoneComponent(OpstkBaseComponent):
             self.__LOGGER.error(f"An unexpected error : {type(e).__name__} - {e}")
             raise e
 
-    def get_role_by_id(self, ID):
+    def get_role(self, ID):
         try:
             self.__LOGGER.debug(f"Getting Openstack Role : {ID}")
             role = self.client.roles.get(ID)

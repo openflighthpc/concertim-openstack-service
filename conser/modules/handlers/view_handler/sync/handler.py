@@ -67,7 +67,7 @@ class SyncHandler(AbsViewHandler):
         self.layer_cloud_tempaltes()
         self.layer_cloud_racks()
         self.layer_cloud_devices()
-        self.__LOGGER.info(f"Finished - Populating Cloud Data\n")
+        self.__LOGGER.info(f"Finished - Populating Cloud Data")
 
     def pull_concertim_view(self):
         self.__LOGGER.info(f"Starting - Populating Concertim View")
@@ -80,7 +80,7 @@ class SyncHandler(AbsViewHandler):
         self.fetch_concertim_racks()
         self.fetch_concertim_devices()
         self.map_concertim_components()
-        self.__LOGGER.info(f"Finished - Populating Concertim View\n")
+        self.__LOGGER.info(f"Finished - Populating Concertim View")
 
     def fetch_concertim_users(self):
         self.__LOGGER.debug("Starting -- Fetching Concertim Users")
@@ -104,12 +104,12 @@ class SyncHandler(AbsViewHandler):
                 full_name=con_user['fullname'], 
                 email=con_user['email'], 
                 default_project_cloud_id=None if not con_user['project_id'] else con_user['project_id'], 
-                description=con_user['description'], 
+                description="User pulled from Concertim"
             )
             new_user.billing_period_start = con_user['billing_period_start'] if 'billing_period_start' in con_user and con_user['billing_period_start'] else ''
             new_user.billing_period_end = con_user['billing_period_end'] if 'billing_period_end' in con_user and con_user['billing_period_end'] else ''
             self.view.add_user(new_user)
-            self.__LOGGER.debug(f"Finished --- New ConcertimUser created in View : {new_user}")
+            self.__LOGGER.debug(f"Finished --- New ConcertimUser created in View : '{new_user}'")
         self.__LOGGER.debug("Finished -- Fetching Concertim Users")
     
     def fetch_concertim_templates(self):
@@ -121,7 +121,7 @@ class SyncHandler(AbsViewHandler):
         # OBJECT LOGIC
         con_templates_list = self.clients['concertim'].list_templates()
         for con_template in con_templates_list:
-            self.__LOGGER.debug(f"Starting --- Creating new ConcertimTemplate -> {con_template['id']}")
+            self.__LOGGER.debug(f"Starting --- Creating new ConcertimTemplate -> '{con_template['id']}'")
             new_template = ConcertimTemplate(
                 concertim_id=con_template['id'], 
                 cloud_id=con_template['foreign_id'], 
@@ -134,7 +134,7 @@ class SyncHandler(AbsViewHandler):
                 description=con_template['description']
             )
             self.view.add_template(new_template)
-            self.__LOGGER.debug(f"Finished --- New ConcertimTemplate created in View : {new_template}")
+            self.__LOGGER.debug(f"Finished --- New ConcertimTemplate created in View : '{new_template}'")
         self.__LOGGER.debug("Finished -- Fetching Concertim Templates")
 
     def fetch_concertim_racks(self):
@@ -146,7 +146,7 @@ class SyncHandler(AbsViewHandler):
         # OBJECT LOGIC
         con_racks_list = self.clients['concertim'].list_racks()
         for con_rack in con_racks_list:
-            self.__LOGGER.debug(f"Starting --- Creating new ConcertimRack -> {con_rack['id']}")
+            self.__LOGGER.debug(f"Starting --- Creating new ConcertimRack -> '{con_rack['id']}'")
             #-- Parse metadata
             cluster_cloud_id = None
             cluster_metadata = {}
@@ -176,7 +176,7 @@ class SyncHandler(AbsViewHandler):
                 new_rack.network_details = con_rack['network_details']
             if 'creation_output' in con_rack and con_rack['creation_output']:
                 new_rack._creation_output = con_rack['creation_output']
-            self.__LOGGER.debug(f"Finished --- New ConcertimRack created in View : {new_rack}")
+            self.__LOGGER.debug(f"Finished --- New ConcertimRack created in View : '{new_rack}'")
         self.__LOGGER.debug("Finished -- Fetching Concertim Racks")
 
     def fetch_concertim_devices(self):
@@ -188,11 +188,11 @@ class SyncHandler(AbsViewHandler):
         # OBJECT LOGIC
         con_devices_list = self.clients['concertim'].list_devices()
         for con_device in con_devices_list:
-            self.__LOGGER.debug(f"Starting --- Creating new ConcertimDevice -> {con_device['id']}")
+            self.__LOGGER.debug(f"Starting --- Creating new ConcertimDevice -> '{con_device['id']}'")
             #-- CHECK FOR DEVICE TYPE HERE
             new_device = self._create_server_device_from_concertim(con_device)
             self.view.add_device(new_device)
-            self.__LOGGER.debug(f"Finished --- New ConcertimDevice created in View : {new_device}")  
+            self.__LOGGER.debug(f"Finished --- New ConcertimDevice created in View : '{new_device}'")  
         self.__LOGGER.debug("Finished -- Fetching Concertim Devices")
 
     def map_concertim_components(self):
@@ -208,7 +208,7 @@ class SyncHandler(AbsViewHandler):
         # OBJECT LOGIC
         #-- Loop over all existing racks in concertim (View has just finished pulling all concertim data)
         for rack_id_tup, rack in self.view.racks.items():
-            self.__LOGGER.debug(f"Starting ---- Attempting to map rack {rack.id} to a user")
+            self.__LOGGER.debug(f"Starting ---- Attempting to map rack '{rack.id}' to a user")
             #---- Get the rack's corresponding user object (check for cloud_id, then concertim_id if no cloud_id present)
             user = None
             if rack.user_id_tuple[1] and not user:
@@ -231,7 +231,7 @@ class SyncHandler(AbsViewHandler):
             if rack.id not in self.view.users[user.id].racks:
                 self.view.users[user.id].add_rack(rack.id)
                 self.view.racks[rack.id].user_id_tuple = user.id
-                self.__LOGGER.debug(f"Finished ---- Mapped rack {rack.id} to user {user.id}")
+                self.__LOGGER.debug(f"Finished ---- Mapped rack '{rack.id}' to user '{user.id}'")
         self.__LOGGER.debug("Finished --- Mapping Racks to existing Users")
 
     def map_devices_to_racks(self):
@@ -239,7 +239,7 @@ class SyncHandler(AbsViewHandler):
         # EXIT CONDITIONS
         #-- Loop over all existing devices in concertim (View has just finished pulling all concertim data)
         for device_id_tup, device in self.view.devices.items():
-            self.__LOGGER.debug(f"Starting ---- Attempting to map device {device.id} to a rack")
+            self.__LOGGER.debug(f"Starting ---- Attempting to map device '{device.id}' to a rack")
             #---- Get the device's corresponding rack object (check for cloud_id, then concertim_id if no cloud_id present)
             rack = None
             if device.rack_id_tuple[1] and not rack:
@@ -262,7 +262,7 @@ class SyncHandler(AbsViewHandler):
             if device.id not in self.view.racks[rack.id].devices:
                 self.view.racks[rack.id].add_device(device.id)
                 self.view.devices[device.id].rack_id_tuple = rack.id
-                self.__LOGGER.debug(f"Finished ---- Mapped device {device.id} to rack {rack.id}")
+                self.__LOGGER.debug(f"Finished ---- Mapped device '{device.id}' to rack '{rack.id}'")
         # OBJECT LOGIC
         self.__LOGGER.debug("Finished --- Mapping Devices to existing Racks")
 
@@ -349,8 +349,8 @@ class SyncHandler(AbsViewHandler):
                 #-------- if so, move to update instead of create
                 if not create_all:
                     matching_device = self.view.search(
-                        object_type='device'
-                        id_value=server_cloud_id
+                        object_type='device',
+                        id_value=server_cloud_id,
                         id_origin='cloud'
                     )
                     if matching_device:
@@ -366,7 +366,7 @@ class SyncHandler(AbsViewHandler):
         # EXIT CONDITIONS
         if not template_dict:
             raise EXCP.MissingRequiredArgs('template_dict')
-        self.__LOGGER.debug(f"Starting --- Creating new ConcertimTemplate -> {template_dict['name']} - from cloud data")
+        self.__LOGGER.debug(f"Starting --- Creating new ConcertimTemplate -> '{template_dict['name']}' - from cloud data")
         # OBJECT LOGIC
         template_size = min((int( template_dict['vcpus'] / 2 ) + 1), 4)
         new_template = ConcertimTemplate(
@@ -418,7 +418,7 @@ class SyncHandler(AbsViewHandler):
             raise EXCP.MissingRequiredArgs('cluster_dict')
         if 'CM_' not in cluster_dict['user_cloud_name']:
             return
-        self.__LOGGER.debug(f"Starting --- Creating new ConcertimRack -> {cluster_dict['name']} - from cloud data")
+        self.__LOGGER.debug(f"Starting --- Creating new ConcertimRack -> '{cluster_dict['name']}' - from cloud data")
         
         # OBJECT LOGIC
         #-- Search for the billing order for the cluster
@@ -427,11 +427,12 @@ class SyncHandler(AbsViewHandler):
         )
         cluster_billing_id = None
         if matching_billing_subs['count'] < 1:
-            self.__LOGGER.warning(f"Warning --- No matching billing order found for cluster {cluster_dict['id']} - setting as None")
+            self.__LOGGER.warning(f"Warning --- No matching billing order found for cluster '{cluster_dict['id']}' - setting as None")
         elif matching_billing_subs['count'] > 1:
             raise EXCP.TooManyBillingOrders(matching_billing_subs)
         else:
-            cluster_billing_id = matching_billing_subs['subscriptions'].keys()[0]
+            cluster_billing_id = list(matching_billing_subs['subscriptions'])[0]
+
         #-- Search for the cluster owner
         matching_user = None
         for user_id_tup, con_user in self.view.users.items():
@@ -440,11 +441,11 @@ class SyncHandler(AbsViewHandler):
                 break
         #-- If there is no matching user, log Error and skip
         if not matching_user:
-            self.__LOGGER.error(f"ERROR --- No matching User found for cluster {cluster_dict['id']} - owner is {cluster_dict['user_cloud_name']} - skipping")
+            self.__LOGGER.error(f"ERROR --- No matching User found for cluster '{cluster_dict['id']}' - owner is '{cluster_dict['user_cloud_name']}' - skipping")
             return
         #-- Get accurate status
         cluster_status = 'FAILED'
-        for con_status, valid_cloud_status_list in self.clients['cloud'].CONCERTIM_STATE_MAP['RACK']:
+        for con_status, valid_cloud_status_list in self.clients['cloud'].CONCERTIM_STATE_MAP['RACK'].items():
             if cluster_dict['status'] in valid_cloud_status_list:
                 cluster_status = con_status
         #-- All items found, create rack in view
@@ -484,7 +485,7 @@ class SyncHandler(AbsViewHandler):
         con_rack = self.view.racks[rack_id_tup]
         #-- Get current accurate status
         cluster_status = 'FAILED'
-        for con_status, valid_cloud_status_list in self.clients['cloud'].CONCERTIM_STATE_MAP['RACK']:
+        for con_status, valid_cloud_status_list in self.clients['cloud'].CONCERTIM_STATE_MAP['RACK'].items():
             if cluster_dict['status'] in valid_cloud_status_list:
                 cluster_status = con_status
         #-- Check dynamic vals
@@ -527,7 +528,7 @@ class SyncHandler(AbsViewHandler):
         # EXIT CONDITIONS
         if not server_dict:
             raise EXCP.MissingRequiredArgs('server_dict')
-        self.__LOGGER.debug(f"Starting --- Creating new ConcertimDevice -> {server_dict['name']} - from cloud data")
+        self.__LOGGER.debug(f"Starting --- Creating new ConcertimDevice -> '{server_dict['name']}' - from cloud data")
 
         # OBJECT LOGIC
         #-- Search for the containing rack
@@ -544,11 +545,11 @@ class SyncHandler(AbsViewHandler):
                 break
         #---- If there is no matching rack, log Error and skip
         if not matching_rack:
-            self.__LOGGER.error(f"ERROR --- No matching Rack found for device {server_dict['id']} - skipping")
+            self.__LOGGER.error(f"ERROR --- No matching Rack found for device '{server_dict['id']}' - skipping")
             return
         #-- Get accurate status
         device_status = 'FAILED'
-        for con_status, valid_cloud_status_list in self.clients['cloud'].CONCERTIM_STATE_MAP['DEVICE']:
+        for con_status, valid_cloud_status_list in self.clients['cloud'].CONCERTIM_STATE_MAP['DEVICE'].items():
             if server_dict['status'] in valid_cloud_status_list:
                 device_status = con_status
         #-- Grab device Template
@@ -592,7 +593,7 @@ class SyncHandler(AbsViewHandler):
         con_device = self.view.devices[device_id_tup]
         #-- Get current accurate status
         device_status = 'FAILED'
-        for con_status, valid_cloud_status_list in self.clients['cloud'].CONCERTIM_STATE_MAP['DEVICE']:
+        for con_status, valid_cloud_status_list in self.clients['cloud'].CONCERTIM_STATE_MAP['DEVICE'].items():
             if server_dict['status'] in valid_cloud_status_list:
                 device_status = con_status
         #-- Check dynamic values
@@ -626,8 +627,8 @@ class SyncHandler(AbsViewHandler):
         """
         The main running loop of the Handler.
         """
-        self.__LOGGER.info(f"=====================================================================================\n" \
-            f"Starting - Full Cloud + Concertim mapping for View object")
+        self.__LOGGER.info(f"=====================================================================================")
+        self.__LOGGER.info(f"Starting - Full Cloud + Concertim mapping for View object")
         # Start with empty view
         self.view = ConcertimView()
         # Add existing concertim data to view
@@ -635,7 +636,9 @@ class SyncHandler(AbsViewHandler):
         # Add cloud data ontop of concertim data - updating stale concertim values with new cloud data
         self.pull_cloud_data()
         # Save view
+        self.__LOGGER.info("Saving View")
         UTILS.save_view(self.view)
+        self.__LOGGER.info("View Successfully Saved")
         # Check for resyncs
         for i in range(SyncHandler.RESYNC_CHECKS_AMOUNT):
             self.__LOGGER.debug(f".....Checking for resync.....")
@@ -645,15 +648,15 @@ class SyncHandler(AbsViewHandler):
                 return
             if UTILS.check_resync_hold():
                 self.__LOGGER.debug(f"RESYNC HOLD FOUND - Waiting for hold to finish and resync.flag to appear")
-                i--
+                i -= 1
                 time.sleep(0.2)
                 continue
             time.sleep(SyncHandler.RESYNC_INTERVAL)
         # process finished - merge all saved views
         self.__LOGGER.debug(f"Merging saved views")
         UTILS.merge_views()
-        self.__LOGGER.info(f"Finished - Full Cloud + Concertim mapping for View object" \
-            f"=====================================================================================\n\n")
+        self.__LOGGER.info(f"Finished - Full Cloud + Concertim mapping for View object")
+        self.__LOGGER.info(f"=====================================================================================\n\n")
 
 
     def disconnect(self):
@@ -690,9 +693,9 @@ class SyncHandler(AbsViewHandler):
                         device_metadata[SyncHandler.METADATA_MAPPING['device'][k]] = v
             #-- Grab device Location 
             device_location = Location(
-                start_u=device['location']['start_u'], 
-                end_u=device['location']['end_u'], 
-                facing=device['location']['facing']
+                start_u=con_device['location']['start_u'], 
+                end_u=con_device['location']['end_u'], 
+                facing=con_device['location']['facing']
             )
             #-- Grab device Template
             device_template = self.view.search(
@@ -732,18 +735,18 @@ class SyncHandler(AbsViewHandler):
         # OBJECT LOGIC
         cm_projects = self.clients['cloud'].get_all_cm_projects()
         #-- Loop over all CM_<project>s and find their billing acct
-        for project_cloud_id in cm_projects:
-            self.__LOGGER.debug(f"Starting --- Creating new ConcertimTeam for project {project_cloud_id}")
+        for project_cloud_id in cm_projects['projects']:
+            self.__LOGGER.debug(f"Starting --- Creating new ConcertimTeam for project '{project_cloud_id}'")
             billing_accts = None
             try:
                 billing_accts = self.clients['billing'].lookup_project_billing_info(
                     project_cloud_id=project_cloud_id
                 )
             except Exception as e:
-                self.__LOGGER.error(f"FAILED - Could not retrieve billing info for project {project_cloud_id} - {e} - skipping")
+                self.__LOGGER.error(f"FAILED - Could not retrieve billing info for project '{project_cloud_id}' - {e} - skipping")
                 continue
             if billing_accts['count'] < 1:
-                self.__LOGGER.warning(f"WARNING - Not billing account found for project {project_cloud_id} - skipping")
+                self.__LOGGER.warning(f"WARNING - No billing account found for project '{project_cloud_id}' - skipping")
                 continue
             elif billing_accts['count'] > 1:
                 raise EXCP.TooManyBillingAccounts(project_cloud_id)

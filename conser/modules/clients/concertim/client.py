@@ -1,7 +1,7 @@
 # Local Imports
 from conser.utils.service_logger import create_logger
 import conser.exceptions as EXCP
-from conser.factory.abs_classes.clients import 
+from conser.factory.abs_classes.clients import Client
 # endpoints file containing info on all concertim endpoints
 from conser.modules.clients.concertim.utils.endpoints import ENDPOINTS
 

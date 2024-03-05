@@ -39,30 +39,44 @@ class InvalidAPICall(Exception):
 
 ### FACTORY
 class InvalidClient(Exception):
+    def __init__(self, msg):
+        self.message = msg
     def __str__(self):
         return f"Invalid Client type attempted -> {self.message}"
 
 class InvalidComponent(Exception):
+    def __init__(self, msg):
+        self.message = msg
     def __str__(self):
         return f"Invalid Component type attempted -> {self.message}"
 
 class InvalidHandler(Exception):
+    def __init__(self, msg):
+        self.message = msg
     def __str__(self):
         return f"Invalid Handler type attempted -> {self.message}"
 
 class HandlerNotImplemented(Exception):
+    def __init__(self, msg):
+        self.message = msg
     def __str__(self):
         return f"Could not find Handler -> {self.message}"
 
 class ClientNotImplemented(Exception):
+    def __init__(self, msg):
+        self.message = msg
     def __str__(self):
         return f"Could not find Client -> {self.message}"
 
 class ComponentNotImplemented(Exception):
+    def __init__(self, msg):
+        self.message = msg
     def __str__(self):
         return f"Could not find Component -> {self.message}"
 
 class MissingRequiredClient(InvalidHandler):
+    def __init__(self, msg):
+        self.message = msg
     def __str__(self):
         return f"Missing Required Client for given Handler -> {self.message}"
 
@@ -77,22 +91,32 @@ class CloudAuthenticationError(Exception):
         return f"{self.http_status} - Could not authenticate with Cloud -> {self.message}"
 
 class MissingCloudObject(Exception):
+    def __init__(self, msg):
+        self.message = msg
     def __str__(self):
         return f"Could not find object in Cloud -> {self.message}"
 
 class MissingRequiredCloudObject(MissingCloudObject):
+    def __init__(self, msg):
+        self.message = msg
     def __str__(self):
         return f"Missing Required Cloud Object for attempted action -> {self.message}"
 
 class UnknownCloudComponent(Exception):
+    def __init__(self, msg):
+        self.message = msg
     def __str__(self):
         return f"Cannot resolve Cloud Component -> {self.message}"
 
 class UnsupportedObject(Exception):
+    def __init__(self, msg):
+        self.message = msg
     def __str__(self):
         return f"USUPPORTED -> {self.message}"
 
 class FailureToScrub(Exception):
+    def __init__(self, msg):
+        self.message = msg
     def __str__(self):
         return f"Failed to scrub objects -> {self.message}"
 
@@ -109,12 +133,16 @@ class InvalidArguments(Exception):
         return f"Invalid arguments were passed to call -> [{self.missing}]"
 
 class MissingResourceMetric(Exception):
+    def __init__(self, msg):
+        self.message = msg
     def __str__(self):
         return f"Could not find metric for given resource -> {self.message}"
 
 
 ### HANDLER SPECIFIC
 class ViewNotFound(Exception):
+    def __init__(self, msg):
+        self.message = msg
     def __str__(self):
         return f"Could not find View object; please check containers -> {self.message}"
 
@@ -125,20 +153,28 @@ class NoClientFound(Exception):
         return f"Client Not Found -> Missing [{self.missing_clients}]"
 
 class TooManyBillingOrders(Exception):
+    def __init__(self, msg):
+        self.message = msg
     def __str__(self):
         return f"Cluster ID returned too many billing Orders -> {self.message}"
 
 class TooManyBillingAccounts(Exception):
+    def __init__(self, msg):
+        self.message = msg
     def __str__(self):
         return f"Project ID returned too many billing Accounts -> {self.message}"
 
 
 ### CONCERTIM
 class ConcertimItemConflict(Exception):
+    def __init__(self, msg):
+        self.message = msg
     def __str__(self):
         return f"Item already existing in Concertim for given ID -> {self.message}"
 
 class MissingRequiredField(Exception):
+    def __init__(self, msg):
+        self.message = msg
     def __str__(self):
         return f"Missing required field for Concertim -> {self.message}"
 
@@ -149,12 +185,16 @@ class MissingRequiredArgs(Exception):
         return f"Missing required argument(s) for call -> Missing [{self.missing}]"
 
 class InvalidSearchAttempt(Exception):
+    def __init__(self, msg):
+        self.message = msg
     def __str__(self):
         return f"Search attempted with invalid field -> {self.message}"
 
 
 ### BILLING
 class BillingAPIError(Exception):
+    def __init__(self, msg):
+        self.message = msg
     def __str__(self):
         return f"Billing API Error -> {self.message}"
 

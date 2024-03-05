@@ -1,6 +1,6 @@
 # Local Imports
 from conser.utils.service_logger import create_logger
-import conser.api.exceptions as EXCP
+import conser.exceptions as EXCP
 from conser.factory.abs_classes.components import Component
 # Py Packages
 import sys

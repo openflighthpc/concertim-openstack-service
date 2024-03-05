@@ -33,25 +33,25 @@ class ConcertimRack(object):
 
     def __repr__(self):
         return (
-            f"<ConcertimRack:{{ \
-                id:{repr(self.id)}, \
-                name:{repr(self.name)}, \
-                _base_name:{repr(self._base_name)}, \
-                _project_cloud_id:{repr(self._project_cloud_id)}, \
-                description:{repr(self.description)}, \
-                status:{repr(self.status)}, \
-                _status_reason:{repr(self._status_reason)}, \
-                user_id_tuple:{repr(self.user_id_tuple)}, \ 
-                height:{repr(self.height)}, \
-                devices:{repr(self.devices)}, \
-                output:{repr(self.output)}, \
-                network_details:{repr(self.network_details)}, \
-                metadata:{repr(self.metadata)}, \
-                cost:{repr(self.cost)}, \
-                _detailed_cost:{repr(self._detailed_cost)}, \
-                _occupied:{repr(self._occupied)}, \
-                _resources:{repr(self._resources)}, \
-                _creation_output:{repr(self._creation_output)}}}>"
+            f"<ConcertimRack:{{" 
+                f"id:{repr(self.id)}, " 
+                f"name:{repr(self.name)}, " 
+                f"_base_name:{repr(self._base_name)}, " 
+                f"_project_cloud_id:{repr(self._project_cloud_id)}, " 
+                f"description:{repr(self.description)}, " 
+                f"status:{repr(self.status)}, " 
+                f"_status_reason:{repr(self._status_reason)}, " 
+                f"user_id_tuple:{repr(self.user_id_tuple)}, " 
+                f"height:{repr(self.height)}, " 
+                f"devices:{repr(self.devices)}, " 
+                f"output:{repr(self.output)}, " 
+                f"network_details:{repr(self.network_details)}, " 
+                f"metadata:{repr(self.metadata)}, " 
+                f"cost:{repr(self.cost)}, " 
+                f"_detailed_cost:{repr(self._detailed_cost)}, " 
+                f"_occupied:{repr(self._occupied)}, " 
+                f"_resources:{repr(self._resources)}, " 
+                f"_creation_output:{repr(self._creation_output)}}}>"
         )
 
     def __eq__(self, other):

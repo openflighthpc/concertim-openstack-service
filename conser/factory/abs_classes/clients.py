@@ -176,7 +176,7 @@ class AbsCloudClient(Client):
         """
 
     @abstractmethod
-    def get_metric(self):
+    def get_metrics(self):
         """
         Get the metrics for a given metric type
 
@@ -260,7 +260,7 @@ class AbsCloudClient(Client):
         """
 
     @abstractmethod
-    def get_flavors(self):
+    def get_all_flavors(self):
         """
         Get all available flavors for servers in the Cloud.
         """

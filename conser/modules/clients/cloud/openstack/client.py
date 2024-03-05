@@ -17,7 +17,7 @@ class OpenstackClient(AbsCloudClient):
     # DEFAULTS #
     ############
     # Granularity set to 15 to match Concertim MRD polling rate
-    DEFAULT_GRANULARITY = 15
+    DEFAULT_GRANULARITY = 5
     SUPPORTED_METRIC_GROUPS = {
         'metric_functions': {
             'cpu_load': 'calc_cpu_load',
@@ -25,7 +25,7 @@ class OpenstackClient(AbsCloudClient):
             'network_usage': 'calc_network_usage',
             'throughput': 'calc_throughput',
             'iops': 'calc_iops'
-        }
+        },
         'resource_map': {
             'server': {
                 'resource_ids': {
@@ -75,8 +75,8 @@ class OpenstackClient(AbsCloudClient):
         self.__LOGGER = create_logger(__name__, self._LOG_FILE, self._LOG_LEVEL)
         self.__LOGGER.info("CREATING OPENSTACK CLIENT")
         self.req_keystone_objs = None 
-        if req_keystone_objs:
-            self.req_keystone_objs = self.__populate_required_objs('keystone', self.required_ks_objs)
+        if required_ks_objs:
+            self.req_keystone_objs = self.__populate_required_objs('keystone', required_ks_objs)
         self.CONCERTIM_STATE_MAP = {
             'DEVICE':{
                 'ACTIVE': ['active', 'running'],
@@ -92,6 +92,7 @@ class OpenstackClient(AbsCloudClient):
                 'FAILED': ['CREATE_FAILED','DELETE_FAILED']
             }
         }
+        self.__LOGGER.info("SUCCESS - OpenstackClient Created")
 
     ##########################################
     # CLOUD CLIENT OBJECT REQUIRED FUNCTIONS #
@@ -111,13 +112,13 @@ class OpenstackClient(AbsCloudClient):
         # EXIT CASES
         if 'keystone' not in self.components or not self.components['keystone']:
             raise EXCP.NoComponentFound('keystone')
-        if not self.req_keystone_objs['role']['admin'] 
-            or not self.req_keystone_objs['role']['member']
-            or not self.req_keystone_objs['role']['watcher']
-            or not self.req_keystone_objs['role']['rating']
-            or not self.req_keystone_objs['user']['admin']
-            or not self.req_keystone_objs['user']['concertim']
-            or not self.req_keystone_objs['user']['cloudkitty']:
+        if not self.req_keystone_objs['role']['admin'] \
+        or not self.req_keystone_objs['role']['member'] \
+        or not self.req_keystone_objs['role']['watcher'] \
+        or not self.req_keystone_objs['role']['rating'] \
+        or not self.req_keystone_objs['user']['admin'] \
+        or not self.req_keystone_objs['user']['concertim'] \
+        or not self.req_keystone_objs['user']['cloudkitty']:
             raise EXCP.MissingRequiredCloudObject(self.req_keystone_objs)
         if not primary_user_cloud_id:
             raise EXCP.MissingRequiredArgs('primary_user_cloud_id')
@@ -386,10 +387,12 @@ class OpenstackClient(AbsCloudClient):
         for r_type, id_field in OpenstackClient.SUPPORTED_METRIC_GROUPS['resource_map'][resource_type]['resource_ids'].items():
             self.__LOGGER.debug(f"Getting metrics for resource: {r_type}.{id_field}.{resource_id}")
             r_dict = self.components['gnocchi'].search_resource(
-                query={"=":{id_field: resource_id}}
+                query={"=":{id_field: resource_id}},
                 resource_type=r_type,
                 details=True
             )
+            if r_dict:
+                r_dict = r_dict[0]
             if 'metrics' not in r_dict:
                 raise EXCP.MissingResourceMetric(f"{r_type}:{id_field}:{resource_id}")
             # Merge the metrics dicts
@@ -432,8 +435,8 @@ class OpenstackClient(AbsCloudClient):
             raise EXCP.NoComponentFound('keystone')
         if not user_cloud_id:
             raise EXCP.MissingRequiredArgs('user_cloud_id')
-        if not self.req_keystone_objs['role']['admin'] 
-            or not self.req_keystone_objs['role']['member']:
+        if not self.req_keystone_objs['role']['admin'] \
+        or not self.req_keystone_objs['role']['member']:
             raise EXCP.MissingRequiredCloudObject(self.req_keystone_objs)
 
         # CLOUD OBJECT LOGIC
@@ -456,7 +459,7 @@ class OpenstackClient(AbsCloudClient):
             'id': user.id,
             'name': user.name,
             'email': user.email,
-            'description': user.description
+            'description': user.description,
             'user_projects': user_projects
         }
 
@@ -481,8 +484,8 @@ class OpenstackClient(AbsCloudClient):
         # EXIT CASES
         if 'keystone' not in self.components or not self.components['keystone']:
             raise EXCP.NoComponentFound('keystone')
-        if not self.req_keystone_objs['role']['admin'] 
-            or not self.req_keystone_objs['role']['member']:
+        if not self.req_keystone_objs['role']['admin'] \
+        or not self.req_keystone_objs['role']['member']:
             raise EXCP.MissingRequiredCloudObject(self.req_keystone_objs)
         if not project_cloud_id:
             raise EXCP.MissingRequiredArgs('project_cloud_id')
@@ -739,11 +742,11 @@ class OpenstackClient(AbsCloudClient):
             'status': server._info['OS-EXT-STS:vm_state'],
             'project_cloud_id': server.tenant_id,
             'template_cloud_id': server._info['flavor']['id'],
-            'public_ips': pub_ips
-            'private_ips': pri_ips
+            'public_ips': pub_ips,
+            'private_ips': pri_ips,
             'ssh_key_name': server.key_name,
             'volumes': vols,
-            'network_interfaces': server._info['addresses'].keys()
+            'network_interfaces': list(server._info['addresses'].keys())
         }
 
         # RETURN
@@ -802,7 +805,7 @@ class OpenstackClient(AbsCloudClient):
         resources_list = self.components['heat'].list_stack_resources(
             stack_id=cluster_cloud_id
         )
-        for resource in resources:
+        for resource in resources_list:
             res_type = resource.resource_type.split("::")
             #---- res_types could be (not all listed, just examples)
             #------ OS::Cinder::VolumeAttachment, OS::Cinder::Volume, 
@@ -849,7 +852,7 @@ class OpenstackClient(AbsCloudClient):
                 stack_id=cluster_cloud_id,
                 output_key=output_dict['output_key']
             )
-            output.append(tuple(output_dict['output_key'], details))
+            output.append(tuple((output_dict['output_key'], details)))
         
         # BUILD RETURN DICT
         self.__LOGGER.debug(f"Building Return dictionary")
@@ -919,11 +922,11 @@ class OpenstackClient(AbsCloudClient):
                 'status': inst._info['OS-EXT-STS:vm_state'],
                 'project_cloud_id': inst.tenant_id,
                 'template_cloud_id': inst._info['flavor']['id'],
-                'public_ips': pub_ips
-                'private_ips': pri_ips
+                'public_ips': pub_ips,
+                'private_ips': pri_ips,
                 'ssh_key_name': inst.key_name,
                 'volumes': vols,
-                'network_interfaces': server._info['addresses'].keys()
+                'network_interfaces': list(inst._info['addresses'].keys())
             }
             return_dict['servers'][inst.id] = server_dict
 
@@ -1311,7 +1314,7 @@ class OpenstackClient(AbsCloudClient):
             found_objs[obj_type] = {}
             for obj_name in obj_names[obj_type]:
                 try:
-                    found_objs[obj_type][obj_name] = getattr(self.components[component_name], f"get_{obj_type}")(obj_name).id
+                    found_objs[obj_type][obj_name] = getattr(self.components[component_name], f"get_{obj_type}_by_name")(obj_name).id
                 except AttributeError as e:
                     self.__LOGGER.error(f"Failed fetching {obj_type}.{obj_name} - no function 'get_{obj_type}' found for {component_name} component")
                     self.__LOGGER.error(f"{type(e).__name__} - {e}")

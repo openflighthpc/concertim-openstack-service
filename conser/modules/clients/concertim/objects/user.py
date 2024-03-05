@@ -25,19 +25,19 @@ class ConcertimUser(object):
 
     def __repr__(self):
         return (
-            f"<ConcertimUser:{{ \
-                id:{repr(self.id)}, \
-                name:{repr(self.name)}, \
-                description:{repr(self.description)}, \
-                full_name:{repr(self.full_name)}, \
-                email:{repr(self.email)}, \
-                default_project_cloud_id:{repr(self.default_project_cloud_id)}, \
-                admin_projects_cloud_ids:{repr(self.admin_projects_cloud_ids)}, \
-                billing_period_start:{repr(self.billing_period_start)}, \
-                billing_period_end:{repr(self.billing_period_end)}, \
-                cost:{repr(self.cost)}, \
-                credits:{repr(self.credits)}, \
-                racks:{repr(self.racks)}}}>"
+            f"<ConcertimUser:{{ "
+                f"id:{repr(self.id)}, "
+                f"name:{repr(self.name)}, "
+                f"description:{repr(self.description)}, "
+                f"full_name:{repr(self.full_name)}, "
+                f"email:{repr(self.email)}, "
+                f"default_project_cloud_id:{repr(self.default_project_cloud_id)}, "
+                f"admin_projects_cloud_ids:{repr(self.admin_projects_cloud_ids)}, "
+                f"billing_period_start:{repr(self.billing_period_start)}, "
+                f"billing_period_end:{repr(self.billing_period_end)}, "
+                f"cost:{repr(self.cost)}, "
+                f"credits:{repr(self.credits)}, "
+                f"racks:{repr(self.racks)}}}>"
         )
 
     def __eq__(self, other):

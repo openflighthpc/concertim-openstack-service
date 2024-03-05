@@ -41,7 +41,7 @@ class MetricsHandler(Handler):
         start = stop - timedelta(seconds=MetricsHandler.DEFAULT_METRIC_WINDOW)
         # SERVER DEVICES
         #-- loop over all devices in view
-        for device_id_tup, device in self.view.devices.items()
+        for device_id_tup, device in self.view.devices.items():
             #-- if both concertim and cloud id are present, get its metrics
             if not device_id_tup[0] or not device_id_tup[1]:
                 self.__LOGGER.debug(f"Skipping metrics for device {device_id_tup}")
@@ -81,8 +81,8 @@ class MetricsHandler(Handler):
         """
         The main running loop of the Handler.
         """
-        self.__LOGGER.info(f"=====================================================================================\n" \
-            f"Starting - Updating Concertim Front-end with Metrics data")
+        self.__LOGGER.info(f"=====================================================================================")
+        self.__LOGGER.info(f"Starting - Updating Concertim Front-end with Metrics data")
         # EXIT CASES
         if 'concertim' not in self.clients or not self.clients['concertim']:
             raise EXCP.NoClientFound('concertim')
@@ -97,9 +97,9 @@ class MetricsHandler(Handler):
 
         self.update_cluster_metrics()
 
+        self.__LOGGER.info(f"Finished - Updating Concertim Front-end with Metrics data")
+        self.__LOGGER.info(f"=====================================================================================\n\n")
         time.sleep(MetricsHandler.METRICS_INTERVAL)
-        self.__LOGGER.info(f"Finished - Updating Concertim Front-end with Metrics data" \
-            f"=====================================================================================\n\n")
 
     def disconnect(self):
         """

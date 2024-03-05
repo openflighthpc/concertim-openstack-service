@@ -55,6 +55,7 @@ class KillbillClient(AbsBillingClient):
             self._credit_threshold = float(self._CONFIG['credit_threshold'])
         else:
             self._credit_threshold = float(KillbillClient.BILLING_CREDIT_THRESHOLD)
+        self.__LOGGER.info("SUCCESS - KillbillClient Created")
 
     ############################################
     # BILLING CLIENT OBJECT REQUIRED FUNCTIONS #
@@ -366,7 +367,8 @@ class KillbillClient(AbsBillingClient):
             'name': resp_dict['data']['name'],
             'primary_user_cloud_id': puc_id,
             KillbillClient.PROJECT_BILLING_ID_FIELD: pcb_id,
-            'credit_balance': resp['data']['account_cba']
+            'credit_balance': resp['data']['account_cba'],
+            'state': resp['data']['state']
         }
         # RETURN
         return return_dict
@@ -424,13 +426,12 @@ class KillbillClient(AbsBillingClient):
             sub = self.get_cluster_billing_info(
                 cluster_billing_id=cf.object_id
             )
-            if sub.state != "ACTIVE":
+            if sub['order']['state'] != "ACTIVE":
                 continue
-            matches['subscriptions'][cf.object_id] = sub
+            matches['subscriptions'][cf.object_id] = sub['order']
             matches['count'] += 1
-        if matches['count'] > 0:
-            return matches
-        return None
+        self.__LOGGER.debug(f"Returning Matches : {matches}")
+        return matches
 
     def lookup_project_billing_info(self, project_cloud_id):
         """
@@ -462,9 +463,8 @@ class KillbillClient(AbsBillingClient):
                 continue
             matches['accounts'][cf.object_id] = acct
             matches['count'] += 1
-        if matches['count'] > 0:
-            return matches
-        return None
+        self.__LOGGER.debug(f"Returning Matches : {matches}")
+        return matches
     
     def get_all_billing_accounts(self):
         """
@@ -730,7 +730,7 @@ class KillbillClient(AbsBillingClient):
 
     def _get_dict_from_resp(self, response_obj):
         self.__LOGGER.debug(f"Creating dict from response")
-        if not response_obj[0] or not response_obj[1] or not response_obj[2]:
+        if response_obj is None or response_obj[0] is None or response_obj[1] is None or response_obj[2] is None:
             raise EXCP.BillingAPIError(f"API returned an unexpected object: {response_obj}")
         if response_obj[1] not in [200, 201, 204]:
             raise EXCP.BillingAPIFailure(f"Call was not successful -> {response_obj[2]}", response_obj[1])

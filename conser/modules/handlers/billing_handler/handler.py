@@ -180,8 +180,8 @@ class BillingHandler(AbsBillingHandler):
         """
         The main running loop of the Handler.
         """
-        self.__LOGGER.info(f"=====================================================================================\n" \
-            f"Starting - Updating Concertim Front-end and Billing app with Usage and Billing data")
+        self.__LOGGER.info(f"=====================================================================================")
+        self.__LOGGER.info(f"Starting - Updating Concertim Front-end and Billing app with Usage and Billing data")
         # EXIT CASES
         if 'concertim' not in self.clients or not self.clients['concertim']:
             raise EXCP.NoClientFound('concertim')
@@ -198,9 +198,9 @@ class BillingHandler(AbsBillingHandler):
 
         self.pull_cost_data()
 
+        self.__LOGGER.info(f"Finished - Updating Concertim Front-end and Billing app with Usage and Billing data")
+        self.__LOGGER.info(f"=====================================================================================\n\n")
         time.sleep(BillingHandler.BILLING_INTERVAL)
-        self.__LOGGER.info(f"Finished - Updating Concertim Front-end and Billing app with Usage and Billing data" \
-            f"=====================================================================================\n\n")
 
     def disconnect(self):
         """

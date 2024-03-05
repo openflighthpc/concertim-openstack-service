@@ -29,21 +29,21 @@ class ConcertimDevice(object):
 
     def __repr__(self):
         return (
-            f"<ConcertimDevice:{{ \
-                id:{repr(self.id)}, \
-                name:{repr(self.name)}, \
-                description:{repr(self.description)}, \
-                status:{repr(self.status)}, \
-                rack_id_tuple:{repr(self.rack_id_tuple)}, \
-                template:{repr(self.template)}, \
-                location:{repr(self.location)}, \
-                network_interfaces:{repr(self.network_interfaces)}, \
-                private_ips:{repr(self.private_ips)}, \
-                public_ips:{repr(self.public_ips)}, \
-                ssh_key:{repr(self.ssh_key)}, \
-                login_user:{repr(self.login_user)}, \
-                volume_details:{repr(self.volume_details)}, \
-                cost:{repr(self.cost)}}}>"
+            f"<ConcertimDevice:{{ "
+                f"id:{repr(self.id)}, "
+                f"name:{repr(self.name)}, "
+                f"description:{repr(self.description)}, "
+                f"status:{repr(self.status)}, "
+                f"rack_id_tuple:{repr(self.rack_id_tuple)}, "
+                f"template:{repr(self.template)}, "
+                f"location:{repr(self.location)}, "
+                f"network_interfaces:{repr(self.network_interfaces)}, "
+                f"private_ips:{repr(self.private_ips)}, "
+                f"public_ips:{repr(self.public_ips)}, "
+                f"ssh_key:{repr(self.ssh_key)}, "
+                f"login_user:{repr(self.login_user)}, "
+                f"volume_details:{repr(self.volume_details)}, "
+                f"cost:{repr(self.cost)}}}>"
         )
 
     def __eq__(self, other):

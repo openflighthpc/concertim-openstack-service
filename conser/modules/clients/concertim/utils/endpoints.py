@@ -32,7 +32,7 @@ ENDPOINTS = {
                                 "login_user": '{login_user}',
                                 "metadata" : {
                                     "net_interfaces": "{net_interfaces}",
-                                    "openstack_instance_id" : "{openstack_instance_id}"
+                                    "openstack_instance_id" : "{openstack_instance_id}",
                                     "openstack_stack_id": "{openstack_stack_id}"
                                 }
                             }

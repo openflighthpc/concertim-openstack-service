@@ -254,8 +254,8 @@ class UpdatesHandler(Handler):
         """
         The main running loop of the Handler.
         """
-        self.__LOGGER.info(f"=====================================================================================\n" \
-            f"Starting - Updating Concertim Front-end with current View data")
+        self.__LOGGER.info(f"=====================================================================================")
+        self.__LOGGER.info(f"Starting - Updating Concertim Front-end with current View data")
         # EXIT CASES
         if 'concertim' not in self.clients or not self.clients['concertim']:
             raise EXCP.NoClientFound('concertim')
@@ -274,9 +274,9 @@ class UpdatesHandler(Handler):
             #-- Edit Devices
             self.devices_changes()
         
+        self.__LOGGER.info(f"Finished - Updating Concertim Front-end with current View data")
+        self.__LOGGER.info(f"=====================================================================================\n\n")
         time.sleep(UpdatesHandler.UPDATES_INTERVAL)
-        self.__LOGGER.info(f"Finished - Updating Concertim Front-end with current View data" \
-            f"=====================================================================================\n\n")
 
     def disconnect(self):
         """
