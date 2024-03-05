@@ -206,8 +206,7 @@ class SyncHandler(AbsViewHandler):
         con_devices_list = self.clients['concertim'].list_devices()
         for con_device in con_devices_list:
             self.__LOGGER.debug(f"Starting --- Creating new ConcertimDevice -> '{con_device['id']}'")
-            #-- CHECK FOR DEVICE TYPE HERE
-            new_device = self._create_server_device_from_concertim(con_device)
+            new_device = self._create_device_from_concertim(con_device)
             self.view.add_device(new_device)
             self.__LOGGER.debug(f"Finished --- New ConcertimDevice created in View : '{new_device}'")  
         self.__LOGGER.debug("Finished -- Fetching Concertim Devices")
@@ -707,7 +706,7 @@ class SyncHandler(AbsViewHandler):
             output_str += f", {output_tup[0]}={output_tup[1]}" if output_str else f"{output_tup[0]}={output_tup[1]}"
         return output_str
 
-    def _create_server_device_from_concertim(self, con_device):
+    def _create_device_from_concertim(self, con_device):
         #-- Parse metadata
             device_cloud_id = None
             rack_cloud_id = None
@@ -746,11 +745,18 @@ class SyncHandler(AbsViewHandler):
                 description=con_device['description'], 
                 status=con_device['status']
             )
-            new_device.ssh_key = con_device['ssh_key'] if 'ssh_key' in con_device and con_device['ssh_key'] else ''
-            new_device.volume_details = con_device['volume_details'] if 'volume_details' in con_device and con_device['volume_details'] else []
-            new_device.public_ips = con_device['public_ips'] if 'public_ips' in con_device and con_device['public_ips'] else ''
-            new_device.private_ips = con_device['private_ips'] if 'private_ips' in con_device and con_device['private_ips'] else ''
-            new_device.login_user = con_device['login_user'] if 'login_user' in con_device and con_device['login_user'] else ''
+
+            if 'details' in con_device:
+                new_device.details = con_device['details']
+            else:
+                new_device.details = {
+                    'type': 'Device::ComputeDetails',
+                    'ssh_key': con_device.get('ssh_key', ''),
+                    'volume_details': con_device.get('volume_details', []),
+                    'public_ips': con_device.get('public_ips', ''),
+                    'private_ips': con_device.get('private_ips', ''),
+                    'login_user': con_device.get('login_user', '')
+                }
             return new_device
 
     def _find_empty_slot(self, device_type, rack, device_size):
