@@ -252,12 +252,12 @@ class UpdatesHandler(Handler):
                     "facing": device_obj.location.facing,
                     "rack_id": self.view.racks[device_obj.rack_id_tuple].id[0],
                     "start_u": device_obj.location.start_u,
-                    "public_ips": device_obj.public_ips,
-                    "private_ips": device_obj.private_ips,
-                    "ssh_key": device_obj.ssh_key,
-                    "volume_details": device_obj.volume_details,
-                    "login_user": device_obj.login_user,
                     "net_interfaces": device_obj.network_interfaces,
+                    "public_ips": device_obj.details.get('public_ips'),
+                    "private_ips": device_obj.details.get('private_ips'),
+                    "ssh_key": device_obj.details.get('ssh_key'),
+                    "volume_details": device_obj.details.get('volume_details'),
+                    "login_user": device_obj.details.get('login_user'),
                     'openstack_instance_id': device_obj.id[1],
                     "openstack_stack_id": self.view.racks[device_obj.rack_id_tuple].id[1]
                 }

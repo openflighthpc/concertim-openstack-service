@@ -20,7 +20,7 @@ class ConcertimDevice(object):
         self.network_interfaces = []
         self.cost = 0.0
 
-        self.details = None
+        self.details = {}
 
         self._delete_marker = True
         self._updated = False
