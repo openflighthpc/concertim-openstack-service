@@ -34,10 +34,13 @@ class UpdatesHandler(Handler):
 
         # OBJECT LOGIC
         for template_id_tup, template in self.view.templates.items():
+            self.__LOGGER.debug(f"Checking template {template_id_tup}")
             #-- check if the template has a concertim ID, if so update, else create
             if template_id_tup[0] and template_id_tup[1]:
+                self.__LOGGER.debug(f"Template exists in Concertim - updating template {template_id_tup}")
                 self.update_existing_template(template)
             elif not template_id_tup[0] and template_id_tup[1]:
+                self.__LOGGER.debug(f"Template not found in Concertim - creating template {template_id_tup}")
                 self.create_new_template(template)
             else:
                 self.__LOGGER.warning(f"Unrecognized template found in view {template}")
@@ -52,13 +55,17 @@ class UpdatesHandler(Handler):
 
         # OBJECT LOGIC
         for rack_id_tup, rack in self.view.racks.items():
+            self.__LOGGER.debug(f"Checking rack {rack_id_tup}")
             #-- check if rack needs to be deleted from concertim
             if rack._delete_marker and rack_id_tup[0]:
+                self.__LOGGER.debug(f"Rack marked for delete - deleting rack {rack_id_tup}")
                 self.delete_stale_rack(rack)
             #-- check if the rack has a concertim ID, if so update, else create
             elif rack_id_tup[0] and rack_id_tup[1]:
+                self.__LOGGER.debug(f"Rack exists in Concertim - updating rack {rack_id_tup}")
                 self.update_existing_rack(rack)
             elif not rack_id_tup[0] and rack_id_tup[1]:
+                self.__LOGGER.debug(f"Rack not found in Concertim - creating rack {rack_id_tup}")
                 self.create_new_rack(rack)
             else:
                 self.__LOGGER.warning(f"Unrecognized rack found in view {rack}")
@@ -73,14 +80,21 @@ class UpdatesHandler(Handler):
 
         # OBJECT LOGIC
         for device_id_tup, device in self.view.devices.items():
+            self.__LOGGER.debug(f"Checking device {device_id_tup}")
             #-- check if device needs to be deleted from concertim
             if device._delete_marker and device_id_tup[0]:
+                self.__LOGGER.debug(f"Device marked for delete - deleting device {device_id_tup}")
                 self.delete_stale_device(device)
             #-- check if the device has a concertim ID, if so update, else create
             #-- Check for device type here and branch to different function
             elif device_id_tup[0] and device_id_tup[1]:
+                self.__LOGGER.debug(f"Device exists in Concertim - updating device {device_id_tup}")
                 self.update_existing_device(device)
             elif not device_id_tup[0] and device_id_tup[1]:
+                if not device.rack_id_tuple[0]:
+                    self.__LOGGER.debug(f"Device not found in Concertim - Cannot create device - waiting for rack to be created first - skipping")
+                    continue
+                self.__LOGGER.debug(f"Device not found in Concertim - creating device {device_id_tup}")
                 self.create_new_device(device)
             else:
                 self.__LOGGER.warning(f"Unrecognized device found in view {device}")
