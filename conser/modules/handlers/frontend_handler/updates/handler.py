@@ -43,7 +43,7 @@ class UpdatesHandler(Handler):
             elif not template_id_tup[0] and template_id_tup[1]:
                 self.__LOGGER.debug(f"Template not found in Concertim - creating template {template_id_tup}")
                 self.create_new_template(template)
-            else:
+            elif template.tag is None:
                 self.__LOGGER.warning(f"Unrecognized template found in view {template}")
         self.__LOGGER.debug("Finished -- Sending templates changes")
 

@@ -146,7 +146,8 @@ class SyncHandler(AbsViewHandler):
                 disk=con_template['disk'], 
                 vcpus=con_template['vcpus'], 
                 size=con_template['height'], 
-                description=con_template['description']
+                description=con_template['description'],
+                tag=con_template.get('description'),
             )
             self.view.add_template(new_template)
             self.__LOGGER.debug(f"Finished --- New ConcertimTemplate created in View : '{new_template}'")
