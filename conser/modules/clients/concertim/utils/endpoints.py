@@ -25,15 +25,18 @@ ENDPOINTS = {
                                     "rack_id": '{rack_id}',
                                     "start_u": '{start_u}'
                                 },
-                                "public_ips": '{public_ips}',
-                                "private_ips": '{private_ips}',
-                                "ssh_key": '{ssh_key}',
-                                "volume_details": '{volume_details}',
-                                "login_user": '{login_user}',
                                 "metadata" : {
                                     "net_interfaces": "{net_interfaces}",
                                     "openstack_instance_id" : "{openstack_instance_id}",
                                     "openstack_stack_id": "{openstack_stack_id}"
+                                },
+                                "details": {
+                                    "type": "Device::ComputeDetails",
+                                    "public_ips": '{public_ips}',
+                                    "private_ips": '{private_ips}',
+                                    "ssh_key": '{ssh_key}',
+                                    "volume_details": '{volume_details}',
+                                    "login_user": '{login_user}',
                                 }
                             }
                         }
