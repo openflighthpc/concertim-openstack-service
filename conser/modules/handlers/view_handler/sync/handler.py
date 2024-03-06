@@ -594,13 +594,18 @@ class SyncHandler(AbsViewHandler):
             description="Server Device created from Cloud by Concertim Service", 
             status=device_status
         )
-        new_device.ssh_key = server_dict['ssh_key_name']
-        new_device.volume_details = server_dict['volumes']
-        new_device.public_ips = server_dict['public_ips']
-        new_device.private_ips = server_dict['private_ips']
+
         new_device.network_interfaces = server_dict['network_interfaces']
-        #TODO: Get login user for server
-        new_device.login_user = ''
+
+        new_device.details = {
+            'type': 'Device::ComputeDetails',
+            'ssh_key': server_dict['ssh_key_name'],
+            'public_ips': server_dict['public_ips'],
+            'private_ips': server_dict['private_ips'],
+            'volume_details': server_dict['volumes'],
+            #TODO: Get login user for server
+        }
+
         new_device._delete_marker=False
         self.view.add_device(new_device)
         self.view.racks[matching_rack.id].add_device(new_device.id, new_device.location)
