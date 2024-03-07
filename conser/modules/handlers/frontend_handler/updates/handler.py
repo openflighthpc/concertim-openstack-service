@@ -11,7 +11,7 @@ class UpdatesHandler(Handler):
     ############
     # DEFAULTS #
     ############
-    UPDATES_INTERVAL = 5
+    UPDATES_INTERVAL = 10
     ########
     # INIT #
     ########
@@ -92,7 +92,7 @@ class UpdatesHandler(Handler):
                 self.__LOGGER.debug(f"Device exists in Concertim - updating device {device_id_tup}")
                 self.update_existing_device(device)
             elif not device_id_tup[0] and device_id_tup[1]:
-                if not device.rack_id_tuple[0]:
+                if not self.view.racks[device.rack_id_tuple].id[0]:
                     self.__LOGGER.debug(f"Device not found in Concertim - Cannot create device - waiting for rack to be created first - skipping")
                     continue
                 self.__LOGGER.debug(f"Device not found in Concertim - creating device {device_id_tup}")
@@ -114,7 +114,8 @@ class UpdatesHandler(Handler):
                     }
                 )
             except Exception as e:
-                self.__LOGGER.error(f"FAILED - Could not update template {template_obj} - {e}")
+                self.__LOGGER.error(f"FAILED - Could not update template {template_obj} - {e} - skipping")
+                self.__LOGGER.exception(e)
                 return
         self.__LOGGER.debug(f"Finished --- Updating existing template {template_obj.id}")
 
@@ -134,7 +135,8 @@ class UpdatesHandler(Handler):
                 }
             )
         except Exception as e:
-            self.__LOGGER.error(f"FAILED - Could not create template {template_obj} - {e}")
+            self.__LOGGER.error(f"FAILED - Could not create template {template_obj} - {e} - skipping")
+            self.__LOGGER.exception(e)
             return
         self.__LOGGER.debug(f"Finished --- Creating new template {template_obj.id}")
 
@@ -159,7 +161,8 @@ class UpdatesHandler(Handler):
                     }
                 )
             except Exception as e:
-                self.__LOGGER.error(f"FAILED - Could not update rack {rack_obj} - {e}")
+                self.__LOGGER.error(f"FAILED - Could not update rack {rack_obj} - {e} - skipping")
+                self.__LOGGER.exception(e)
                 return
         self.__LOGGER.debug(f"Finished --- Updating existing rack {rack_obj.id}")
 
@@ -167,7 +170,7 @@ class UpdatesHandler(Handler):
         self.__LOGGER.debug(f"Starting --- Creating new rack {rack_obj.id}")
         # OBJECT LOGIC
         try:
-            self.clients['concertim'].create_rack(
+            rack_resp = self.clients['concertim'].create_rack(
                 variables_dict={
                     "user_id": rack_obj.user_id_tuple[0],
                     "name": rack_obj.name[1],
@@ -183,8 +186,10 @@ class UpdatesHandler(Handler):
                     'openstack_stack_output': rack_obj.output
                 }
             )
+            self.view.racks[rack_obj.id].id = tuple((rack_resp['id'], rack_obj.id[1], rack_obj.id[2]))
         except Exception as e:
-            self.__LOGGER.error(f"FAILED - Could not create rack {rack_obj} - {e}")
+            self.__LOGGER.error(f"FAILED - Could not create rack {rack_obj} - {e} - skipping")
+            self.__LOGGER.exception(e)
             return
         self.__LOGGER.debug(f"Finished --- Creating new rack {rack_obj.id}")
 
@@ -194,7 +199,8 @@ class UpdatesHandler(Handler):
         try:
             self.clients['concertim'].delete_rack(rack_obj.id[0], recurse=True)
         except Exception as e:
-            self.__LOGGER.error(f"FAILED - Deleting rack from concertim {rack_obj} - {e}")
+            self.__LOGGER.error(f"FAILED - Deleting rack from concertim {rack_obj} - {e} - skipping")
+            self.__LOGGER.exception(e)
             return
         self.__LOGGER.debug(f"Finished --- Deleting stale rack {rack_obj.id}")
 
@@ -220,7 +226,8 @@ class UpdatesHandler(Handler):
                     }
                 )
             except Exception as e:
-                self.__LOGGER.error(f"FAILED - Could not update device {device_obj} - {e}")
+                self.__LOGGER.error(f"FAILED - Could not update device {device_obj} - {e} - skipping")
+                self.__LOGGER.exception(e)
                 return
         self.__LOGGER.debug(f"Finished --- Updating existing device {device_obj.id}")
 
@@ -235,7 +242,7 @@ class UpdatesHandler(Handler):
                     "description": device_obj.description,
                     "status" : device_obj.status,
                     "facing": device_obj.location.facing,
-                    "rack_id": device_obj.rack_id_tuple[0],
+                    "rack_id": self.view.racks[device_obj.rack_id_tuple].id[0],
                     "start_u": device_obj.location.start_u,
                     "public_ips": device_obj.public_ips,
                     "private_ips": device_obj.private_ips,
@@ -244,11 +251,12 @@ class UpdatesHandler(Handler):
                     "login_user": device_obj.login_user,
                     "net_interfaces": device_obj.network_interfaces,
                     'openstack_instance_id': device_obj.id[1],
-                    "openstack_stack_id": device_obj.rack_id_tuple[1]
+                    "openstack_stack_id": self.view.racks[device_obj.rack_id_tuple].id[1]
                 }
             )
         except Exception as e:
-            self.__LOGGER.error(f"FAILED - Could not create device {device_obj} - {e}")
+            self.__LOGGER.error(f"FAILED - Could not create device {device_obj} - {e} - skipping")
+            self.__LOGGER.exception(e)
             return
         self.__LOGGER.debug(f"Finished --- Creating new device {device_obj.id}")
 
@@ -258,7 +266,7 @@ class UpdatesHandler(Handler):
         try:
             self.clients['concertim'].delete_rack(device_obj.id[0])
         except Exception as e:
-            self.__LOGGER.error(f"FAILED - Deleting device from concertim {device_obj} - {e}")
+            self.__LOGGER.error(f"FAILED - Deleting device from concertim {device_obj} - {e} - skipping")
             return
         self.__LOGGER.debug(f"Finished --- Deleting stale device {device_obj.id}")
 
@@ -280,6 +288,7 @@ class UpdatesHandler(Handler):
             self.view = UTILS.load_view()
         except Exception as e:
             self.__LOGGER.error(f"Could not load view - waiting for next loop")
+            self.__LOGGER.exception(e)
 
         if self.view:
             #-- Edit Templates

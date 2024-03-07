@@ -90,6 +90,7 @@ def start_metrics_process(config, log_file, run_once=False):
             retries = 0
         except Exception as e:
             logger.error(f"Unexpected exception has caused the Metrics loop to terminate : {type(e).__name__} - {e}")
+            logger.exception(e)
             logger.warning(f"Trying loop again in 5 seconds\n")
             retries += 1
         finally:
@@ -123,6 +124,7 @@ def start_updates_process(config, log_file, run_once=False):
             retries = 0
         except Exception as e:
             logger.error(f"Unexpected exception has caused the Updates loop to terminate : {type(e).__name__} - {e}")
+            logger.exception(e)
             logger.warning(f"Trying loop again in 5 seconds\n")
             retries += 1
         finally:
@@ -156,6 +158,7 @@ def start_billing_process(config, log_file, run_once=False):
             retries = 0
         except Exception as e:
             logger.error(f"Unexpected exception has caused the Billing loop to terminate : {type(e).__name__} - {e}")
+            logger.exception(e)
             logger.warning(f"Trying loop again in 5 seconds\n")
             retries += 1
             time.sleep(5)
@@ -192,6 +195,7 @@ def start_sync_process(config, log_file, run_once=False):
             retries = 0
         except Exception as e:
             logger.error(f"Unexpected exception has caused the Update Sync loop to terminate : {type(e).__name__} - {e}")
+            logger.exception(e)
             logger.warning(f"Trying loop again in 5 seconds\n")
             retries += 1
             time.sleep(5)
@@ -225,6 +229,7 @@ def start_queue_process(config, log_file, run_once=False):
         handler.run_process()
     except Exception as e:
         logger.error(f"Unexpected exception has caused the View Queue process to terminate : {type(e).__name__} - {e}")
+        logger.exception(e)
         raise e
 
 

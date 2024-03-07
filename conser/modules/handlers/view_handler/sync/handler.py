@@ -563,6 +563,12 @@ class SyncHandler(AbsViewHandler):
             id_value=server_dict['template_cloud_id'], 
             id_origin='cloud'
         )
+        #-- Find spot in rack for new device
+        server_location = self._find_empty_slot(
+            device_type='server', 
+            rack=matching_rack, 
+            device_size=server_template.size
+        )
         #-- Create device
         new_device = ConcertimDevice(
             concertim_id=None, 
@@ -571,7 +577,7 @@ class SyncHandler(AbsViewHandler):
             cloud_name=server_dict['name'], 
             rack_id_tuple=matching_rack.id, 
             template=server_template, 
-            location=None, 
+            location=server_location, 
             description="Server Device created from Cloud by Concertim Service", 
             status=device_status
         )
@@ -584,6 +590,7 @@ class SyncHandler(AbsViewHandler):
         new_device.login_user = ''
         new_device._delete_marker=False
         self.view.add_device(new_device)
+        self.view.racks[matching_rack.id].add_device(new_device.id, new_device.location)
         self.__LOGGER.debug(f"Finished --- Created new ConcertimDevice from cloud data")
 
     def update_server_device_from_cloud(self, server_dict, device_id_tup):
@@ -644,6 +651,9 @@ class SyncHandler(AbsViewHandler):
         self.__LOGGER.info("Saving View")
         UTILS.save_view(self.view)
         self.__LOGGER.info("View Successfully Saved")
+        # process finished - merge all saved views
+        self.__LOGGER.debug(f"Merging saved views")
+        UTILS.merge_views()
         # Check for resyncs
         for i in range(SyncHandler.RESYNC_CHECKS_AMOUNT):
             self.__LOGGER.debug(f".....Checking for resync.....")
@@ -657,12 +667,8 @@ class SyncHandler(AbsViewHandler):
                 time.sleep(0.2)
                 continue
             time.sleep(SyncHandler.RESYNC_INTERVAL)
-        # process finished - merge all saved views
-        self.__LOGGER.debug(f"Merging saved views")
-        UTILS.merge_views()
         self.__LOGGER.info(f"Finished - Full Cloud + Concertim mapping for View object")
         self.__LOGGER.info(f"=====================================================================================\n\n")
-
 
     def disconnect(self):
         """
@@ -774,3 +780,58 @@ class SyncHandler(AbsViewHandler):
             self.view.add_team(new_team)
             self.__LOGGER.debug(f"Finished --- New ConcertimTeam created in View : {new_team}")
         self.__LOGGER.debug("Finished -- Building Concertim Teams in view based on Concertim Managed projects in cloud")
+
+    def _find_empty_slot(self, device_type, rack, device_size):
+        occupied_spots = self.view.racks[rack.id]._occupied
+        height = self.view.racks[rack.id].height
+        self.__LOGGER.debug(f"Finding spot in Rack[ID:{rack.id}] - Occupied Slots: {occupied_spots}")
+        if device_type in ['server']:
+            return from_bottom()
+        elif device_type in []:
+            return from_top()
+        else:
+            raise EXCP.InvalidArguments(f"device_type:{device_type}")
+        
+        def from_bottom():
+            spot_found = False
+            start_location = -1
+            for rack_row in range(1, height, 1):
+                if (rack_row + size - 1) <= height and rack_row >= 1:
+                    fits = True
+                    for device_section in range(0, size):
+                        row = (rack_row + device_section)
+                        if row in occupied_spots:
+                            fits = False
+                    if fits:
+                        start_location = rack_row
+                        spot_found = True
+                        break
+            if spot_found:
+                end_location = start_location + size - 1
+                self.__LOGGER.debug(f"Empty space found")
+                return Location(start_u=start_location, end_u=end_location, facing='f')
+            else:
+                self.__LOGGER.error(f"No space found in Rack[ID:{rack.id}] for {device_type} of size '{device_size}'")
+                return None
+
+        def from_top():
+            spot_found = False
+            start_location = -1
+            for rack_row in range(height, 0, -1):
+                if (rack_row + size - 1) <= height and rack_row >= 1:
+                    fits = True
+                    for device_section in range(0, size):
+                        row = (rack_row + device_section)
+                        if row in occupied_spots:
+                            fits = False
+                    if fits:
+                        start_location = rack_row
+                        spot_found = True
+                        break
+            if spot_found:
+                end_location = start_location + size - 1
+                self.__LOGGER.debug(f"Empty space found")
+                return Location(start_u=start_location, end_u=end_location, facing='f')
+            else:
+                self.__LOGGER.error(f"No space found in Rack[ID:{rack.id}] for {device_type} of size '{device_size}'")
+                return None
