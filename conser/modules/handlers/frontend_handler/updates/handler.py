@@ -68,6 +68,7 @@ class UpdatesHandler(Handler):
             elif not rack_id_tup[0] and rack_id_tup[1]:
                 self.__LOGGER.debug(f"Rack not found in Concertim - creating rack {rack_id_tup}")
                 self.create_new_rack(rack)
+                new_racks = True
             else:
                 self.__LOGGER.warning(f"Unrecognized rack found in view {rack}")
         if new_racks:
