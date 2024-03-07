@@ -54,6 +54,7 @@ class UpdatesHandler(Handler):
             return
 
         # OBJECT LOGIC
+        new_racks = False
         for rack_id_tup, rack in self.view.racks.items():
             self.__LOGGER.debug(f"Checking rack {rack_id_tup}")
             #-- check if rack needs to be deleted from concertim
@@ -67,9 +68,10 @@ class UpdatesHandler(Handler):
             elif not rack_id_tup[0] and rack_id_tup[1]:
                 self.__LOGGER.debug(f"Rack not found in Concertim - creating rack {rack_id_tup}")
                 self.create_new_rack(rack)
-                UTILS.create_resync_flag()
             else:
                 self.__LOGGER.warning(f"Unrecognized rack found in view {rack}")
+        if new_racks:
+            UTILS.create_resync_flag()
         self.__LOGGER.debug("Finished -- Sending racks changes")
 
     def devices_changes(self):
