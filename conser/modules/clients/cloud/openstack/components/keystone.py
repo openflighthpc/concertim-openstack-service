@@ -176,15 +176,10 @@ class KeystoneComponent(OpstkBaseComponent):
             self.__LOGGER.error(f"An unexpected error : {type(e).__name__} - {e}")
             raise e
 
-    def create_user(self, username, password, domain, email='', desc='', project=None):
+    def create_user(self, username, password, domain, email='', desc=''):
         try:
             self.__LOGGER.debug(f"Creating new User '{username}' in domain '{domain}'")
-            user = None
-            if project:
-                self.__LOGGER.debug(f"Adding {project.name} as default project for User: '{username}'")
-                user = self.client.users.create(name=username,password=password,email=email,description=desc,domain=domain,default_project=project)
-            else:
-                user = self.client.users.create(name=username,password=password,email=email,description=desc,domain=domain)
+            user = self.client.users.create(name=username,password=password,email=email,description=desc,domain=domain)
             self.__LOGGER.debug(f"NEW USER: {user}")
             return user
         except Exception as e:

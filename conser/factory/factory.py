@@ -82,7 +82,7 @@ class Factory(object):
             raise EXCP.InvalidHandler(handler_type)
 
         if handler_type == "api":
-            handler = Factory._build_api_handler(config, log_file, cloud_auth_dict, cloud_components_list, enable_concertim_client, enable_cloud_client, enable_billing_client)
+            handler = Factory._build_api_handler(config, cloud_auth_dict, cloud_components_list, log_file, enable_concertim_client, enable_cloud_client, enable_billing_client)
         elif handler_type == "billing":
             handler = Factory._build_billing_handler(config, log_file, enable_concertim_client, enable_cloud_client, enable_billing_client)
         elif handler_type == "fe_metrics":
@@ -177,6 +177,7 @@ class Factory(object):
 
         # HANDLER DEFAULTS
         log_level = config['log_level']
+        # cloud_auth doesn't seem to be used?
         if cloud_auth_dict:
             cloud_auth = cloud_auth_dict
         else:
@@ -632,6 +633,7 @@ class Factory(object):
         keystone_objs = {}
 
         #-- Create Components Dict
+
         sess = OpenStackAuth.get_session(openstack_config)   
         components_dict = {}
         for component_name in components_list:

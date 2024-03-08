@@ -9,9 +9,13 @@ class OpenStackAuth:
     AUTHENTICATION_MAPPING = {
         'auth_url': 'auth_url',
         'admin_user_id': 'user_id',
+        'user_id': 'user_id',
         'admin_username': 'username',
+        'username': 'username',
         'admin_user_password': 'password',
+        'password': 'password',
         'admin_project_id': 'project_id',
+        'project_id': 'project_id',
         'admin_project_name': 'project_name',
         'admin_tenant_id': 'tenant_id',
         'admin_tenant_name': 'tenant_name',
@@ -53,7 +57,8 @@ class OpenStackAuth:
             if valid:
                 break
         if not valid:
-            raise EXCP.CloudAuthenticationError(f"Invalid set of authorization parameters when building session")
+            auth_dict_string = ', '.join([f"{key}={value}" for key, value in auth_dict.items()])
+            raise EXCP.CloudAuthenticationError(f"Invalid set of authorization parameters when building session {auth_dict_string}")
         # RETURN
         return pass_obj, auth_dict
         

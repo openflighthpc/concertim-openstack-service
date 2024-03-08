@@ -34,6 +34,7 @@ def running():
 
 def create_user():
     app.logger.info("Starting - Creating new 'CM_' user in Cloud with a default project and Billing App Account")
+    handler = None
     try:
         # Authenticate with JWT
         authenticate(request.headers)
@@ -57,7 +58,7 @@ def create_user():
             cloud_components_list=['keystone'],
             enable_concertim_client=False,
             enable_cloud_client=True,
-            enable_billing_client=True
+            enable_billing_client=False
         )
 
         # Call Function in API Handler
@@ -73,16 +74,15 @@ def create_user():
         resp = {
             'success': True,
             'username': request_data['username'],
-            'user_cloud_id': handler_return['user']['id'],
-            'project_cloud_id': handler_return['project']['id'],
-            'billing_acct_id': handler_return['billing_acct']['id']
+            'user_cloud_id': handler_return['user']['id']
         }
         return make_response(resp, 201)
     except Exception as e:
         return handle_exception(e)
     finally:
-        app.logger.info(f"Finished - Creating new 'CM_' user in Cloud with a default project and Billing App Account")
+        app.logger.info(f"Finished - Creating new 'CM_' user in Cloud")
         disconnect_handler(handler)
+
 
 def delete_user():
     app.logger.info("Starting - Deleting user in Cloud")
@@ -794,7 +794,7 @@ def disconnect_handler(handler):
     try:
         handler.disconnect()
         handler = None
-    except NameError:
+    except (NameError, AttributeError):
         handler = None
     return
 

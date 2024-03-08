@@ -34,8 +34,6 @@ class APIHandler(Handler):
         # EXIT CASES
         if 'cloud' not in self.clients or not self.clients['cloud']:
             raise EXCP.MissingRequiredClient('cloud')
-        if 'billing' not in self.clients or not self.clients['billing']:
-            raise EXCP.MissingRequiredClient('billing')
 
         # OBJECT LOGIC
         children = []
@@ -48,21 +46,6 @@ class APIHandler(Handler):
                 email=email
             )
             children.append(('cloud', 'user', new_user['id']))
-            #-- Create cloud project
-            self.__LOGGER.debug(f"Creating new default project for User -> {new_user['id']}")
-            new_project = self.clients['cloud'].create_cm_project(
-                name='CM_' + username,
-                primary_user_cloud_id=new_user['id']
-            )
-            children.append(('cloud', 'project', new_project['id']))
-            #-- Create billing account for default project
-            self.__LOGGER.debug(f"Creating new billing account for User's default project -> {new_project['id']}")
-            new_billing_acct = self.clients['billing'].create_account(
-                project_cloud_name='CM_' + username,
-                project_cloud_id=new_project['id'],
-                primary_user_email=email
-            )
-            children.append(('billing', 'account', new_billing_acct['id']))
         except Exception as e:
             self.__LOGGER.error("Create FAILED - scrubbing orphaned objects")
             self._scrub_orphans(children)
@@ -73,12 +56,6 @@ class APIHandler(Handler):
         return_dict = {
             'user':{
                 'id': new_user['id']
-            },
-            'project': {
-                'id': new_project['id']
-            }
-            'billing_acct':{
-                'id': new_billing_acct['id']
             }
         }
         # RETURN
@@ -289,7 +266,7 @@ class APIHandler(Handler):
         self.__LOGGER.debug(f"Building Return dictionary")
         return_dict = {
             'key_pair': {
-                'id': keypair['id']
+                'id': keypair['id'],
                 'name': keypair['name'],
                 'private_key': keypair['private_key'],
                 'public_key': keypair['public_key']
@@ -370,7 +347,7 @@ class APIHandler(Handler):
         # BUILD RETURN DICT
         self.__LOGGER.debug(f"Building Return dictionary")
         return_dict = {
-            'total_invoices': len(invoices['invoices'])
+            'total_invoices': len(invoices['invoices']),
             'invoices': invoices['invoices']
         }
         # RETURN
@@ -449,7 +426,7 @@ class APIHandler(Handler):
         # BUILD RETURN DICT
         self.__LOGGER.debug(f"Building Return dictionary")
         return_dict = {
-            'order_id': order['id']
+            'order_id': order['id'],
             'order': order['order']
         }
         # RETURN
