@@ -239,7 +239,7 @@ def start_queue_process(config, log_file, run_once=False):
 
 def start_api_server(config, log_file):
     from conser.api.api_server import run_api
-    run_api(config)
+    run_api(config, log_file)
 
 
 # The main entry point of the package

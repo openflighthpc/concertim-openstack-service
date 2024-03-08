@@ -1,8 +1,8 @@
 # Local imports
 import conser.app_definitions as app_paths
-import conser.factory.factory.Factory as Factory
+from conser.factory.factory import Factory
 from conser.utils.service_logger import SensitiveFormatter
-import conser.api.exceptions as EXCP
+import conser.exceptions as EXCP
 from conser.api.header_auth import authenticate_headers
 
 # Py Packages
@@ -19,83 +19,6 @@ import traceback
 app = Flask('Concertim Service API')
 conf_dict = None
 log_file = None
-
-"""
------------ ROUTES -----------
-    
-Functions are below the Routes section
-
-"""
-#### USERS
-app.add_url_rule('/user', endpoint='create_user', 
-                                view_func=create_user, 
-                                methods=['POST'])
-
-app.add_url_rule('/user', endpoint='delete_user', 
-                                view_func=delete_user, 
-                                methods=['DELETE'])
-
-app.add_url_rule('/user', endpoint='change_user_details', 
-                                view_func=change_user_details, 
-                                methods=['PATCH'])
-
-#### PROJECTS
-app.add_url_rule('/project', endpoint='create_project', 
-                                view_func=create_project, 
-                                methods=['POST'])
-
-app.add_url_rule('/project', endpoint='delete_project', 
-                                view_func=delete_project, 
-                                methods=['DELETE'])
-
-#### DEVICES/RACKS
-app.add_url_rule('/update_status/<obj_type>/<obj_id>', endpoint='update_status', 
-                                view_func=update_status, 
-                                methods=['POST'])
-
-#### KEY PAIRS
-app.add_url_rule('/key_pairs', endpoint='key_pair_create', 
-                                view_func=key_pair_create, 
-                                methods=['POST'])
-
-app.add_url_rule('/key_pairs', endpoint='key_pair_list', 
-                                view_func=key_pairs_list, 
-                                methods=['GET'])
-
-app.add_url_rule('/key_pairs', endpoint='key_pair_delete', 
-                                view_func=key_pair_delete, 
-                                methods=['DELETE'])
-
-#### INVOICES
-app.add_url_rule('/get_draft_invoice', endpoint='get_draft_invoice', 
-                                view_func=get_draft_invoice, 
-                                methods=['POST'])
-
-app.add_url_rule('/list_paginated_invoices', endpoint='list_paginated_invoices', 
-                                view_func=list_paginated_invoices, 
-                                methods=['POST'])
-
-app.add_url_rule('/get_account_invoice', endpoint='get_account_invoice', 
-                                view_func=get_account_invoice, 
-                                methods=['POST'])
-
-#### CREDITS
-app.add_url_rule('/credits', endpoint='add_credits', 
-                                view_func=add_credits, 
-                                methods=['POST'])
-
-app.add_url_rule('/credits', endpoint='get_credits', 
-                                view_func=get_credits, 
-                                methods=['GET'])
-
-#### BILLING ORDERS
-app.add_url_rule('/create_order', endpoint='create_order', 
-                                view_func=create_order, 
-                                methods=['POST'])
-
-app.add_url_rule('/add_order_tag', endpoint='add_order_tag', 
-                                view_func=add_order_tag, 
-                                methods=['POST'])
 
 #### BASE
 @app.route('/')
@@ -289,7 +212,7 @@ def create_project():
 
         # Call Function in API Handler
         handler_return = handler.create_project(
-            name=request_data['name']
+            name=request_data['name'],
             primary_user_cloud_id=request_data['primary_user_cloud_id'],
             primary_user_email=request_data['primary_user_email']
         )
@@ -770,7 +693,7 @@ def create_order():
         # Return to Concertim
         resp = {
             'success': True,
-            'order_id': handler_return['order_id']
+            'order_id': handler_return['order_id'],
             'order': handler_return['order']
         }
         return make_response(resp, 201)
@@ -874,10 +797,86 @@ def disconnect_handler(handler):
     except NameError:
         handler = None
     return
-        
+
+"""
+----------- ROUTES -----------
+
+Functions are below the Routes section
+
+"""
+#### USERS
+app.add_url_rule('/user', endpoint='create_user',
+                                view_func=create_user,
+                                methods=['POST'])
+
+app.add_url_rule('/user', endpoint='delete_user',
+                                view_func=delete_user,
+                                methods=['DELETE'])
+
+app.add_url_rule('/user', endpoint='change_user_details',
+                                view_func=change_user_details,
+                                methods=['PATCH'])
+
+#### PROJECTS
+app.add_url_rule('/project', endpoint='create_project',
+                                view_func=create_project,
+                                methods=['POST'])
+
+app.add_url_rule('/project', endpoint='delete_project',
+                                view_func=delete_project,
+                                methods=['DELETE'])
+
+#### DEVICES/RACKS
+app.add_url_rule('/update_status/<obj_type>/<obj_id>', endpoint='update_status',
+                                view_func=update_status,
+                                methods=['POST'])
+
+#### KEY PAIRS
+app.add_url_rule('/key_pairs', endpoint='key_pair_create',
+                                view_func=key_pair_create,
+                                methods=['POST'])
+
+app.add_url_rule('/key_pairs', endpoint='key_pair_list',
+                                view_func=key_pair_list,
+                                methods=['GET'])
+
+app.add_url_rule('/key_pairs', endpoint='key_pair_delete',
+                                view_func=key_pair_delete,
+                                methods=['DELETE'])
+
+#### INVOICES
+app.add_url_rule('/get_draft_invoice', endpoint='get_draft_invoice',
+                                view_func=get_draft_invoice,
+                                methods=['POST'])
+
+app.add_url_rule('/list_paginated_invoices', endpoint='list_paginated_invoices',
+                                view_func=list_paginated_invoices,
+                                methods=['POST'])
+
+app.add_url_rule('/get_account_invoice', endpoint='get_account_invoice',
+                                view_func=get_account_invoice,
+                                methods=['POST'])
+
+#### CREDITS
+app.add_url_rule('/credits', endpoint='add_credits',
+                                view_func=add_credits,
+                                methods=['POST'])
+
+app.add_url_rule('/credits', endpoint='get_credits',
+                                view_func=get_credits,
+                                methods=['GET'])
+
+#### BILLING ORDERS
+app.add_url_rule('/create_order', endpoint='create_order',
+                                view_func=create_order,
+                                methods=['POST'])
+
+app.add_url_rule('/add_order_tag', endpoint='add_order_tag',
+                                view_func=add_order_tag,
+                                methods=['POST'])
                 
 ### RUNNER
-def run_app(config_obj, log_f):
+def run_api(config_obj, log_f):
     global conf_dict
     conf_dict = config_obj
     global log_file
