@@ -770,7 +770,7 @@ class SyncHandler(AbsViewHandler):
         occupied_spots = self.view.racks[rack.id]._occupied
         height = self.view.racks[rack.id].height
         self.__LOGGER.debug(f"Finding spot in Rack[ID:{rack.id}] - Occupied Slots: {occupied_spots}")
-        
+
         def from_bottom():
             spot_found = False
             start_location = -1
