@@ -721,9 +721,7 @@ def add_credits():
         # Validate Required Data
         request_data = request.get_json()
         app.logger.debug(request_data)
-        verify_required_data(request_data, 
-            'amount', 
-            'billing_acct_id')
+        verify_required_data(request_data, 'credits')
         
         # Create API Handler
         handler = Factory.get_handler(
@@ -735,10 +733,11 @@ def add_credits():
             enable_billing_client=True
         )
 
+        credits_data = request_data['credits']
         # Call Function in API Handler
         handler_return = handler.add_credits(
-            billing_acct_id=request_data['billing_acct_id'],
-            amount=float(request_data['amount'])
+            project_billing_id=credits_data['billing_acct_id'],
+            amount=float(credits_data['amount'])
         )
         app.logger.debug(f"Handler Return Data - {handler_return}")
 
@@ -749,7 +748,8 @@ def add_credits():
         }
         return make_response(resp, 201)
     except Exception as e:
-        return handle_exception(e)
+        raise e
+        #return handle_exception(e)
     finally:
         app.logger.info(f"Finished - Adding credits to billing platform for User's Account")
         disconnect_handler(handler)

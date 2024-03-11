@@ -251,7 +251,7 @@ class KillbillClient(AbsBillingClient):
         amounts = 0.0
         for cred in resp_dict['data']:
             credit_list.append(cred.to_dict())
-            amounts += cred.credit_amount
+            amounts += cred.amount
 
         # BUILD RETURN DICT
         self.__LOGGER.debug(f"Building Return dictionary")
