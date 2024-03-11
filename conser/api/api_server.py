@@ -228,8 +228,8 @@ def create_team():
         app.logger.info(f"Finished - Creating new team in Cloud and corresponding billing account in Billing App")
         disconnect_handler(handler)
 
-def delete_project():
-    app.logger.info("Starting - Deleting project in Cloud and closing billing account")
+def delete_team():
+    app.logger.info("Starting - Deleting team in Cloud and closing billing account")
     try:
         # Authenticate with JWT
         authenticate(request.headers)
@@ -239,9 +239,8 @@ def delete_project():
         app.logger.debug(request_data)
         verify_required_data(request_data, 
             'cloud_env', 
-            'project_info', 
-            'cloud_project_id',
-            'billing_acct_id')
+            'team_info',
+        )
         
         # Create API Handler
         handler = Factory.get_handler(
@@ -256,9 +255,9 @@ def delete_project():
         )
 
         # Call Function in API Handler
-        handler_return = handler.delete_project(
-            project_cloud_id=request_data['user_info']['cloud_project_id'],
-            project_billing_id=request_data['user_info']['billing_acct_id']
+        handler_return = handler.delete_team(
+            project_cloud_id=request_data['team_info']['project_id'],
+            billing_id=request_data['team_info']['billing_acct_id']
         )
         app.logger.debug(f"Handler Return Data - {handler_return}")
 
@@ -270,7 +269,7 @@ def delete_project():
     except Exception as e:
         return handle_exception(e)
     finally:
-        app.logger.info(f"Finished - Deleting project in Cloud and closing billing account")
+        app.logger.info(f"Finished - Deleting team in Cloud and closing billing account")
         disconnect_handler(handler)
 
 def create_team_role():
@@ -864,8 +863,8 @@ app.add_url_rule('/team', endpoint='create_team',
                                 view_func=create_team,
                                 methods=['POST'])
 
-app.add_url_rule('/team', endpoint='delete_project',
-                                view_func=delete_project,
+app.add_url_rule('/team', endpoint='delete_team',
+                                view_func=delete_team,
                                 methods=['DELETE'])
 
 #### TEAM ROLES

@@ -185,8 +185,8 @@ class APIHandler(Handler):
         # RETURN
         return return_dict
 
-    def delete_project(self, project_cloud_id, project_billing_id):
-        self.__LOGGER.debug(f"Deleting project and project's billing account")
+    def delete_team(self, project_cloud_id, billing_id):
+        self.__LOGGER.debug(f"Deleting team project and team's billing account")
         # EXIT CASES
         if 'cloud' not in self.clients or not self.clients['cloud']:
             raise EXCP.MissingRequiredClient('cloud')
@@ -197,7 +197,7 @@ class APIHandler(Handler):
         failed = []
         #-- Delete billing acct
         try:
-            self.clients['billing'].delete_account(project_billing_id)
+            self.clients['billing'].delete_account(billing_id)
         except Exception as e:
             failed.append(('billing_acct', e))
         #-- Delete Cloud project

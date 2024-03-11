@@ -277,18 +277,20 @@ class KillbillClient(AbsBillingClient):
         # BILLING OBJECT LOGIC
         resp = self.apis['account'].close_account_with_http_info(
             account_id=project_billing_id,
-            creted_by='KillbillClient',
+            created_by='KillbillClient',
             reason='Deleted',
             comment='Deleted Via Concertim'
         )
-        resp_dict = self._get_dict_from_resp(resp)
+        # The above doesn't seem to return anything?
+        # resp_dict = self._get_dict_from_resp(resp)
 
         # BUILD RETURN DICT
         self.__LOGGER.debug(f"Building Return dictionary")
-        return_dict = {
-            'submitted': True,
-            'status': resp_dict['status']
-        }
+        # return_dict = {
+        #    'submitted': True,
+        #    'status': resp_dict['status']
+        # }
+        return_dict = { 'submitted': True }
         # RETURN
         return return_dict
 
