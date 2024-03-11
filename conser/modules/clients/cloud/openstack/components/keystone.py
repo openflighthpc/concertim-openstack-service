@@ -243,6 +243,15 @@ class KeystoneComponent(OpstkBaseComponent):
             self.__LOGGER.error(f"An unexpected error : {type(e).__name__} - {e}")
             raise e
 
+    def remove_user_from_project(self, user, project, role):
+        try:
+            self.__LOGGER.debug(f"Removing User:{user} from Project:{project} with Role:{role}")
+            self.client.roles.revoke(role=role, user=user, project=project)
+            return True
+        except Exception as e:
+            self.__LOGGER.error(f"An unexpected error : {type(e).__name__} - {e}")
+            raise e
+
     def disconnect(self):
         self.__LOGGER.debug("Disconnecting Keystone Component Connection")
         self.client = None

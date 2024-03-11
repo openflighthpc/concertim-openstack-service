@@ -225,15 +225,35 @@ class APIHandler(Handler):
             raise EXCP.MissingRequiredClient('cloud')
 
         try:
-            #-- Create cloud project
+            #-- Add to cloud project
             self.__LOGGER.debug(f"Creating new team role -> assigning user: {user_id} as {role} in project:{project_id}")
             self.clients['cloud'].add_user_to_project(project_id, user_id, role)
 
         except Exception as e:
-            self.__LOGGER.error("Create FAILED")
+            self.__LOGGER.error("User assignment FAILED")
             raise e
 
         return { 'success': True }
+
+    def update_team_role(self, project_id, user_id, current_role, new_role):
+            self.__LOGGER.debug(f"Starting user assignment to team")
+            # EXIT CASES
+            if 'cloud' not in self.clients or not self.clients['cloud']:
+                raise EXCP.MissingRequiredClient('cloud')
+
+            try:
+                #-- Add role to cloud project
+                self.__LOGGER.debug(f"Creating new team role -> assigning user: {user_id} as {new_role} in project:{project_id}")
+                self.clients['cloud'].add_user_to_project(project_id, user_id, new_role)
+
+                #-- Remove old role from cloud project
+                self.__LOGGER.debug(f"Removing team role -> user: {user_id} as {current_role} in project:{project_id}")
+                self.clients['cloud'].remove_user_role_from_project(project_id, user_id, current_role)
+            except Exception as e:
+                self.__LOGGER.error("Create FAILED")
+                raise e
+
+            return { 'success': True }
 
     def update_status(self, concertim_obj_type, cloud_obj_id, action):
         self.__LOGGER.debug(f"Updating status for {concertim_obj_type}.{cloud_obj_id} to {action}")

@@ -188,7 +188,7 @@ class OpenstackClient(AbsCloudClient):
         # RETURN
         return return_dict
 
-    def  add_user_to_project(self, project_id, user_id, role):
+    def add_user_to_project(self, project_id, user_id, role):
         self.__LOGGER.debug(f"Adding user to project'")
         # EXIT CASES
         if 'keystone' not in self.components or not self.components['keystone']:
@@ -199,6 +199,22 @@ class OpenstackClient(AbsCloudClient):
             raise EXCP.MissingRequiredCloudObject(self.req_keystone_objs)
 
         self.components['keystone'].add_user_to_project(
+                    user=user_id,
+                    project=project_id,
+                    role=self.req_keystone_objs['role'][role]
+                )
+
+    def remove_user_role_from_project(self, project_id, user_id, role):
+        self.__LOGGER.debug(f"Removing user role from project'")
+        # EXIT CASES
+        if 'keystone' not in self.components or not self.components['keystone']:
+            raise EXCP.NoComponentFound('keystone')
+        if not project_id or not user_id or not role:
+            raise EXCP.MissingRequiredArgs('project_id', 'user_id', 'role')
+        if not self.req_keystone_objs['role'][role]:
+            raise EXCP.MissingRequiredCloudObject(self.req_keystone_objs)
+
+        self.components['keystone'].remove_user_from_project(
                     user=user_id,
                     project=project_id,
                     role=self.req_keystone_objs['role'][role]

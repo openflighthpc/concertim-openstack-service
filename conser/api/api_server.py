@@ -317,6 +317,52 @@ def create_team_role():
         app.logger.info(f"Finished - Creating team role")
         disconnect_handler(handler)
 
+def update_team_role():
+    app.logger.info("Starting - Updating team role")
+    try:
+        # Authenticate with JWT
+        authenticate(request.headers)
+
+        # Validate Required Data
+        request_data = request.get_json()
+        app.logger.debug(request_data)
+        verify_required_data(request_data,
+            'cloud_env',
+            'team_role')
+
+        # Create API Handler
+        handler = Factory.get_handler(
+            "api",
+            conf_dict,
+            log_file,
+            cloud_auth_dict=request_data['cloud_env'],
+            cloud_components_list=['keystone'],
+            enable_concertim_client=False,
+            enable_cloud_client=True,
+            enable_billing_client=False
+        )
+
+        role_data = request_data['team_role']
+
+        # Call Function in API Handler
+        handler_return = handler.update_team_role(
+            project_id=role_data['project_id'],
+            user_id=role_data['user_id'],
+            current_role=role_data['current_role'],
+            new_role=role_data['new_role']
+        )
+        app.logger.debug(f"Handler Return Data - {handler_return}")
+
+        # Return to Concertim
+        resp = { 'success': True }
+        return make_response(resp, 201)
+    except Exception as e:
+        raise e
+        # return handle_exception(e)
+    finally:
+        app.logger.info(f"Finished - Creating team role")
+        disconnect_handler(handler)
+
 def update_status(obj_type, obj_id):
     app.logger.info(f"Starting - Updating status for {obj_type}:{obj_id}")
     try:
@@ -872,6 +918,9 @@ app.add_url_rule('/team_role', endpoint='create_team_role',
                                 view_func=create_team_role,
                                 methods=['POST'])
 
+app.add_url_rule('/team_role', endpoint='update_team_role',
+                                view_func=update_team_role,
+                                methods=['PATCH'])
 
 #### DEVICES/RACKS
 app.add_url_rule('/update_status/<obj_type>/<obj_id>', endpoint='update_status',
