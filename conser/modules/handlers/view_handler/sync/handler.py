@@ -634,22 +634,21 @@ class SyncHandler(AbsViewHandler):
             self.view.devices[device_id_tup].status = device_status
             self.view.devices[device_id_tup]._updated = True
 
-          # This needs updating after new details structure supported
-
-#         if con_device.volume_details != server_dict['volumes']:
-#             self.__LOGGER.debug(f"Volume details have changed: {con_device.volume_details} to {server_dict['volumes']}")
-#             self.view.devices[device_id_tup].volume_details = server_dict['volumes']
-#             self.view.devices[device_id_tup]._updated = True
-
-        # One is a string of an array, the other is an array
-        if eval(con_device.public_ips) != server_dict['public_ips']:
-            self.__LOGGER.debug(f"Public ips have changed: {eval(con_device.public_ips)} to {server_dict['public_ips']}")
-            self.view.devices[device_id_tup].public_ips = server_dict['public_ips']
+        # This needs testing
+        if con_device.details['volume_details'] != server_dict['volumes']:
+            self.__LOGGER.debug(f"Volume details have changed: {con_device.details['volume_details']} to {server_dict['volumes']}")
+            self.view.devices[device_id_tup].details['volume_details'] = server_dict['volumes']
             self.view.devices[device_id_tup]._updated = True
 
-        if eval(con_device.private_ips) != server_dict['private_ips']:
-            self.__LOGGER.debug(f"Private ips have changed: {eval(con_device.private_ips)} to {server_dict['private_ips']}")
-            self.view.devices[device_id_tup].private_ips = server_dict['private_ips']
+        # One is a string of an array, the other is an array
+        if eval(con_device.details['public_ips']) != server_dict['public_ips']:
+            self.__LOGGER.debug(f"Public ips have changed: {eval(con_device.details['public_ips'])} to {server_dict['public_ips']}")
+            self.view.devices[device_id_tup].details['public_ips'] = server_dict['public_ips']
+            self.view.devices[device_id_tup]._updated = True
+
+        if eval(con_device.details['private_ips']) != server_dict['private_ips']:
+            self.__LOGGER.debug(f"Private ips have changed: {con_device.details['private_ips']} to {server_dict['private_ips']}")
+            self.view.devices[device_id_tup].details['private_ips'] = server_dict['private_ips']
             self.view.devices[device_id_tup]._updated = True
 
         self.view.devices[device_id_tup]._delete_marker=False
