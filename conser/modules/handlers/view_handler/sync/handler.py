@@ -754,6 +754,9 @@ class SyncHandler(AbsViewHandler):
             if 'details' in con_device:
                 new_device.details = con_device['details']
             else:
+                # Legacy (pre-1.2) Concertim API doesn't have the `details`
+                # object, and instead has the attributes inlined; and only
+                # supports compute devices.
                 new_device.details = {
                     'type': 'Device::ComputeDetails',
                     'ssh_key': con_device.get('ssh_key', ''),
