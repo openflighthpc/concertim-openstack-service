@@ -458,7 +458,7 @@ class SyncHandler(AbsViewHandler):
             concertim_id=None, 
             cloud_id=cluster_dict['id'],
             billing_id=cluster_billing_id,
-            concertim_name=cluster_dict['name'],
+            concertim_name=cluster_dict['name'].replace('.','-').replace('_','-'),
             cloud_name=cluster_dict['name'],
             user_id_tuple=matching_user.id,
             height=self.clients['concertim'].rack_height, 
@@ -573,7 +573,7 @@ class SyncHandler(AbsViewHandler):
         new_device = ConcertimDevice(
             concertim_id=None, 
             cloud_id=server_dict['id'], 
-            concertim_name=server_dict['name'], 
+            concertim_name=server_dict['name'].replace('.','-').replace('_','-'), 
             cloud_name=server_dict['name'], 
             rack_id_tuple=matching_rack.id, 
             template=server_template, 

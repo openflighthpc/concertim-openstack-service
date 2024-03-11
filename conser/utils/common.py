@@ -89,7 +89,7 @@ def create_resync_flag():
         if not os.path.exists(flag_location):
             os.mknod(flag_location, mode = 0o660)
         with open(flag_location, 'wb') as flag_file:
-            flag_file.write(" ")
+            flag_file.write(b" ")
     except Exception as e:
         raise Exception(f"Could not create flag file at {flag_location} -> {e}")
 
@@ -116,7 +116,7 @@ def create_resync_hold():
         if not os.path.exists(hold_location):
             os.mknod(hold_location, mode = 0o660)
         with open(hold_location, 'wb') as hold_file:
-            hold_file.write(" ")
+            hold_file.write(b" ")
     except Exception as e:
         raise Exception(f"Could not create hold file at {hold_location} -> {e}")
 
@@ -136,3 +136,4 @@ def delete_resync_hold():
             os.remove(hold_location)
     except Exception as e:
         raise Exception(f"Could not delete hold file at {hold_location} -> {e}")
+        

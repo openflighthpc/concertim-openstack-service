@@ -84,6 +84,7 @@ def start_metrics_process(config, log_file, run_once=False):
     )
 
     # MAIN METRICS LOOP
+    retries = 0
     while True:
         try:
             handler.run_process()
@@ -118,6 +119,7 @@ def start_updates_process(config, log_file, run_once=False):
     )
 
     # MAIN UPDATES LOOP
+    retries = 0
     while True:
         try:
             handler.run_process()
@@ -152,6 +154,7 @@ def start_billing_process(config, log_file, run_once=False):
     )
 
     # MAIN BILLING LOOP
+    retries = 0
     while True:
         try:
             handler.run_process()
@@ -189,6 +192,7 @@ def start_sync_process(config, log_file, run_once=False):
     )
 
     # MAIN SYNC LOOP
+    retries = 0
     while True:
         try:
             handler.run_process()
