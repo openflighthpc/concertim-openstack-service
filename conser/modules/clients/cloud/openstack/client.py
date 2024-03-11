@@ -97,7 +97,7 @@ class OpenstackClient(AbsCloudClient):
     ##########################################
     # CLOUD CLIENT OBJECT REQUIRED FUNCTIONS #
     ##########################################
-    def create_cm_project(self, name, primary_user_cloud_id):
+    def create_cm_project(self, name):
         """
         Create a new Concertim Managaed account/project
 
@@ -109,6 +109,7 @@ class OpenstackClient(AbsCloudClient):
         }
         """
         self.__LOGGER.debug(f"Creating new Concertim-managed project '{name}'")
+        self.__LOGGER.debug(f"{self.req_keystone_objs['role']}")
         # EXIT CASES
         if 'keystone' not in self.components or not self.components['keystone']:
             raise EXCP.NoComponentFound('keystone')
@@ -120,18 +121,11 @@ class OpenstackClient(AbsCloudClient):
         or not self.req_keystone_objs['user']['concertim'] \
         or not self.req_keystone_objs['user']['cloudkitty']:
             raise EXCP.MissingRequiredCloudObject(self.req_keystone_objs)
-        if not primary_user_cloud_id:
-            raise EXCP.MissingRequiredArgs('primary_user_cloud_id')
 
         # CLOUD OBJECT LOGIC
         #-- Create project
         new_project = self.components['keystone'].create_project(f"CM_{name}", 'default', desc="Concertim Managed Project")
         #-- Add users
-        self.components['keystone'].add_user_to_project(
-            user=primary_user_cloud_id,
-            project=new_project,
-            role=self.req_keystone_objs['role']['admin']
-        )
         self.components['keystone'].add_user_to_project(
             user=self.req_keystone_objs['user']['admin'],
             project=new_project,

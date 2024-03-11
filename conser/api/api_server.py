@@ -33,7 +33,7 @@ def running():
 """
 
 def create_user():
-    app.logger.info("Starting - Creating new 'CM_' user in Cloud with a default project and Billing App Account")
+    app.logger.info("Starting - Creating new 'CM_' user in Cloud")
     handler = None
     try:
         # Authenticate with JWT
@@ -183,7 +183,7 @@ def change_user_details():
         app.logger.info(f"Finished - Updating User details")
         disconnect_handler(handler)
 
-def create_project():
+def create_team():
     app.logger.info("Starting - Creating new 'CM_' project in Cloud and corresponding billing account in Billing App")
     try:
         # Authenticate with JWT
@@ -194,9 +194,7 @@ def create_project():
         app.logger.debug(request_data)
         verify_required_data(request_data, 
             'cloud_env', 
-            'name',
-            'primary_user_cloud_id',
-            'primary_user_email')
+            'name')
         
         # Create API Handler
         handler = Factory.get_handler(
@@ -207,28 +205,28 @@ def create_project():
             cloud_components_list=['keystone'],
             enable_concertim_client=False,
             enable_cloud_client=True,
-            enable_billing_client=False
+            enable_billing_client=True
         )
 
         # Call Function in API Handler
-        handler_return = handler.create_project(
+        handler_return = handler.create_team(
             name=request_data['name'],
-            primary_user_cloud_id=request_data['primary_user_cloud_id'],
-            primary_user_email=request_data['primary_user_email']
+            adjust_name=False
         )
         app.logger.debug(f"Handler Return Data - {handler_return}")
 
         # Return to Concertim
         resp = {
             'success': True,
-            'project_cloud_id': handler_return['project']['id'],
+            'project_id': handler_return['project']['id'],
             'billing_acct_id': handler_return['billing_acct']['id']
         }
         return make_response(resp, 201)
     except Exception as e:
-        return handle_exception(e)
+        raise e
+        # return handle_exception(e)
     finally:
-        app.logger.info(f"Finished - Creating new 'CM_' project in Cloud and corresponding billing account in Billing App")
+        app.logger.info(f"Finished - Creating new team in Cloud and corresponding billing account in Billing App")
         disconnect_handler(handler)
 
 def delete_project():
@@ -750,7 +748,7 @@ def add_order_tag():
 
 ### HELPERS
 def handle_exception(e):
-    app.logger.debug("Handling Exception")
+    app.logger.debug(f"Handling Exception: {e}")
     type_name = type(e).__name__
     response = {"success": False, "error": type_name, "message": str(e), "traceback" : traceback.format_exc()}
 
@@ -817,12 +815,12 @@ app.add_url_rule('/user', endpoint='change_user_details',
                                 view_func=change_user_details,
                                 methods=['PATCH'])
 
-#### PROJECTS
-app.add_url_rule('/project', endpoint='create_project',
-                                view_func=create_project,
+#### TEAMS
+app.add_url_rule('/team', endpoint='create_team',
+                                view_func=create_team,
                                 methods=['POST'])
 
-app.add_url_rule('/project', endpoint='delete_project',
+app.add_url_rule('/team', endpoint='delete_project',
                                 view_func=delete_project,
                                 methods=['DELETE'])
 

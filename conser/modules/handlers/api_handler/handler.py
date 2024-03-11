@@ -142,8 +142,8 @@ class APIHandler(Handler):
         # RETURN
         return return_dict
 
-    def create_project(self, name, primary_user_cloud_id, primary_user_email):
-        self.__LOGGER.debug(f"")
+    def create_team(self, name, adjust_name=True):
+        self.__LOGGER.debug(f"Starting team creation")
         # EXIT CASES
         if 'cloud' not in self.clients or not self.clients['cloud']:
             raise EXCP.MissingRequiredClient('cloud')
@@ -151,20 +151,20 @@ class APIHandler(Handler):
             raise EXCP.MissingRequiredClient('billing')
 
         # OBJECT LOGIC
+        children = []
         try:
             #-- Create cloud project
-            self.__LOGGER.debug(f"Creating new project -> {name}")
+            self.__LOGGER.debug(f"Creating new team -> {name}")
+            formatted_name = 'CM_' + name if adjust_name else name
             new_project = self.clients['cloud'].create_cm_project(
-                name='CM_' + name,
-                primary_user_cloud_id=primary_user_cloud_id
+                name=formatted_name
             )
             children.append(('cloud', 'project', new_project['id']))
-            #-- Create billing account for default project
-            self.__LOGGER.debug(f"Creating new billing account for project -> {name}")
+            #-- Create billing account for team
+            self.__LOGGER.debug(f"Creating new billing account for team -> {name}")
             new_billing_acct = self.clients['billing'].create_account(
-                project_cloud_name='CM_' + name,
-                project_cloud_id=new_project['id'],
-                primary_user_email=primary_user_email
+                project_cloud_name=formatted_name,
+                project_cloud_id=new_project['id']
             )
             children.append(('billing', 'account', new_billing_acct['id']))
         except Exception as e:

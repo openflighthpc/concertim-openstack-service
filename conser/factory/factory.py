@@ -99,7 +99,7 @@ class Factory(object):
         return handler
 
     @staticmethod
-    def get_client(client_type, client_config, log_file, log_level, client_subtype=None, components_list=None, mq_client=None, mq_config=None):
+    def get_client(client_type, client_config, log_file, log_level, client_subtype=None, components_list=None, billing_enabled=False, mq_client=None, mq_config=None):
         """
         Returns a concrete implementation of the given client configuration
 
@@ -118,7 +118,7 @@ class Factory(object):
         if client_type == "concertim":
             client = Factory._build_concertim_client(client_config, log_file, log_level)
         elif client_type == "cloud":
-            client = Factory._build_cloud_client(client_subtype, client_config, log_file, log_level, components_list=components_list, mq_client=mq_client, mq_config=mq_config)
+            client = Factory._build_cloud_client(client_subtype, client_config, log_file, log_level, billing_enabled=billing_enabled, components_list=components_list, mq_client=mq_client, mq_config=mq_config)
         elif client_type == "billing":
             client = Factory._build_billing_client(client_subtype, client_config, log_file, log_level)
         else:
@@ -203,7 +203,8 @@ class Factory(object):
                 log_file,
                 log_level,
                 client_subtype=cloud_type,
-                components_list=cloud_comps
+                components_list=cloud_comps,
+                billing_enabled=enable_billing_client
             )
         else:
             cloud_client = None
@@ -641,7 +642,7 @@ class Factory(object):
                 keystone_objs = DEFAULT_REQUIRED_KS_OBJS
             components_dict[component_name] = Factory.get_opstk_component(component_name, sess, log_file, log_level)
 
-        if billing_enabled and keystone_objs:
+        if billing_enabled: # and keystone_objs:
             keystone_objs['role'].append('rating')
             keystone_objs['user'].append('cloudkitty')
 

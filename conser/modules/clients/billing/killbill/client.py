@@ -12,9 +12,9 @@ from dateutil.parser import parse as dt_parse
 import sys
 import json
 from datetime import datetime, timedelta
-# Disable insecure warnings  
+# Disable insecure warnings
 import requests
-requests.packages.urllib3.disable_warnings() 
+requests.packages.urllib3.disable_warnings()
 
 class KillbillClient(AbsBillingClient):
     ############
@@ -61,7 +61,7 @@ class KillbillClient(AbsBillingClient):
     # BILLING CLIENT OBJECT REQUIRED FUNCTIONS #
     ############################################
 
-    def create_account(self, project_cloud_name, project_cloud_id, primary_user_email, primary_user_cloud_id):
+    def create_account(self, project_cloud_name, project_cloud_id):
         """
         Function for creating object(s) to represent the Concertim Team for billing.
         """
@@ -73,16 +73,12 @@ class KillbillClient(AbsBillingClient):
             raise EXCP.MissingRequiredArgs('project_cloud_name')
         if not project_cloud_id:
             raise EXCP.MissingRequiredArgs('project_cloud_id')
-        if not primary_user_email:
-            raise EXCP.MissingRequiredArgs('primary_user_email')
-        if not primary_user_cloud_id:
-            raise EXCP.MissingRequiredArgs('primary_user_cloud_id')
 
         # BILLING OBJECT LOGIC
         #-- Create new account object
         acct_body = killbill.Account(
             name=project_cloud_name,
-            email=primary_user_email,
+            email=None,
             bill_cycle_day_local=KillbillClient.BILLING_CYCLE_DAYS,
             currency=KillbillClient.BILLING_CURRENCY
         )
@@ -97,24 +93,17 @@ class KillbillClient(AbsBillingClient):
         acct_id = resp_dict['headers']['Location'].split('/')[-1]
         #-- Add cloud ID to account as custom field
         field_id = self._add_custom_field(
-            obj_type='account', 
-            obj_id=acct_id, 
-            field_name=KillbillClient.PROJECT_BILLING_ID_FIELD, 
+            obj_type='account',
+            obj_id=acct_id,
+            field_name=KillbillClient.PROJECT_BILLING_ID_FIELD,
             field_value=project_cloud_id
-        )
-        field_id = self._add_custom_field(
-            obj_type='account', 
-            obj_id=acct_id, 
-            field_name='primary_user_cloud_id', 
-            field_value=primary_user_cloud_id
         )
 
         # BUILD RETURN DICT
         self.__LOGGER.debug(f"Building Return dictionary")
         return_dict = {
             'id': acct_id,
-            'name': resp_dict['data']['name'],
-            'email': resp_dict['data']['email'],
+            'name': resp_dict['data']['name']
         }
 
         # RETURN
@@ -138,7 +127,7 @@ class KillbillClient(AbsBillingClient):
                 'status' : 500,
                 'headers' : None
             }
-        
+
         # BILLING OBJECT LOGIC
         order_body = killbill.Subscription(
             account_id=project_billing_id,
@@ -164,7 +153,7 @@ class KillbillClient(AbsBillingClient):
         }
         # RETURN
         return return_dict
-    
+
     def update_usage(self, usage_metric_type, usage_metric_value, cluster_billing_id):
         """
         Function to update usage data for a User's cluster item in the billing app.
@@ -284,12 +273,12 @@ class KillbillClient(AbsBillingClient):
             raise EXCP.NoComponentFound('AccountAPI')
         if not project_billing_id:
             raise EXCP.MissingRequiredArgs('project_billing_id')
-        
+
         # BILLING OBJECT LOGIC
         resp = self.apis['account'].close_account_with_http_info(
             account_id=project_billing_id,
             creted_by='KillbillClient',
-            reason='Deleted', 
+            reason='Deleted',
             comment='Deleted Via Concertim'
         )
         resp_dict = self._get_dict_from_resp(resp)
@@ -329,7 +318,7 @@ class KillbillClient(AbsBillingClient):
         }
         # RETURN
         return return_dict
-    
+
     def get_account_billing_info(self, project_billing_id):
         """
         Function to retrieve an Account's billing information from the billing app.
@@ -340,7 +329,7 @@ class KillbillClient(AbsBillingClient):
             raise EXCP.NoComponentFound('AccountAPI')
         if not project_billing_id:
             raise EXCP.MissingRequiredArgs('project_billing_id')
-        
+
         # BILLING OBJECT LOGIC
         resp = self.apis['account'].get_account_with_http_info(
             project_billing_id,
@@ -465,7 +454,7 @@ class KillbillClient(AbsBillingClient):
             matches['count'] += 1
         self.__LOGGER.debug(f"Returning Matches : {matches}")
         return matches
-    
+
     def get_all_billing_accounts(self):
         """
         Function to get all User/Account info from the billing app.
@@ -474,7 +463,7 @@ class KillbillClient(AbsBillingClient):
         # EXIT CASES
         if not self.apis['account']:
             raise EXCP.NoComponentFound('AccountAPI')
-        
+
         # BILLING OBJECT LOGIC
         resp = self.apis['account'].get_accounts_with_http_info(
             account_with_balance_and_cba=True
@@ -538,7 +527,7 @@ class KillbillClient(AbsBillingClient):
             raise EXCP.NoComponentFound('AccountAPI')
         if not project_billing_id:
             raise EXCP.MissingRequiredArgs('project_billing_id')
-        
+
         # BILLING OBJECT LOGIC
         update_body = killbill.Account()
         if new_email:
@@ -547,7 +536,7 @@ class KillbillClient(AbsBillingClient):
             account_id=project_billing_id,
             body=update_body,
             created_by='KillbillClient',
-            reason='Updated', 
+            reason='Updated',
             comment='Updated Via Concertim'
         )
         resp_dict = self._get_dict_from_resp(resp)
@@ -581,7 +570,7 @@ class KillbillClient(AbsBillingClient):
         resp_dict = self._get_dict_from_resp(resp)
         #-- Convert everything to dict
         if resp_dict['data'].items is not None:
-            for item in resp_dict['data'].items:            
+            for item in resp_dict['data'].items:
                 if item.item_details is not None:
                     item.item_details = json.loads(item.item_details)
         resp_dict['data'] = resp_dict['data'].to_dict()
@@ -595,7 +584,7 @@ class KillbillClient(AbsBillingClient):
         }
         # RETURN
         return return_dict
-    
+
     def get_all_invoices(self, project_billing_id, offset=0, limit=100):
         """
         Get the paginated invoice history for an Account.
@@ -684,9 +673,9 @@ class KillbillClient(AbsBillingClient):
 
         # BILLING OBJECT LOGIC
         tag = self._add_custom_field(
-            obj_type='subscription', 
-            obj_id=cluster_billing_id, 
-            field_name=tag_name, 
+            obj_type='subscription',
+            obj_id=cluster_billing_id,
+            field_name=tag_name,
             field_value=tag_value
         )
 
@@ -786,7 +775,7 @@ class KillbillClient(AbsBillingClient):
             raise EXCP.BillingAPIError(f"API returned an unexpected object: {attempt}")
         if attempt[1] not in [200, 201, 204]:
             raise EXCP.BillingAPIFailure(f"Call was not successful -> {response_obj[2]}", response_obj[1])
-        
+
         cf_list = []
         for cf in attempt[0]:
             cf_list.append(cf.to_dict())
@@ -838,7 +827,7 @@ class KillbillClient(AbsBillingClient):
         draft_invoice = self.get_invoice_preview(project_billing_id)
         if 'amount' in draft_invoice['invoice'] and draft_invoice['invoice']['amount'] and draft_invoice['invoice']['amount'] >= 0:
             draft_invoice_amount = draft_invoice['invoice']['amount']
-        
+
         self.__LOGGER.debug(f"Remaining credits = current_credits:{account_credits} - incoming_charges:{draft_invoice_amount}")
         remaining_credits = account_credits - draft_invoice_amount
         return remaining_credits
