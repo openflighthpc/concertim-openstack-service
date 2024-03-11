@@ -188,6 +188,22 @@ class OpenstackClient(AbsCloudClient):
         # RETURN
         return return_dict
 
+    def  add_user_to_project(self, project_id, user_id, role):
+        self.__LOGGER.debug(f"Adding user to project'")
+        # EXIT CASES
+        if 'keystone' not in self.components or not self.components['keystone']:
+            raise EXCP.NoComponentFound('keystone')
+        if not project_id or not user_id or not role:
+            raise EXCP.MissingRequiredArgs('project_id', 'user_id', 'role')
+        if not self.req_keystone_objs['role'][role]:
+            raise EXCP.MissingRequiredCloudObject(self.req_keystone_objs)
+
+        self.components['keystone'].add_user_to_project(
+                    user=user_id,
+                    project=project_id,
+                    role=self.req_keystone_objs['role'][role]
+                )
+
     def create_keypair(self, name, imported_pub_key=None, key_type='ssh', user_cloud_id=None):
         """
         Create a new KeyPair for a given User/Account

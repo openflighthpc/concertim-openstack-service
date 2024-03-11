@@ -68,7 +68,7 @@ class APIHandler(Handler):
             raise EXCP.MissingRequiredClient('cloud')
         if 'billing' not in self.clients or not self.clients['billing']:
             raise EXCP.MissingRequiredClient('billing')
-        
+
         # OBJECT LOGIC
         failed = []
         #-- Delete billing acct
@@ -113,7 +113,7 @@ class APIHandler(Handler):
         updated = []
         #-- Change user details in cloud
         user_update = self.clients['cloud'].update_user_info(
-            user_cloud_id=user_cloud_id, 
+            user_cloud_id=user_cloud_id,
             new_email=new_email,
             new_password=new_pw
         )
@@ -192,7 +192,7 @@ class APIHandler(Handler):
             raise EXCP.MissingRequiredClient('cloud')
         if 'billing' not in self.clients or not self.clients['billing']:
             raise EXCP.MissingRequiredClient('billing')
-        
+
         # OBJECT LOGIC
         failed = []
         #-- Delete billing acct
@@ -218,6 +218,23 @@ class APIHandler(Handler):
         # RETURN
         return return_dict
 
+    def create_team_role(self, project_id, user_id, role):
+        self.__LOGGER.debug(f"Starting user assignment to team")
+        # EXIT CASES
+        if 'cloud' not in self.clients or not self.clients['cloud']:
+            raise EXCP.MissingRequiredClient('cloud')
+
+        try:
+            #-- Create cloud project
+            self.__LOGGER.debug(f"Creating new team role -> assigning user: {user_id} as {role} in project:{project_id}")
+            self.clients['cloud'].add_user_to_project(project_id, user_id, role)
+
+        except Exception as e:
+            self.__LOGGER.error("Create FAILED")
+            raise e
+
+        return { 'success': True }
+
     def update_status(self, concertim_obj_type, cloud_obj_id, action):
         self.__LOGGER.debug(f"Updating status for {concertim_obj_type}.{cloud_obj_id} to {action}")
         # EXIT CASES
@@ -229,7 +246,7 @@ class APIHandler(Handler):
             raise InvalidAPICall(concertim_obj_type)
         if action not in APIHandler.ACTIONS_MAP[concertim_obj_type]['actions']:
             raise InvalidAPICall(f"{concertim_obj_type}.{action}")
-        
+
         # OBJECT LOGIC
         #-- Update status
         attempt = getattr(self.clients['cloud'], APIHandler.ACTIONS_MAP[concertim_obj_type]['function'])(
@@ -241,7 +258,7 @@ class APIHandler(Handler):
             cluster_delete = self.clients['billing'].delete_cluster_order(
                 cluster_billing_id=cloud_obj_id
             )
-        
+
         # BUILD RETURN DICT
         self.__LOGGER.debug(f"Building Return dictionary")
         return_dict = {
@@ -258,8 +275,8 @@ class APIHandler(Handler):
 
         # OBJECT LOGIC
         keypair = self.clients['cloud'].create_keypair(
-            name=key_name, 
-            imported_pub_key=imported_public_key, 
+            name=key_name,
+            imported_pub_key=imported_public_key,
             key_type=key_type
         )
         # BUILD RETURN DICT
@@ -440,8 +457,8 @@ class APIHandler(Handler):
 
         # OBJECT LOGIC
         tag = self.clients['billing'].add_order_tag(
-            cluster_billing_id=cluster_billing_id, 
-            tag_name=tag_name, 
+            cluster_billing_id=cluster_billing_id,
+            tag_name=tag_name,
             tag_value=tag_value
         )
         # BUILD RETURN DICT
