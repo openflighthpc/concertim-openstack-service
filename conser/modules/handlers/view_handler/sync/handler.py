@@ -785,20 +785,14 @@ class SyncHandler(AbsViewHandler):
         occupied_spots = self.view.racks[rack.id]._occupied
         height = self.view.racks[rack.id].height
         self.__LOGGER.debug(f"Finding spot in Rack[ID:{rack.id}] - Occupied Slots: {occupied_spots}")
-        if device_type in ['server']:
-            return from_bottom()
-        elif device_type in []:
-            return from_top()
-        else:
-            raise EXCP.InvalidArguments(f"device_type:{device_type}")
         
         def from_bottom():
             spot_found = False
             start_location = -1
             for rack_row in range(1, height, 1):
-                if (rack_row + size - 1) <= height and rack_row >= 1:
+                if (rack_row + device_size - 1) <= height and rack_row >= 1:
                     fits = True
-                    for device_section in range(0, size):
+                    for device_section in range(0, device_size):
                         row = (rack_row + device_section)
                         if row in occupied_spots:
                             fits = False
@@ -807,7 +801,7 @@ class SyncHandler(AbsViewHandler):
                         spot_found = True
                         break
             if spot_found:
-                end_location = start_location + size - 1
+                end_location = start_location + device_size - 1
                 self.__LOGGER.debug(f"Empty space found")
                 return Location(start_u=start_location, end_u=end_location, facing='f')
             else:
@@ -818,9 +812,9 @@ class SyncHandler(AbsViewHandler):
             spot_found = False
             start_location = -1
             for rack_row in range(height, 0, -1):
-                if (rack_row + size - 1) <= height and rack_row >= 1:
+                if (rack_row + device_size - 1) <= height and rack_row >= 1:
                     fits = True
-                    for device_section in range(0, size):
+                    for device_section in range(0, device_size):
                         row = (rack_row + device_section)
                         if row in occupied_spots:
                             fits = False
@@ -829,9 +823,16 @@ class SyncHandler(AbsViewHandler):
                         spot_found = True
                         break
             if spot_found:
-                end_location = start_location + size - 1
+                end_location = start_location + device_size - 1
                 self.__LOGGER.debug(f"Empty space found")
                 return Location(start_u=start_location, end_u=end_location, facing='f')
             else:
                 self.__LOGGER.error(f"No space found in Rack[ID:{rack.id}] for {device_type} of size '{device_size}'")
                 return None
+
+        if device_type in ['server']:
+            return from_bottom()
+        elif device_type in []:
+            return from_top()
+        else:
+            raise EXCP.InvalidArguments(f"device_type:{device_type}")
