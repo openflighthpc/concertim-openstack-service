@@ -246,7 +246,7 @@ class UpdatesHandler(Handler):
             self.clients['concertim'].create_compute_device(
                 variables_dict={
                     "template_id": device_obj.template.id[0],
-                    "name": device_obj.name[1],
+                    "name": device_obj.name[0],
                     "description": device_obj.description,
                     "status" : device_obj.status,
                     "facing": device_obj.location.facing,

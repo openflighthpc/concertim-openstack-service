@@ -587,7 +587,7 @@ class SyncHandler(AbsViewHandler):
         new_device = ConcertimDevice(
             concertim_id=None, 
             cloud_id=server_dict['id'], 
-            concertim_name=server_dict['name'].replace('.','-').replace('_','-'), 
+            concertim_name=server_dict['name'].replace('.','-').replace('_','-'),
             cloud_name=server_dict['name'], 
             rack_id_tuple=matching_rack.id, 
             template=server_template, 
