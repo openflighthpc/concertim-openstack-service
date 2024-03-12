@@ -301,8 +301,7 @@ def create_team_role():
         resp = { 'success': True }
         return make_response(resp, 201)
     except Exception as e:
-        raise e
-        # return handle_exception(e)
+        return handle_exception(e)
     finally:
         app.logger.info(f"Finished - Creating team role")
         disconnect_handler(handler)
@@ -347,8 +346,7 @@ def update_team_role():
         resp = { 'success': True }
         return make_response(resp, 201)
     except Exception as e:
-        raise e
-        # return handle_exception(e)
+        return handle_exception(e)
     finally:
         app.logger.info(f"Finished - Creating team role")
         disconnect_handler(handler)
@@ -392,8 +390,7 @@ def delete_team_role():
         resp = { 'success': True }
         return make_response(resp, 201)
     except Exception as e:
-        raise e
-        # return handle_exception(e)
+        return handle_exception(e)
     finally:
         app.logger.info(f"Finished - Removing team role")
         disconnect_handler(handler)
@@ -485,8 +482,7 @@ def key_pair_create():
         }
         return make_response(resp, 201)
     except Exception as e:
-        raise e
-        #return handle_exception(e)
+        return handle_exception(e)
     finally:
         app.logger.info(f"Finished - Creating keypair in Cloud")
         disconnect_handler(handler)
@@ -584,8 +580,10 @@ def get_draft_invoice():
         request_data = request.get_json()
         app.logger.debug(request_data)
         verify_required_data(request_data,
+            'invoice')
+        verify_required_data(request_data['invoice'],
             'billing_acct_id')
-        
+
         # Create API Handler
         handler = Factory.get_handler(
             "api", 
@@ -598,7 +596,7 @@ def get_draft_invoice():
 
         # Call Function in API Handler
         handler_return = handler.get_draft_invoice(
-            project_billing_id=request_data['billing_acct_id']
+            project_billing_id=request_data['invoice']['billing_acct_id']
         )
         app.logger.debug(f"Handler Return Data - {handler_return}")
 
@@ -624,7 +622,7 @@ def list_paginated_invoices():
         request_data = request.get_json()
         app.logger.debug(request_data)
         verify_required_data(request_data,
-            'billing_acct_id')
+            'invoices')
         
         # Create API Handler
         handler = Factory.get_handler(
@@ -636,13 +634,14 @@ def list_paginated_invoices():
             enable_billing_client=True
         )
 
+        invoices_data = request_data['invoices']
         # Check for limit and offset - set to default otherwise
-        offset = 0 if 'offset' not in request_data else int(request_data['offset'])
-        limit = 100 if 'limit' not in request_data else int(request_data['limit'])
+        offset = 0 if 'offset' not in invoices_data else int(invoices_data['offset'])
+        limit = 100 if 'limit' not in invoices_data else int(invoices_data['limit'])
 
         # Call Function in API Handler
         handler_return = handler.list_account_invoice_paginated(
-            project_billing_id=request_data['billing_acct_id'],
+            project_billing_id=invoices_data['billing_acct_id'],
             offset=offset,
             limit=limit
         )
@@ -671,9 +670,12 @@ def get_account_invoice():
         request_data = request.get_json()
         app.logger.debug(request_data)
         verify_required_data(request_data,
-            'billing_acct_id',
-            'invoice_id')
-        
+            'invoice')
+        invoice_data = request_data['invoice']
+        verify_required_data(invoice_data,
+                    'billing_acct_id',
+                    'invoice_id')
+
         # Create API Handler
         handler = Factory.get_handler(
             "api", 
@@ -686,8 +688,8 @@ def get_account_invoice():
 
         # Call Function in API Handler
         handler_return = handler.get_invoice_by_id(
-            project_billing_id=request_data['billing_acct_id'],
-            invoice_id=request_data['invoice_id']
+            project_billing_id=invoice_data['billing_acct_id'],
+            invoice_id=invoice_data['invoice_id']
         )
         app.logger.debug(f"Handler Return Data - {handler_return}")
 
@@ -739,8 +741,7 @@ def add_credits():
         }
         return make_response(resp, 201)
     except Exception as e:
-        raise e
-        #return handle_exception(e)
+        return handle_exception(e)
     finally:
         app.logger.info(f"Finished - Adding credits to billing platform for User's Account")
         disconnect_handler(handler)
