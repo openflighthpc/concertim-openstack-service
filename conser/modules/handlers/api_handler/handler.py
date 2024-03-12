@@ -77,13 +77,11 @@ class APIHandler(Handler):
         # RETURN
         return return_dict
 
-    def change_user_details(self, user_cloud_id, project_cloud_id, project_billing_id, new_data, other_project_billing_ids=None):
+    def change_user_details(self, user_cloud_id, new_data):
         self.__LOGGER.debug(f"Changing info for User -> {user_cloud_id}")
         # EXIT CASES
         if 'cloud' not in self.clients or not self.clients['cloud']:
             raise EXCP.MissingRequiredClient('cloud')
-        if 'billing' not in self.clients or not self.clients['billing']:
-            raise EXCP.MissingRequiredClient('billing')
 
         # OBJECT LOGIC
         new_email = None if 'email' not in new_data else new_data['email']
@@ -97,20 +95,6 @@ class APIHandler(Handler):
         )
         for field in user_update['changed']:
             updated.append(('cloud_user', user_cloud_id, field))
-
-        #-- Change details in billing app
-        if new_email:
-            self.clients['billing'].update_account_billing_info(
-                project_billing_id=project_billing_id,
-                new_email=new_email
-            )
-            updated.append(('billing_acct', project_billing_id , 'email'))
-            for proj_bill_id in other_project_billing_ids:
-                self.clients['billing'].update_account_billing_info(
-                    project_billing_id=proj_bill_id,
-                    new_email=new_email
-                )
-                updated.append(('billing_acct', proj_bill_id , 'email'))
 
         # BUILD RETURN DICT
         self.__LOGGER.debug(f"Building Return dictionary")

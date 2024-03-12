@@ -139,9 +139,7 @@ def change_user_details():
         verify_required_data(request_data, 
             'cloud_env', 
             'user_info', 
-            'cloud_user_id', 
-            'cloud_default_project_id',
-            'default_billing_acct_id',
+            'cloud_user_id',
             'new_data')
         
         # Create API Handler
@@ -153,17 +151,13 @@ def change_user_details():
             cloud_components_list=['keystone'],
             enable_concertim_client=False,
             enable_cloud_client=True,
-            enable_billing_client=True
+            enable_billing_client=False
         )
 
         # Call Function in API Handler
-        primary_accts_list = None if 'primary_user_billing_accounts' not in request_data['user_info'] else request_data['user_info']['primary_user_billing_accounts']
         handler_return = handler.change_user_details(
             user_cloud_id=request_data['user_info']['cloud_user_id'],
-            proejct_cloud_id=request_data['user_info']['cloud_default_project_id'],
-            project_billing_id=request_data['user_info']['default_billing_acct_id'],
-            new_data=request_data['new_data'],
-            other_project_billing_ids=primary_accts_list
+            new_data=request_data['user_info']['new_data']
         )
         app.logger.debug(f"Handler Return Data - {handler_return}")
 
