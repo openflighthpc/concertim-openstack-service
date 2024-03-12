@@ -96,9 +96,7 @@ def delete_user():
         verify_required_data(request_data, 
             'cloud_env', 
             'user_info', 
-            'cloud_user_id',
-            'cloud_default_project_id',
-            'default_billing_acct_id')
+            'cloud_user_id')
         
         # Create API Handler
         handler = Factory.get_handler(
@@ -109,14 +107,12 @@ def delete_user():
             cloud_components_list=['keystone'],
             enable_concertim_client=False,
             enable_cloud_client=True,
-            enable_billing_client=True
+            enable_billing_client=False
         )
 
         # Call Function in API Handler
         handler_return = handler.delete_user(
-            user_cloud_id=request_data['user_info']['cloud_user_id'],
-            project_cloud_id=request_data['user_info']['cloud_default_project_id'],
-            project_billing_id=request_data['user_info']['default_billing_acct_id']
+            user_cloud_id=request_data['user_info']['cloud_user_id']
         )
         app.logger.debug(f"Handler Return Data - {handler_return}")
 

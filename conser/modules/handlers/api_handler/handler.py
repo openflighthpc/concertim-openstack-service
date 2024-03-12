@@ -61,35 +61,13 @@ class APIHandler(Handler):
         # RETURN
         return return_dict
 
-    def delete_user(self, user_cloud_id, project_cloud_id, project_billing_id):
-        self.__LOGGER.debug(f"Deleting User, their default project, and their default project's billing account")
+    def delete_user(self, user_cloud_id):
+        self.__LOGGER.debug(f"Deleting User")
         # EXIT CASES
         if 'cloud' not in self.clients or not self.clients['cloud']:
             raise EXCP.MissingRequiredClient('cloud')
-        if 'billing' not in self.clients or not self.clients['billing']:
-            raise EXCP.MissingRequiredClient('billing')
 
-        # OBJECT LOGIC
-        failed = []
-        #-- Delete billing acct
-        try:
-            self.clients['billing'].delete_account(project_billing_id)
-        except Exception as e:
-            failed.append(('billing_acct', e))
-        #-- Delete Cloud project
-        try:
-            self.clients['cloud'].delete_project(project_cloud_id)
-        except Exception as e:
-            failed.append(('project', e))
-        #-- Delete Cloud user
-        try:
-            self.clients['cloud'].delete_user(user_cloud_id)
-        except Exception as e:
-            failed.append(('user', e))
-
-        #-- Handle failures
-        if failed:
-            raise Exception(f"Failed to delete some objects -> {failed}")
+        self.clients['cloud'].delete_user(user_cloud_id)
 
         # BUILD RETURN DICT
         self.__LOGGER.debug(f"Building Return dictionary")
