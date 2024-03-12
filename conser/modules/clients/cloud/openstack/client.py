@@ -920,6 +920,20 @@ class OpenstackClient(AbsCloudClient):
         # RETURN
         return return_dict
 
+    def get_all_stack_resources(self, stack_id):
+        if 'heat' not in self.components or not self.components['heat']:
+            raise EXCP.NoComponentFound('heat')
+        self.__LOGGER.debug(f"Fetching all resources for stack {stack_id}")
+        resources = self.components['heat'].list_stack_resources(stack_id)
+        return resources
+
+    def get_volume_info(self, volume_id):
+        if 'cinder' not in self.components or not self.components['cinder']:
+            raise EXCP.NoComponentFound('cinder')
+        self.__LOGGER.debug(f"Fetching volume {volume_id}")
+        volume = self.components['cinder'].get_volume(volume_id)
+        return volume
+
     def get_all_servers(self, project_cloud_id=None):
         """
         Get all servers - optionally for a given Project/Account.

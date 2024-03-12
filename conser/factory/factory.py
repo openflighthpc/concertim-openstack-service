@@ -25,6 +25,7 @@ class Factory(object):
                     "rmq"
                 ],
                 "components": [
+                    "cinder",
                     "cloudkitty",
                     "gnocchi",
                     "heat",
@@ -51,7 +52,7 @@ class Factory(object):
             'openstack': ['gnocchi']
         },
         'view_sync': {
-            'openstack': ['keystone', 'heat', 'nova']
+            'openstack': ['cinder', 'keystone', 'heat', 'nova']
         },
         'view_queue': {
             'openstack': []
@@ -140,6 +141,8 @@ class Factory(object):
         component = None
         if component_name == "keystone":
             component = Factory._build_keystone_component(session_obj, log_file, log_level)
+        elif component_name == "cinder":
+            component = Factory._build_cinder_component(session_obj, log_file, log_level)
         elif component_name == "nova":
             component = Factory._build_nova_component(session_obj, log_file, log_level)
         elif component_name == "heat":
@@ -692,6 +695,15 @@ class Factory(object):
         # CREATE/RETURN COMPONENT
         keystone_component = KeystoneComponent(session_obj, log_file, log_level)
         return keystone_component
+
+# CINDER
+    @staticmethod
+    def _build_cinder_component(session_obj, log_file, log_level):
+        # IMPORTS
+        from conser.modules.clients.cloud.openstack.components.cinder import CinderComponent
+        # CREATE/RETURN COMPONENT
+        cinder_component = CinderComponent(session_obj, log_file, log_level)
+        return cinder_component
 
 # NOVA
     @staticmethod
