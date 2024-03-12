@@ -228,7 +228,8 @@ class OpenstackClient(AbsCloudClient):
         return_dict = {
             'private_key': 
             'public_key': 
-            'name': 
+            'fingerprint':
+            'name':
             'id': 
         }
         """
@@ -239,19 +240,23 @@ class OpenstackClient(AbsCloudClient):
         if not name or not key_type:
             raise EXCP.MissingRequiredArgs('name', 'key_type')
 
-        # CLOUD OBJECT LOGIC
-        new_keypair = self.components['nova'].create_keypair(
-            name=name, 
-            imported_pub_key=imported_pub_key, 
-            key_type=key_type
-        )
+        if imported_pub_key:
+           self.__LOGGER.debug(f"Creating keypair using provided public key")
+           new_keypair = self.components['nova'].create_keypair(name, public_key=imported_pub_key, key_type=key_type)
+        else:
+           self.__LOGGER.debug(f"Creating keypair from scratch")
+           new_keypair = self.components['nova'].create_keypair(name, key_type=key_type)
+
         self.__LOGGER.debug(f"New keypair created successfully - '{new_keypair}'")
 
         # BUILD RETURN DICT
         self.__LOGGER.debug(f"Building Return dictionary")
+
+        private_key = new_keypair.private_key if hasattr(new_keypair, 'private_key') else None
         return_dict = {
-            'private_key': new_keypair.private_key,
+            'private_key': private_key,
             'public_key': new_keypair.public_key,
+            'fingerprint': new_keypair.fingerprint,
             'name': new_keypair.name,
             'id': new_keypair.id
         }
@@ -682,7 +687,7 @@ class OpenstackClient(AbsCloudClient):
         # RETURN
         return return_dict
 
-    def get_all_keypairs(self, user_cloud_id=None):
+    def get_all_keypairs(self):
         """
         Get all keypairs for a user/account
 
@@ -703,9 +708,7 @@ class OpenstackClient(AbsCloudClient):
             raise EXCP.NoComponentFound('nova')
 
         # CLOUD OBJECT LOGIC
-        key_pairs = self.components['nova'].list_keypairs(
-            user_id=user_cloud_id
-        )
+        key_pairs = self.components['nova'].list_keypairs()
 
         # BUILD RETURN DICT
         self.__LOGGER.debug(f"Building Return dictionary")
@@ -713,9 +716,10 @@ class OpenstackClient(AbsCloudClient):
             'key_pairs': {}
         }
         for kp in key_pairs:
-            return_dict['key_pairs'][kp.id]['id'] = kp.id
+            return_dict['key_pairs'][kp.id] = {'id': kp.id}
             return_dict['key_pairs'][kp.id]['name'] = kp.name
             return_dict['key_pairs'][kp.id]['public_key'] = kp.public_key
+            return_dict['key_pairs'][kp.id]['fingerprint'] = kp.fingerprint
 
         # RETURN
         return return_dict

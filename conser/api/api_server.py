@@ -468,11 +468,11 @@ def key_pair_create():
         )
 
         # Call Function in API Handler
-        pub_key = None if 'public_key' not in request_data['keypair'] else request_data['keypair']['public_key']
-        key_type = 'ssh' if 'key_type' not in request_data['keypair'] else request_data['keypair']['key_type']
+        pub_key = None if 'public_key' not in request_data['key_pair'] else request_data['key_pair']['public_key']
+        key_type = 'ssh' if 'key_type' not in request_data['key_pair'] else request_data['key_pair']['key_type']
 
         handler_return = handler.create_keypair(
-            key_name=request_data['keypair']['name'],
+            key_name=request_data['key_pair']['name'],
             key_type=key_type,
             imported_public_key=pub_key
         )
@@ -485,7 +485,8 @@ def key_pair_create():
         }
         return make_response(resp, 201)
     except Exception as e:
-        return handle_exception(e)
+        raise e
+        #return handle_exception(e)
     finally:
         app.logger.info(f"Finished - Creating keypair in Cloud")
         disconnect_handler(handler)
@@ -541,7 +542,7 @@ def key_pair_delete():
         app.logger.debug(request_data)
         verify_required_data(request_data, 
             'cloud_env', 
-            'keypair_id')
+            'keypair_name')
         
         # Create API Handler
         handler = Factory.get_handler(

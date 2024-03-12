@@ -283,7 +283,8 @@ class APIHandler(Handler):
                 'id': keypair['id'],
                 'name': keypair['name'],
                 'private_key': keypair['private_key'],
-                'public_key': keypair['public_key']
+                'public_key': keypair['public_key'],
+                'fingerprint': keypair['fingerprint']
             }
         }
         # RETURN

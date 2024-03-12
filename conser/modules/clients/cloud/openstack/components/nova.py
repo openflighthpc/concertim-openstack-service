@@ -134,7 +134,8 @@ class NovaComponent(OpstkBaseComponent):
     def create_keypair(self, name, public_key=None, key_type='ssh', user_id=None):
         try:
             # key_type not supported for novaclient - add handling
-            return self.client.keypairs.create(name, public_key=public_key, key_type=key_type, user_id=user_id)
+            # user_id also not supported
+            return self.client.keypairs.create(name, public_key=public_key)
         except Exception as e:
             self.__LOGGER.error(f"An unexpected error : {type(e).__name__} - {e}")
             raise e
@@ -146,16 +147,16 @@ class NovaComponent(OpstkBaseComponent):
             self.__LOGGER.error(f"An unexpected error : {type(e).__name__} - {e}")
             raise e
 
-    def list_keypairs(self, user_id=None):
+    def list_keypairs(self):
         try:
-            return self.client.keypairs.list(user_id=user_id)
+            return self.client.keypairs.list()
         except Exception as e:
             self.__LOGGER.error(f"An unexpected error : {type(e).__name__} - {e}")
             raise e
 
     def delete_keypair(self, keypair):
         try:
-            return self.client.keypairs.delete(keypair, user_id=user_id)
+            return self.client.keypairs.delete(keypair)
         except Exception as e:
             self.__LOGGER.error(f"An unexpected error : {type(e).__name__} - {e}")
             raise e

@@ -177,7 +177,6 @@ class Factory(object):
 
         # HANDLER DEFAULTS
         log_level = config['log_level']
-        # cloud_auth doesn't seem to be used?
         if cloud_auth_dict:
             cloud_auth = cloud_auth_dict
         else:
@@ -199,7 +198,7 @@ class Factory(object):
         if enable_cloud_client:
             cloud_client = Factory.get_client(
                 'cloud',
-                config[cloud_type],
+                cloud_auth,
                 log_file,
                 log_level,
                 client_subtype=cloud_type,
