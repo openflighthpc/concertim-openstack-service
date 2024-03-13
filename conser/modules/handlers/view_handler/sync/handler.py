@@ -901,9 +901,9 @@ class SyncHandler(AbsViewHandler):
                 self.__LOGGER.error(f"No space found in Rack[ID:{rack.id}] for {device_type} of size '{device_size}'")
                 return None
 
-        if device_type in ['server']:
+        if device_type in ['server', 'Device::VolumeDetails']:
             return from_bottom()
-        elif device_type in ['Device::VolumeDetails']:
+        elif device_type in []:
             return from_top()
         else:
             raise EXCP.InvalidArguments(f"device_type:{device_type}")
