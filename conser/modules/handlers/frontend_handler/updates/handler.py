@@ -99,7 +99,8 @@ class UpdatesHandler(Handler):
                     self.__LOGGER.debug(f"Device not found in Concertim - Cannot create device - waiting for rack to be created first - skipping")
                     continue
                 self.__LOGGER.debug(f"Device not found in Concertim - creating device {device_id_tup}")
-                self.create_new_device(device)
+                created_device = self.create_new_device(device)
+                device.id = (created_device['id'], device_id_tup[1])
             else:
                 self.__LOGGER.warning(f"Unrecognized device found in view {device}")
         self.__LOGGER.debug("Finished -- Sending devices changes")
@@ -126,7 +127,7 @@ class UpdatesHandler(Handler):
         self.__LOGGER.debug(f"Starting --- Creating new template {template_obj.id}")
         # OBJECT LOGIC
         try:
-            self.clients['concertim'].create_template(
+            new_template = self.clients['concertim'].create_template(
                 variables_dict={
                     "name": template_obj.name[1],
                     "description": template_obj.description,
@@ -137,6 +138,7 @@ class UpdatesHandler(Handler):
                     "foreign_id" : template_obj.id[1]
                 }
             )
+            template_obj.id = (new_template['id'], template_obj.id[1])
         except Exception as e:
             self.__LOGGER.error(f"FAILED - Could not create template {template_obj} - {e} - skipping")
             self.__LOGGER.exception(e)
@@ -189,7 +191,7 @@ class UpdatesHandler(Handler):
                     'openstack_stack_output': rack_obj.output
                 }
             )
-            self.view.racks[rack_obj.id].id = tuple((rack_resp['id'], rack_obj.id[1], rack_obj.id[2]))
+            rack_obj.id = tuple((rack_resp['id'], rack_obj.id[1], rack_obj.id[2]))
         except Exception as e:
             self.__LOGGER.error(f"FAILED - Could not create rack {rack_obj} - {e} - skipping")
             self.__LOGGER.exception(e)
@@ -300,6 +302,17 @@ class UpdatesHandler(Handler):
             self.racks_changes()
             #-- Edit Devices
             self.devices_changes()
+            #-- Reflect any ID changes in the keys of the view dicts
+            self.view.rebuild_indices()
+
+        # Persist any ID changes we've caused by creating Concertim objects.
+        # SyncHandler will blow these away when it completes its next run but by
+        # that point the IDs should be in the Concertim source data anyway.
+        # Doing this prevents us from trying to create objects in Concertim
+        # again that we created on our previous run. Such attempts would fail
+        # and prevent any other changes from being made later in the run.
+        UTILS.save_view(self.view)
+        UTILS.merge_views()
         
         self.__LOGGER.info(f"Finished - Updating Concertim Front-end with current View data")
         self.__LOGGER.info(f"=====================================================================================\n\n")

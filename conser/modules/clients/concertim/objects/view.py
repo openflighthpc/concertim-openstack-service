@@ -150,5 +150,21 @@ class ConcertimView(object):
                 break
         return matching
 
+    def rebuild_indices(self):
+        '''
+        When we create new objects in Concertim, they are given IDs and those IDs
+        are placed in the first entry in the object's ID tuple. However, we don't
+        update the keys of the respective dicts, which a lot of the handler code
+        uses instead of getting the ID from an object itself.
 
+        This method recreates the rack, template and device dicts so that the
+        keys match with the object's IDs again.
+        '''
+        new_racks = { r.id: r for r in self.racks.values() }
+        self.racks = new_racks
 
+        new_templates = { t.id: t for t in self.templates.values() }
+        self.templates = new_templates
+
+        new_devices = { d.id: d for d in self.devices.values() }
+        self.devices = new_devices
