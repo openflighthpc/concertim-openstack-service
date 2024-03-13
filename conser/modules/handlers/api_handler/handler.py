@@ -415,7 +415,7 @@ class APIHandler(Handler):
             raise EXCP.MissingRequiredClient('billing')
 
         # OBJECT LOGIC
-        remaining_credits = self.client['billing'].get_credits(
+        remaining_credits = self.clients['billing'].get_credits(
             project_billing_id=project_billing_id
         )
 
@@ -442,7 +442,6 @@ class APIHandler(Handler):
         self.__LOGGER.debug(f"Building Return dictionary")
         return_dict = {
             'order_id': order['id'],
-            'order': order['order']
         }
         # RETURN
         return return_dict

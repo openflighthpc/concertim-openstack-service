@@ -756,7 +756,7 @@ def get_credits():
         request_data = request.get_json()
         app.logger.debug(request_data)
         verify_required_data(request_data, 
-            'billing_acct_id')
+            'credits')
         
         # Create API Handler
         handler = Factory.get_handler(
@@ -770,7 +770,7 @@ def get_credits():
 
         # Call Function in API Handler
         handler_return = handler.get_credits(
-            billing_acct_id=request_data['billing_acct_id']
+            project_billing_id=request_data['credits']['billing_account_id']
         )
         app.logger.debug(f"Handler Return Data - {handler_return}")
 
@@ -781,7 +781,8 @@ def get_credits():
         }
         return make_response(resp, 201)
     except Exception as e:
-        return handle_exception(e)
+        raise e
+        # return handle_exception(e)
     finally:
         app.logger.info(f"Finished - Getting Credits for Account")
         disconnect_handler(handler)
@@ -796,7 +797,7 @@ def create_order():
         request_data = request.get_json()
         app.logger.debug(request_data)
         verify_required_data(request_data, 
-            'billing_acct_id')
+            'order')
         
         # Create API Handler
         handler = Factory.get_handler(
@@ -810,22 +811,24 @@ def create_order():
 
         # Call Function in API Handler
         handler_return = handler.create_order(
-            project_billing_id=request_data['billing_acct_id']
+            project_billing_id=request_data['order']['billing_account_id']
         )
         app.logger.debug(f"Handler Return Data - {handler_return}")
 
         # Return to Concertim
         resp = {
             'success': True,
-            'order_id': handler_return['order_id'],
-            'order': handler_return['order']
+            'order': handler_return['order_id']
         }
         return make_response(resp, 201)
     except Exception as e:
-        return handle_exception(e)
+        raise e
+        # return handle_exception(e)
     finally:
         app.logger.info(f"Finished - Creating Order")
         disconnect_handler(handler)
+
+# We are missing order deletion
 
 def add_order_tag():
     app.logger.info("Starting - Adding tag to Order")
@@ -836,7 +839,9 @@ def add_order_tag():
         # Validate Required Data
         request_data = request.get_json()
         app.logger.debug(request_data)
-        verify_required_data(request_data, 
+        verify_required_data(request_data, 'tag')
+        tag_data = request_data['tag']
+        verify_required_data(tag_data,
             'order_id',
             'tag_name',
             'tag_value')
@@ -853,9 +858,9 @@ def add_order_tag():
 
         # Call Function in API Handler
         handler_return = handler.add_order_tag(
-            cluster_billing_id=request_data['order_id'],
-            tag_name=request_data['tag_name'],
-            tag_value=request_data['tag_value']
+            cluster_billing_id=tag_data['order_id'],
+            tag_name=tag_data['tag_name'],
+            tag_value=tag_data['tag_value']
         )
         app.logger.debug(f"Handler Return Data - {handler_return}")
 
@@ -999,9 +1004,10 @@ app.add_url_rule('/credits', endpoint='add_credits',
                                 view_func=add_credits,
                                 methods=['POST'])
 
-app.add_url_rule('/credits', endpoint='get_credits',
+# changing this so can test without changing cluster builder
+app.add_url_rule('/get_credits', endpoint='get_credits',
                                 view_func=get_credits,
-                                methods=['GET'])
+                                methods=['POST'])
 
 #### BILLING ORDERS
 app.add_url_rule('/create_order', endpoint='create_order',
