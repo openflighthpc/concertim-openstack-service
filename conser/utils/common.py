@@ -136,4 +136,3 @@ def delete_resync_hold():
             os.remove(hold_location)
     except Exception as e:
         raise Exception(f"Could not delete hold file at {hold_location} -> {e}")
-        

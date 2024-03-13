@@ -40,10 +40,10 @@ ENDPOINTS = {
                     },
                     'CREATE_RACK':{
                         'endpoint': '/api/v1/racks',
-                        'required_vars': ['user_id','name','u_height', 'status'],
+                        'required_vars': ['team_id','name','u_height', 'status'],
                         'data': {
                             "rack": {
-                                "user_id": '{user_id}',
+                                "team_id": '{team_id}',
                                 "name": '{name}',
                                 "u_height": '{u_height}',
                                 "status" : "{status}",
@@ -110,6 +110,9 @@ ENDPOINTS = {
                     'GET_CURR_USER':{
                         'endpoint': '/api/v1/users/current'
                     },
+                    'LIST_TEAMS': {
+                        'endpoint': '/api/v1/teams'
+                    },
                     'SHOW_DEVICE':{
                         'endpoint': '/api/v1/devices/{}'
                     },
@@ -138,7 +141,14 @@ ENDPOINTS = {
                         'endpoint': '/api/v1/users/{}',
                         'required_vars': [],
                         'data': {
-                            "user": {
+                            "user": { }
+                        }
+                    },
+                    'UPDATE_TEAM':{
+                        'endpoint': '/api/v1/teams/{}',
+                        'required_vars': [],
+                        'data': {
+                            "team": {
                                 "cost": '{cost}',
                                 "billing_period_start": '{billing_period_start}',
                                 "billing_period_end": '{billing_period_end}',

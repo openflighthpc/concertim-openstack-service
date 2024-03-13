@@ -71,11 +71,9 @@ class SyncHandler(AbsViewHandler):
 
     def pull_concertim_view(self):
         self.__LOGGER.info(f"Starting - Populating Concertim View")
-        #self.fetch_concertim_teams() -- to be implemented with new teams concept - temp solution for now
-        # /TEMP
-        self._build_teams_from_projects()
-        # TEMP/
+        self.fetch_concertim_teams()
         self.fetch_concertim_users()
+        self.fetch_concertim_teams()
         self.fetch_concertim_templates()
         self.fetch_concertim_racks()
         self.fetch_concertim_devices()
@@ -96,22 +94,40 @@ class SyncHandler(AbsViewHandler):
                 continue
             self.__LOGGER.debug(f"Starting --- Creating new ConcertimUser -> {con_user['id']}")
             new_user = ConcertimUser(
-                concertim_id=con_user['id'], 
-                cloud_id=None if not con_user['cloud_user_id'] else con_user['cloud_user_id'], 
-                billing_id=None if not con_user['billing_acct_id'] else con_user['billing_acct_id'],
+                concertim_id=con_user['id'],
+                cloud_id=None if not con_user['cloud_user_id'] else con_user['cloud_user_id'],
                 concertim_name=con_user['login'], 
                 cloud_name='CM_' + con_user['login'], 
                 full_name=con_user['fullname'], 
-                email=con_user['email'], 
-                default_project_cloud_id=None if not con_user['project_id'] else con_user['project_id'], 
+                email=con_user['email'],
                 description="User pulled from Concertim"
             )
-            new_user.billing_period_start = con_user['billing_period_start'] if 'billing_period_start' in con_user and con_user['billing_period_start'] else ''
-            new_user.billing_period_end = con_user['billing_period_end'] if 'billing_period_end' in con_user and con_user['billing_period_end'] else ''
             self.view.add_user(new_user)
             self.__LOGGER.debug(f"Finished --- New ConcertimUser created in View : '{new_user}'")
         self.__LOGGER.debug("Finished -- Fetching Concertim Users")
-    
+
+    def fetch_concertim_teams(self):
+        self.__LOGGER.debug("Starting -- Fetching Concertim Teams")
+        # EXIT CONDITIONS
+        if 'concertim' not in self.clients or not self.clients['concertim']:
+            raise EXCP.NoClientFound('concertim')
+
+        # OBJECT LOGIC
+        con_teams_list = self.clients['concertim'].list_teams()
+        for team in con_teams_list:
+            new_team = ConcertimTeam(concertim_id=team['id'],
+                cloud_id=team['project_id'],
+                concertim_name=team['name'],
+                cloud_name=f"CM_{team['name'].replace(' ', '_')}",
+                description='',
+                billing_id=team['billing_acct_id'])
+            new_team.cost = float(team['cost'] if 'cost' in team and team['cost'] else 0.0)
+            new_team.billing_period_start = team['billing_period_start'] if 'billing_period_start' in team and team['billing_period_start'] else ''
+            new_team.billing_period_end = team['billing_period_end'] if 'billing_period_end' in team and team['billing_period_end'] else ''
+            self.view.add_team(new_team)
+            self.__LOGGER.debug(f"Finished --- New ConcertimUser created in View : '{new_team}'")
+        self.__LOGGER.debug("Finished -- Fetching Concertim Users")
+
     def fetch_concertim_templates(self):
         self.__LOGGER.debug("Starting -- Fetching Concertim Templates")
         # EXIT CONDITIONS
@@ -157,8 +173,8 @@ class SyncHandler(AbsViewHandler):
                     else:
                         cluster_metadata[SyncHandler.METADATA_MAPPING['rack'][k]] = v
             #-- Grab IDs
-            cluster_user_concertim_id = None if not con_rack['owner']['id'] else con_rack['owner']['id']
-            cluster_user_cloud_id = None if not con_rack['owner']['cloud_user_id'] else con_rack['owner']['cloud_user_id']
+            cluster_team_concertim_id = None if not con_rack['owner']['id'] else con_rack['owner']['id']
+            cluster_user_project_id = None if not con_rack['owner']['project_id'] else con_rack['owner']['project_id']
             #-- Create rack
             new_rack = ConcertimRack(
                 concertim_id=con_rack['id'], 
@@ -166,7 +182,7 @@ class SyncHandler(AbsViewHandler):
                 billing_id=None if not con_rack['order_id'] else con_rack['order_id'],
                 concertim_name=con_rack['name'], 
                 cloud_name=con_rack['name'] , 
-                user_id_tuple=tuple((cluster_user_concertim_id, cluster_user_cloud_id, None)), 
+                team_id_tuple=tuple((cluster_team_concertim_id, cluster_user_project_id, None)),
                 height=con_rack['u_height'], 
                 description='' if 'description' not in con_rack else con_rack['description'], 
                 status=con_rack['status']
@@ -199,43 +215,43 @@ class SyncHandler(AbsViewHandler):
     def map_concertim_components(self):
         self.__LOGGER.debug("Starting -- Mapping Concertim data to each other")
         #self.map_users_to_teams() -- to be implemented with new teams concept - _build_teams_from_projects does this currently
-        self.map_racks_to_users()
+        self.map_racks_to_teams()
         self.map_devices_to_racks()
         self.__LOGGER.debug("Finished -- Mapping Concertim data")
 
-    def map_racks_to_users(self):
-        self.__LOGGER.debug("Starting --- Mapping Racks to existing Users")
+    def map_racks_to_teams(self):
+        self.__LOGGER.debug("Starting --- Mapping Racks to existing Teams")
         # EXIT CONDITIONS
         # OBJECT LOGIC
         #-- Loop over all existing racks in concertim (View has just finished pulling all concertim data)
         for rack_id_tup, rack in self.view.racks.items():
             self.__LOGGER.debug(f"Starting ---- Attempting to map rack '{rack.id}' to a user")
             #---- Get the rack's corresponding user object (check for cloud_id, then concertim_id if no cloud_id present)
-            user = None
-            if rack.user_id_tuple[1] and not user:
+            team = None
+            if rack.team_id_tuple[1] and not team:
                 self.__LOGGER.debug(f"Searching for User using Cloud ID")
                 user = self.view.search(
-                    object_type='user',
-                    id_value=rack.user_id_tuple[1],
+                    object_type='team',
+                    id_value=rack.team_id_tuple[1],
                     id_origin='cloud'
                 )
-            if rack.user_id_tuple[0] and not user:
+            if rack.team_id_tuple[0] and not team:
                 self.__LOGGER.debug(f"Searching for User using Concertim ID")
                 user = self.view.search(
-                    object_type='user',
-                    id_value=rack.user_id_tuple[0],
+                    object_type='team',
+                    id_value=rack.team_id_tuple[0],
                     id_origin='concertim'
                 )
-            #---- If no user is found, skip rack mapping and throw warning
-            if not user:
-                self.__LOGGER.warning(f"Warning ---- Could not map rack '{rack.id}' - No User matching '{rack.user_id_tuple}' found in View")
+            #---- If no team is found, skip rack mapping and throw warning
+            if not team:
+                self.__LOGGER.warning(f"Warning ---- Could not map rack '{rack.id}' - No team matching '{rack.team_id_tuple}' found in View")
                 continue
-            #---- Reaching here means user is found, so add rack_id_tup to user's racks list
-            if rack.id not in self.view.users[user.id].racks:
-                self.view.users[user.id].add_rack(rack.id)
-                self.view.racks[rack.id].user_id_tuple = user.id
-                self.__LOGGER.debug(f"Finished ---- Mapped rack '{rack.id}' to user '{user.id}'")
-        self.__LOGGER.debug("Finished --- Mapping Racks to existing Users")
+            #---- Reaching here means team is found, so add rack_id_tup to team's racks list
+            if rack.id not in self.view.teams[team.id].racks:
+                self.view.teams[team.id].add_rack(rack.id)
+                self.view.racks[rack.id].team_id_tuple = team.id
+                self.__LOGGER.debug(f"Finished ---- Mapped rack '{rack.id}' to team '{tam.id}'")
+        self.__LOGGER.debug("Finished --- Mapping Racks to existing Teams")
 
     def map_devices_to_racks(self):
         self.__LOGGER.debug("Starting --- Mapping Devices to existing Racks")
@@ -421,7 +437,7 @@ class SyncHandler(AbsViewHandler):
         # EXIT CONDITIONS
         if not cluster_dict:
             raise EXCP.MissingRequiredArgs('cluster_dict')
-        if 'CM_' not in cluster_dict['user_cloud_name']:
+        if 'CM_' not in cluster_dict['team_cloud_name']:
             return
         self.__LOGGER.debug(f"Starting --- Creating new ConcertimRack -> '{cluster_dict['name']}' - from cloud data")
         
@@ -439,14 +455,14 @@ class SyncHandler(AbsViewHandler):
             cluster_billing_id = list(matching_billing_subs['subscriptions'])[0]
 
         #-- Search for the cluster owner
-        matching_user = None
-        for user_id_tup, con_user in self.view.users.items():
-            if con_user.name[1] == cluster_dict['user_cloud_name']:
-                matching_user = con_user
+        matching_team = None
+        for team_id_tup, con_team in self.view.teams.items():
+            if con_team.name[1] == cluster_dict['team_cloud_name']:
+                matching_team = con_team
                 break
         #-- If there is no matching user, log Error and skip
-        if not matching_user:
-            self.__LOGGER.error(f"ERROR --- No matching User found for cluster '{cluster_dict['id']}' - owner is '{cluster_dict['user_cloud_name']}' - skipping")
+        if not matching_team:
+            self.__LOGGER.error(f"ERROR --- No matching Team found for cluster '{cluster_dict['id']}' - owner is '{cluster_dict['team_cloud_name']}' - skipping")
             return
         #-- Get accurate status
         cluster_status = 'FAILED'
@@ -460,7 +476,7 @@ class SyncHandler(AbsViewHandler):
             billing_id=cluster_billing_id,
             concertim_name=cluster_dict['name'].replace('.','-').replace('_','-'),
             cloud_name=cluster_dict['name'],
-            user_id_tuple=matching_user.id,
+            team_id_tuple=matching_team.id,
             height=self.clients['concertim'].rack_height, 
             description='Rack created from Cloud by Concertim Service', 
             status=cluster_status
@@ -735,51 +751,52 @@ class SyncHandler(AbsViewHandler):
             new_device.login_user = con_device['login_user'] if 'login_user' in con_device and con_device['login_user'] else ''
             return new_device
 
-    def _build_teams_from_projects(self):
-        self.__LOGGER.debug("Starting -- Building Concertim Teams in view based on Concertim Managed projects in cloud")
-        # EXIT CASES
-        if 'cloud' not in self.clients or not self.clients['cloud']:
-            raise EXCP.NoClientFound('cloud')
-        if 'billing' not in self.clients or not self.clients['billing']:
-            raise EXCP.NoClientFound('billing')
-
-        # OBJECT LOGIC
-        cm_projects = self.clients['cloud'].get_all_cm_projects()
-        #-- Loop over all CM_<project>s and find their billing acct
-        for project_cloud_id in cm_projects['projects']:
-            self.__LOGGER.debug(f"Starting --- Creating new ConcertimTeam for project '{project_cloud_id}'")
-            billing_accts = None
-            try:
-                billing_accts = self.clients['billing'].lookup_project_billing_info(
-                    project_cloud_id=project_cloud_id
-                )
-            except Exception as e:
-                self.__LOGGER.error(f"FAILED - Could not retrieve billing info for project '{project_cloud_id}' - {e} - skipping")
-                continue
-            if billing_accts['count'] < 1:
-                self.__LOGGER.warning(f"WARNING - No billing account found for project '{project_cloud_id}' - skipping")
-                continue
-            elif billing_accts['count'] > 1:
-                raise EXCP.TooManyBillingAccounts(project_cloud_id)
-            #-- Reaching here means that the billing acct is found and only 1 exists for the project - get project info and build team
-            project_info = self.clients['cloud'].get_project_info(
-                project_cloud_id=project_cloud_id
-            )
-            billing_acct = billing_accts['accounts'][0]
-            new_team = ConcertimTeam(
-                concertim_id=None, 
-                cloud_id=project_cloud_id, 
-                billing_id=billing_acct['id'],
-                concertim_name=project_info['name'], 
-                cloud_name=project_info['name'], 
-                description="Team created from Cloud by Concertim Service"
-            )
-            new_team.team_members = project_info['users']['team_members']
-            new_team.team_admins = project_info['users']['admins']
-            new_team._primary_billing_user_cloud_id = billing_acct['primary_user_cloud_id']
-            self.view.add_team(new_team)
-            self.__LOGGER.debug(f"Finished --- New ConcertimTeam created in View : {new_team}")
-        self.__LOGGER.debug("Finished -- Building Concertim Teams in view based on Concertim Managed projects in cloud")
+    # should teams be populated from visualiser?
+#     def _build_teams_from_projects(self):
+#         self.__LOGGER.debug("Starting -- Building Concertim Teams in view based on Concertim Managed projects in cloud")
+#         # EXIT CASES
+#         if 'cloud' not in self.clients or not self.clients['cloud']:
+#             raise EXCP.NoClientFound('cloud')
+#         if 'billing' not in self.clients or not self.clients['billing']:
+#             raise EXCP.NoClientFound('billing')
+#
+#         # OBJECT LOGIC
+#         cm_projects = self.clients['cloud'].get_all_cm_projects()
+#         #-- Loop over all CM_<project>s and find their billing acct
+#         for project_cloud_id in cm_projects['projects']:
+#             self.__LOGGER.debug(f"Starting --- Creating new ConcertimTeam for project '{project_cloud_id}'")
+#             billing_accts = None
+#             try:
+#                 billing_accts = self.clients['billing'].lookup_project_billing_info(
+#                     project_cloud_id=project_cloud_id
+#                 )
+#             except Exception as e:
+#                 self.__LOGGER.error(f"FAILED - Could not retrieve billing info for project '{project_cloud_id}' - {e} - skipping")
+#                 continue
+#             if billing_accts['count'] < 1:
+#                 self.__LOGGER.warning(f"WARNING - No billing account found for project '{project_cloud_id}' - skipping")
+#                 continue
+#             elif billing_accts['count'] > 1:
+#                 raise EXCP.TooManyBillingAccounts(project_cloud_id)
+#             #-- Reaching here means that the billing acct is found and only 1 exists for the project - get project info and build team
+#             project_info = self.clients['cloud'].get_project_info(
+#                 project_cloud_id=project_cloud_id
+#             )
+#             billing_acct = billing_accts['accounts'][0]
+#             new_team = ConcertimTeam(
+#                 concertim_id=None,
+#                 cloud_id=project_cloud_id,
+#                 billing_id=billing_acct['id'],
+#                 concertim_name=project_info['name'],
+#                 cloud_name=project_info['name'],
+#                 description="Team created from Cloud by Concertim Service"
+#             )
+#             new_team.team_members = project_info['users']['team_members']
+#             new_team.team_admins = project_info['users']['admins']
+#             new_team._primary_billing_user_cloud_id = billing_acct['primary_user_cloud_id']
+#             self.view.add_team(new_team)
+#             self.__LOGGER.debug(f"Finished --- New ConcertimTeam created in View : {new_team}")
+#         self.__LOGGER.debug("Finished -- Building Concertim Teams in view based on Concertim Managed projects in cloud")
 
     def _find_empty_slot(self, device_type, rack, device_size):
         occupied_spots = self.view.racks[rack.id]._occupied

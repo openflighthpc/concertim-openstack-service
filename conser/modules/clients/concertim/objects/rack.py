@@ -5,7 +5,7 @@ class ConcertimRack(object):
         billing_id=None,
         concertim_name=None, 
         cloud_name=None, 
-        user_id_tuple=None, 
+        team_id_tuple=None,
         height=42, 
         description='', 
         status=None
@@ -41,7 +41,7 @@ class ConcertimRack(object):
                 f"description:{repr(self.description)}, " 
                 f"status:{repr(self.status)}, " 
                 f"_status_reason:{repr(self._status_reason)}, " 
-                f"user_id_tuple:{repr(self.user_id_tuple)}, " 
+                f"team_id_tuple:{repr(self.team_id_tuple)}, "
                 f"height:{repr(self.height)}, " 
                 f"devices:{repr(self.devices)}, " 
                 f"output:{repr(self.output)}, " 

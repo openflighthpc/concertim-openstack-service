@@ -122,8 +122,8 @@ def start_updates_process(config, log_file, run_once=False):
     retries = 0
     while True:
         try:
-            handler.run_process()
             retries = 0
+            handler.run_process()
         except Exception as e:
             logger.error(f"Unexpected exception has caused the Updates loop to terminate : {type(e).__name__} - {e}")
             logger.exception(e)
@@ -157,8 +157,8 @@ def start_billing_process(config, log_file, run_once=False):
     retries = 0
     while True:
         try:
-            handler.run_process()
             retries = 0
+            handler.run_process()
         except Exception as e:
             logger.error(f"Unexpected exception has caused the Billing loop to terminate : {type(e).__name__} - {e}")
             logger.exception(e)

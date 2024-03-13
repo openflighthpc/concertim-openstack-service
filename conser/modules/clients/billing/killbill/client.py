@@ -341,12 +341,9 @@ class KillbillClient(AbsBillingClient):
             obj_type='account',
             obj_id=project_billing_id
         )
-        puc_id = None
         pcb_id = None
         for cf in cfs['data']:
-            if cf['name'] == 'primary_user_cloud_id':
-                puc_id = cf['value']
-            elif cf['name'] == KillbillClient.PROJECT_BILLING_ID_FIELD:
+            if cf['name'] == KillbillClient.PROJECT_BILLING_ID_FIELD:
                 pcb_id = cf['value']
         resp_dict = self._get_dict_from_resp(resp)
         resp_dict['data'] = resp_dict['data'].to_dict()
@@ -356,10 +353,9 @@ class KillbillClient(AbsBillingClient):
         return_dict = {
             'id': project_billing_id,
             'name': resp_dict['data']['name'],
-            'primary_user_cloud_id': puc_id,
             KillbillClient.PROJECT_BILLING_ID_FIELD: pcb_id,
-            'credit_balance': resp['data']['account_cba'],
-            'state': resp['data']['state']
+            'credit_balance': resp_dict['data']['account_cba'],
+            'state': resp_dict['data']['state']
         }
         # RETURN
         return return_dict
@@ -576,6 +572,7 @@ class KillbillClient(AbsBillingClient):
                 if item.item_details is not None:
                     item.item_details = json.loads(item.item_details)
         resp_dict['data'] = resp_dict['data'].to_dict()
+        self.__LOGGER.debug(resp_dict['data'])
         invoice_dict = self._build_invoice_dict(resp_dict['data'])
 
         # BUILD RETURN DICT
@@ -790,31 +787,33 @@ class KillbillClient(AbsBillingClient):
 
     def _build_invoice_dict(self, invoice_data):
         self.__LOGGER.debug(f"Extracting invoice data and building invoice")
+        self.__LOGGER.debug(f"{invoice_data}")
         new_items = {}
-        for item in invoice_data["items"]:
-            subscription_id = item["subscription_id"]
-            if subscription_id is not None and item["item_type"] in ["USAGE", "RECURRING"]:
-                if subscription_id not in new_items:
-                    custom_fields = self._get_custom_fields('subscription', subscription_id)['data']
-                    found = False
-                    project_cloud_id = None
-                    for field in custom_fields:
-                        if field['name'] == "project_cloud_id" and len(field['value']) > 0:
-                            found = True
-                            project_cloud_id = field['value']
-                            break
-                    if found is True:
-                        if subscription_id not in new_items:
-                            new_items[subscription_id] = {
-                                'amount': item['amount'],
-                                'project_cloud_id': project_cloud_id,
-                                'cluster_cloud_name': "Dummy Cluster Name",
-                                'start_date': item['start_date'],
-                                'end_date': item['end_date'],
-                                'currency': item['currency']
-                            }
-                else:
-                    new_items[subscription_id]['amount'] += item['amount']
+        if invoice_data["items"] is not None:
+            for item in invoice_data["items"]:
+                subscription_id = item["subscription_id"]
+                if subscription_id is not None and item["item_type"] in ["USAGE", "RECURRING"]:
+                    if subscription_id not in new_items:
+                        custom_fields = self._get_custom_fields('subscription', subscription_id)['data']
+                        found = False
+                        project_cloud_id = None
+                        for field in custom_fields:
+                            if field['name'] == "project_cloud_id" and len(field['value']) > 0:
+                                found = True
+                                project_cloud_id = field['value']
+                                break
+                        if found is True:
+                            if subscription_id not in new_items:
+                                new_items[subscription_id] = {
+                                    'amount': item['amount'],
+                                    'project_cloud_id': project_cloud_id,
+                                    'cluster_cloud_name': "Dummy Cluster Name",
+                                    'start_date': item['start_date'],
+                                    'end_date': item['end_date'],
+                                    'currency': item['currency']
+                                }
+                    else:
+                        new_items[subscription_id]['amount'] += item['amount']
         new_invoice = invoice_data
         new_invoice['items'] = new_items
         return new_invoice

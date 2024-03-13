@@ -41,7 +41,7 @@ class BillingHandler(AbsBillingHandler):
 
         self.update_device_costs(start_date, end_date)
         self.update_rack_costs(start_date, end_date)
-        self.update_user_costs_credits(start_date, end_date)
+        self.update_team_costs_credits(start_date, end_date)
         
         self.__LOGGER.debug(f"Finished -- Pulling cost data from Cloud for all objects")
 
@@ -89,41 +89,37 @@ class BillingHandler(AbsBillingHandler):
             self.billing_app_cost_update(rack)
         self.__LOGGER.debug(f"Finished --- Updating cost data from Cloud for all racks")
 
-    def update_user_costs_credits(self, start_date, end_date):
-        self.__LOGGER.debug(f"Starting --- Updating cost data from Cloud and billing credits for all users")
+    def update_team_costs_credits(self, start_date, end_date):
+        self.__LOGGER.debug(f"Starting --- Updating cost data from Cloud and billing credits for all teams")
         # OBJECT LOGIC
-        #-- Loop over all Users
-        for user_id_tup in self.view.users:
-            self.view.users[user_id_tup].billing_period_start = start_date
-            self.view.users[user_id_tup].billing_period_end = end_date
-            #-- Loop over all Teams
-            for team_id_tup, team in self.view.teams.items():
-                #-- If team is billable and user is it's primary billing user, get its cost and remaining credits
-                if team._primary_billing_user_cloud_id != user_id_tup[1]:
-                    continue
-                if not team_id_tup[1] or not team_id_tup[2]:
-                    self.__LOGGER.warning(f"Team {team_id_tup} is not billable - Primary User: {team._primary_billing_user_cloud_id} - skipping")
-                    continue
-                #-- Get team cloud cost
-                team_cost_dict = self.clients['cloud'].get_cost(
-                    obj_type='project', 
-                    obj_cloud_id=team_id_tup[1], 
-                    start=start_date, 
-                    stop=end_date
-                )
-                #-- Get team remaining credits
-                team_remaining_credits = self.clients['billing'].get_credits(
-                    project_billing_id=team_id_tup[2]
-                )['amount']
-                #-- Update primary billing user's cost/credits
-                self.view.users[user_id_tup].cost += float(team_cost_dict['total_cost'])
-                self.view.users[user_id_tup].credits += float(team_remaining_credits)
-            #-- Update User in Concertim
-            self.concertim_cost_update(
-                obj_type='user',
-                obj=self.view.users[user_id_tup]
+        #-- Loop over all teams
+        for team_id_tup in self.view.teams:
+            if not team_id_tup[1] or not team_id_tup[2]:
+                self.__LOGGER.warning(f"Team {team_id_tup} is not billable - skipping")
+                continue
+            self.view.teams[team_id_tup].billing_period_start = start_date
+            self.view.teams[team_id_tup].billing_period_end = end_date
+
+            #-- Get team cloud cost
+            team_cost_dict = self.clients['cloud'].get_cost(
+                obj_type='project',
+                obj_cloud_id=team_id_tup[1],
+                start=start_date,
+                stop=end_date
             )
-        self.__LOGGER.debug(f"Finished --- Updating cost data from Cloud and billing credits for all users")
+            #-- Get team remaining credits
+            team_remaining_credits = self.clients['billing'].get_credits(
+                project_billing_id=team_id_tup[2]
+            )['amount']
+
+            self.view.teams[team_id_tup].cost = float(team_cost_dict['total_cost'])
+            self.view.teams[team_id_tup].credits = float(team_remaining_credits)
+            #-- Update team in Concertim
+            self.concertim_cost_update(
+                obj_type='team',
+                obj=self.view.teams[team_id_tup]
+            )
+        self.__LOGGER.debug(f"Finished --- Updating cost data from Cloud and billing credits for all teams")
 
     def billing_app_cost_update(self, cluster_rack_obj):
         """
@@ -151,7 +147,7 @@ class BillingHandler(AbsBillingHandler):
             'rack': [
                 'cost'
             ],
-            'user': [
+            'team': [
                 'cost',
                 'billing_period_start',
                 'billing_period_end',

@@ -10,6 +10,7 @@ class ConcertimTeam(object):
         self.id = tuple((concertim_id, cloud_id, billing_id))
         self.name = tuple((concertim_name, cloud_name))
         self.description = description
+        self.racks = []
         self.team_members = []
         self.team_admins = []
         self._primary_billing_user_cloud_id = None
@@ -61,3 +62,9 @@ class ConcertimTeam(object):
 
     def remove_admin(self, user_id_tup):
         self.team_admins.remove(user_id_tup)
+
+    def add_rack(self, rack_concertim_id):
+        self.racks.append(rack_concertim_id)
+
+    def remove_rack(self, rack_concertim_id):
+        self.racks.remove(rack_concertim_id)
