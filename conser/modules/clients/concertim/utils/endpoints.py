@@ -41,6 +41,35 @@ ENDPOINTS = {
                             }
                         }
                     },
+                    'CREATE_VOLUME_DEVICE':{
+                        'endpoint': '/api/v1/nodes',
+                        'required_vars': ['template_id', 'name', 'description', 'facing', 'rack_id', 'start_u', 'status'],
+                        'data': {
+                            "template_id": '{template_id}',
+                            "device": {
+                                "name": '{name}',
+                                "description": '{description}',
+                                "status" : "{status}",
+                                "location": {
+                                    "facing": '{facing}',
+                                    "rack_id": '{rack_id}',
+                                    "start_u": '{start_u}'
+                                },
+                                "metadata" : {
+                                    "openstack_instance_id" : "{openstack_instance_id}",
+                                    "openstack_stack_id": "{openstack_stack_id}"
+                                },
+                                "details": {
+                                    "type": "Device::VolumeDetails",
+                                    "availability_zone": "{availability_zone}",
+                                    "bootable": "{bootable}",
+                                    "encrypted": "{encrypted}",
+                                    "size": "{size}",
+                                    "volume_type": "{volume_type}"
+                                }
+                            }
+                        }
+                    },
                     'CREATE_RACK':{
                         'endpoint': '/api/v1/racks',
                         'required_vars': ['team_id','name','u_height', 'status'],

@@ -42,6 +42,10 @@ class ConcertimClient(Client):
     def create_compute_device(self, variables_dict):
         response = self._api_call('post', 'CREATE_COMPUTE_DEVICE', variables_dict=variables_dict)
         return response
+
+    def create_volume_device(self, variables_dict):
+        response = self._api_call('post', 'CREATE_VOLUME_DEVICE', variables_dict=variables_dict)
+        return response
     
     def create_rack(self, variables_dict):
         response = self._api_call('post', 'CREATE_RACK', variables_dict=variables_dict)

@@ -242,26 +242,38 @@ class UpdatesHandler(Handler):
     def create_new_device(self, device_obj):
         self.__LOGGER.debug(f"Starting --- Creating new device {device_obj.id}")
         # OBJECT LOGIC
+        common_vars = {
+            "template_id": device_obj.template.id[0],
+            "name": device_obj.name[0],
+            "description": device_obj.description,
+            "status" : device_obj.status,
+            "facing": device_obj.location.facing,
+            "rack_id": self.view.racks[device_obj.rack_id_tuple].id[0],
+            "start_u": device_obj.location.start_u,
+            'openstack_instance_id': device_obj.id[1],
+            "openstack_stack_id": self.view.racks[device_obj.rack_id_tuple].id[1],
+        }
         try:
-            self.clients['concertim'].create_compute_device(
-                variables_dict={
-                    "template_id": device_obj.template.id[0],
-                    "name": device_obj.name[0],
-                    "description": device_obj.description,
-                    "status" : device_obj.status,
-                    "facing": device_obj.location.facing,
-                    "rack_id": self.view.racks[device_obj.rack_id_tuple].id[0],
-                    "start_u": device_obj.location.start_u,
-                    "net_interfaces": device_obj.network_interfaces,
-                    "public_ips": device_obj.details.get('public_ips'),
-                    "private_ips": device_obj.details.get('private_ips'),
-                    "ssh_key": device_obj.details.get('ssh_key'),
-                    "volume_details": device_obj.details.get('volume_details'),
-                    "login_user": device_obj.details.get('login_user'),
-                    'openstack_instance_id': device_obj.id[1],
-                    "openstack_stack_id": self.view.racks[device_obj.rack_id_tuple].id[1]
-                }
-            )
+            match device_obj.details['type']:
+                case 'Device::ComputeDetails':
+                    self.clients['concertim'].create_compute_device(
+                        variables_dict={
+                            **common_vars,
+                            "net_interfaces": device_obj.network_interfaces,
+                            "public_ips": device_obj.details.get('public_ips'),
+                            "private_ips": device_obj.details.get('private_ips'),
+                            "ssh_key": device_obj.details.get('ssh_key'),
+                            "volume_details": device_obj.details.get('volume_details'),
+                            "login_user": device_obj.details.get('login_user'),
+                        }
+                    )
+                case 'Device::VolumeDetails':
+                    self.clients['concertim'].create_volume_device(
+                        variables_dict={
+                            **common_vars,
+                            **device_obj.details
+                        }
+                    )
         except Exception as e:
             self.__LOGGER.error(f"FAILED - Could not create device {device_obj} - {e} - skipping")
             self.__LOGGER.exception(e)
