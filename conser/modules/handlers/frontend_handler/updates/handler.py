@@ -256,7 +256,7 @@ class UpdatesHandler(Handler):
         try:
             match device_obj.details['type']:
                 case 'Device::ComputeDetails':
-                    self.clients['concertim'].create_compute_device(
+                    return self.clients['concertim'].create_compute_device(
                         variables_dict={
                             **common_vars,
                             "net_interfaces": device_obj.network_interfaces,
@@ -268,7 +268,7 @@ class UpdatesHandler(Handler):
                         }
                     )
                 case 'Device::VolumeDetails':
-                    self.clients['concertim'].create_volume_device(
+                    return self.clients['concertim'].create_volume_device(
                         variables_dict={
                             **common_vars,
                             **device_obj.details
