@@ -143,9 +143,9 @@ class SyncHandler(AbsViewHandler):
                 concertim_name=con_template['name'], 
                 cloud_name=con_template['name'], 
                 ram=con_template['ram'], 
-                disk=con_template['disk'], 
-                vcpus=con_template['vcpus'], 
-                size=con_template['height'], 
+                disk=con_template['disk'],
+                vcpus=con_template['vcpus'],
+                height=con_template['height'],
                 description=con_template['description'],
                 tag=con_template.get('tag'),
             )
@@ -403,7 +403,7 @@ class SyncHandler(AbsViewHandler):
             raise EXCP.MissingRequiredArgs('template_dict')
         self.__LOGGER.debug(f"Starting --- Creating new ConcertimTemplate -> '{template_dict['name']}' - from cloud data")
         # OBJECT LOGIC
-        template_size = min((int( template_dict['vcpus'] / 2 ) + 1), 4)
+        template_height = min((int( template_dict['vcpus'] / 2 ) + 1), 4)
         new_template = ConcertimTemplate(
             concertim_id=None, 
             cloud_id=template_dict['id'], 
@@ -412,7 +412,7 @@ class SyncHandler(AbsViewHandler):
             ram=template_dict['ram'], 
             disk=template_dict['disk'], 
             vcpus=template_dict['vcpus'], 
-            size=template_size, 
+            height=template_height,
             description="Template created from Cloud by Concertim Service"
         )
         self.view.add_template(new_template)
@@ -440,9 +440,9 @@ class SyncHandler(AbsViewHandler):
             self.view.templates[template_id_tup].vcpus = template_dict['vcpus']
             self.view.templates[template_id_tup]._updated = True
 
-        cloud_template_size = min((int( template_dict['vcpus'] / 2 ) + 1), 4)
-        if con_template.size != cloud_template_size:
-            self.view.templates[template_id_tup].size = cloud_template_size
+        cloud_template_height = min((int( template_dict['vcpus'] / 2 ) + 1), 4)
+        if con_template.height != cloud_template_height:
+            self.view.templates[template_id_tup].height = cloud_template_height
             self.view.templates[template_id_tup]._updated = True
 
         self.__LOGGER.debug(f"Finished --- Updated existing ConcertimTemplate from cloud data")
@@ -595,7 +595,7 @@ class SyncHandler(AbsViewHandler):
         server_location = self._find_empty_slot(
             device_type='server', 
             rack=matching_rack, 
-            device_size=server_template.size
+            device_size=server_template.height
         )
         #-- Create device
         new_device = ConcertimDevice(
@@ -685,7 +685,7 @@ class SyncHandler(AbsViewHandler):
                     location = self._find_empty_slot(
                         device_type=details['type'],
                         rack=rack,
-                        device_size=template.size
+                        device_size=template.height
                     )
 
                     status = 'FAILED'
