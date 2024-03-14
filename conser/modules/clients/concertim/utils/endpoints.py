@@ -188,7 +188,7 @@ ENDPOINTS = {
                             }
                         }
                     },
-                    'UPDATE_DEVICE':{
+                    'UPDATE_COMPUTE_DEVICE':{
                         'endpoint': '/api/v1/devices/{}',
                         'required_vars': [],
                         'data': {
@@ -197,11 +197,13 @@ ENDPOINTS = {
                                 "description": '{description}',
                                 "cost": '{cost}',
                                 "status" : '{status}',
-                                "public_ips": '{public_ips}',
-                                "private_ips": '{private_ips}',
-                                "ssh_key": '{ssh_key}',
-                                "volume_details": '{volume_details}',
-                                "login_user": '{login_user}',
+                                "details": {
+                                    "public_ips": '{public_ips}',
+                                    "private_ips": '{private_ips}',
+                                    "ssh_key": '{ssh_key}',
+                                    "volume_details": '{volume_details}',
+                                    "login_user": '{login_user}',
+                                },
                                 "metadata" : {
                                     "net_interfaces": "{net_interfaces}",
                                     'openstack_instance_id': '{openstack_instance_id}',

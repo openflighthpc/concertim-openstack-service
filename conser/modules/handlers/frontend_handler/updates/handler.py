@@ -218,7 +218,7 @@ class UpdatesHandler(Handler):
             try:
                 match device_obj.details['type']:
                     case 'Device::ComputeDetails':
-                        self.clients['concertim'].update_device(
+                        self.clients['concertim'].update_compute_device(
                             ID=device_obj.id[0],
                             variables_dict={
                                 "name": device_obj.name[1],
