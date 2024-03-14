@@ -212,6 +212,30 @@ ENDPOINTS = {
                             }
                         }
                     },
+                    'UPDATE_VOLUME_DEVICE':{
+                        'endpoint': '/api/v1/devices/{}',
+                        'required_vars': [],
+                        'data': {
+                            "device": {
+                                "name": '{name}',
+                                "description": '{description}',
+                                "cost": '{cost}',
+                                "status" : '{status}',
+                                "details": {
+                                    "type": "Device::VolumeDetails",
+                                    "availability_zone": "{availability_zone}",
+                                    "bootable": "{bootable}",
+                                    "encrypted": "{encrypted}",
+                                    "size": "{size}",
+                                    "volume_type": "{volume_type}"
+                                },
+                                "metadata" : {
+                                    'openstack_instance_id': '{openstack_instance_id}',
+                                    "openstack_stack_id": "{openstack_stack_id}"
+                                }
+                            }
+                        }
+                    },
                     'UPDATE_RACK':{
                         'endpoint': '/api/v1/racks/{}',
                         'required_vars': [],

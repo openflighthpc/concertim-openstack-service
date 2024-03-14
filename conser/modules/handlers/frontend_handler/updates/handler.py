@@ -215,23 +215,34 @@ class UpdatesHandler(Handler):
         self.__LOGGER.debug(f"Starting --- Updating existing device {device_obj.id}")
         # OBJECT LOGIC
         if device_obj._updated:
+            common_vars = {
+                "name": device_obj.name[1],
+                "description": device_obj.description,
+                "status" : device_obj.status,
+                'openstack_instance_id': device_obj.id[1],
+                "openstack_stack_id": device_obj.rack_id_tuple[1]
+            }
             try:
                 match device_obj.details['type']:
                     case 'Device::ComputeDetails':
                         self.clients['concertim'].update_compute_device(
                             ID=device_obj.id[0],
                             variables_dict={
-                                "name": device_obj.name[1],
-                                "description": device_obj.description,
-                                "status" : device_obj.status,
+                                **common_vars,
                                 "public_ips": device_obj.details['public_ips'],
                                 "private_ips": device_obj.details['private_ips'],
                                 "ssh_key": device_obj.details['ssh_key'],
                                 "volume_details": device_obj.details['volume_details'],
                                 "login_user": device_obj.details['login_user'],
                                 "net_interfaces": device_obj.network_interfaces,
-                                'openstack_instance_id': device_obj.id[1],
-                                "openstack_stack_id": device_obj.rack_id_tuple[1]
+                            }
+                        )
+                    case 'Device::VolumeDetails':
+                        self.clients['concertim'].update_volume_device(
+                            ID=device_obj.id[0],
+                            variables_dict={
+                                **common_vars,
+                                **device_obj.details
                             }
                         )
                     case _:
