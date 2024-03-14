@@ -270,7 +270,7 @@ class UpdatesHandler(Handler):
         self.__LOGGER.debug(f"Starting --- Deleting stale device {device_obj.id}")
         # OBJECT LOGIC
         try:
-            self.clients['concertim'].delete_rack(device_obj.id[0])
+            self.clients['concertim'].delete_device(device_obj.id[0])
         except Exception as e:
             self.__LOGGER.error(f"FAILED - Deleting device from concertim {device_obj} - {e} - skipping")
             return
