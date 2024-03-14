@@ -1071,8 +1071,7 @@ class OpenstackClient(AbsCloudClient):
         self.__LOGGER.debug(f"Building Return dictionary")
         return_dict = {
             'submitted': True,
-            'request_ids': attempt.request_ids,
-            'attempt': attempt._info
+            'request_ids': attempt.request_ids
         }
 
         # RETURN

@@ -432,7 +432,7 @@ def update_status(obj_type, obj_id):
         resp = {
             'cloud_response': handler_return['message']
         }
-        return make_response(resp, handler_return['status_code'])
+        return make_response(resp, 201)
     except Exception as e:
         raise e
         # return handle_exception(e)
