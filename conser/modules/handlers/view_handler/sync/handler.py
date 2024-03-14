@@ -391,7 +391,7 @@ class SyncHandler(AbsViewHandler):
                             id_origin='cloud'
                         )
                         if existing_resource:
-                            self._update_device_from_cloud(resource, cluster_cloud_id)
+                            self._update_device_from_cloud(existing_resource, resource)
                             continue
                     self._create_device_from_cloud(resource, cluster_cloud_id)
 
@@ -667,9 +667,25 @@ class SyncHandler(AbsViewHandler):
         self.view.devices[device_id_tup]._delete_marker=False
         self.__LOGGER.debug(f"Finished --- Updated existing ConcertimDevice from cloud data")
 
-    def _update_device_from_cloud(self, resource, cluster_cloud_id):
-        # TODO handle update
-        pass
+    def _update_device_from_cloud(self, existing_device, new_resource):
+        if existing_device.details['type'] == 'Device::ComputeDetails':
+            # Device will have been updated in update_server_device_from_cloud -
+            # nothing to do here
+            return
+
+        new_details = self._get_resource_details(new_resource)
+        if new_details and new_details != existing_device.details:  # != in Python does a deep equality check on dicts
+            existing_device.details = new_details
+            existing_device._updated = True
+
+        new_status = 'FAILED'
+        for concertim_status, os_statuses in self.clients['cloud'].CONCERTIM_STATE_MAP['RACK'].items():
+            if new_resource.resource_status in os_statuses:
+                new_status = concertim_status
+        if new_status != existing_device.status:
+            existing_device.status = new_status
+            existing_device._updated = True
+        existing_device._delete_marker=False
 
     TEMPLATE_TAGS_BY_RESOURCE_TYPE = {
         'Device::VolumeDetails': 'volume'

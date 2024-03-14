@@ -216,23 +216,30 @@ class UpdatesHandler(Handler):
         # OBJECT LOGIC
         if device_obj._updated:
             try:
-                self.clients['concertim'].update_device(
-                    ID=device_obj.id[0],
-                    variables_dict={
-                        "name": device_obj.name[1],
-                        "description": device_obj.description,
-                        "status" : device_obj.status,
-                        "public_ips": device_obj.details['public_ips'],
-                        "private_ips": device_obj.details['private_ips'],
-                        "ssh_key": device_obj.details['ssh_key'],
-                        "volume_details": device_obj.details['volume_details'],
-                        "login_user": device_obj.details['login_user'],
-                        "net_interfaces": device_obj.network_interfaces,
-                        'openstack_instance_id': device_obj.id[1],
-                        "openstack_stack_id": device_obj.rack_id_tuple[1]
-                    }
-                )
+                match device_obj.details['type']:
+                    case 'Device::ComputeDetails':
+                        self.clients['concertim'].update_device(
+                            ID=device_obj.id[0],
+                            variables_dict={
+                                "name": device_obj.name[1],
+                                "description": device_obj.description,
+                                "status" : device_obj.status,
+                                "public_ips": device_obj.details['public_ips'],
+                                "private_ips": device_obj.details['private_ips'],
+                                "ssh_key": device_obj.details['ssh_key'],
+                                "volume_details": device_obj.details['volume_details'],
+                                "login_user": device_obj.details['login_user'],
+                                "net_interfaces": device_obj.network_interfaces,
+                                'openstack_instance_id': device_obj.id[1],
+                                "openstack_stack_id": device_obj.rack_id_tuple[1]
+                            }
+                        )
+                    case _:
+                        self.__LOGGER.error(f"Asked to update device of type {device_obj.details['type']} but don't know how")
                 device_obj._updated = False
+                # "But wait! If we fall into the default case above, the device hasn't really been updated!"
+                # That's true, but running the loop more times isn't going to change that. We've logged the problem,
+                # there's no value in repeatedly logging it every five seconds.
             except Exception as e:
                 self.__LOGGER.error(f"FAILED - Could not update device {device_obj} - {e} - skipping")
                 self.__LOGGER.exception(e)
