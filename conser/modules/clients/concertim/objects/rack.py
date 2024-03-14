@@ -13,7 +13,7 @@ class ConcertimRack(object):
         self.id = tuple((concertim_id, cloud_id, billing_id))
         self.name = tuple((concertim_name, cloud_name))
         self.description = description
-        self.user_id_tuple = user_id_tuple
+        self.team_id_tuple = team_id_tuple
         self.height = height
         self.devices = []
         self._base_name = ''

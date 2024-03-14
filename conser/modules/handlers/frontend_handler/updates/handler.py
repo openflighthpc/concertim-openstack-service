@@ -6,6 +6,7 @@ import conser.utils.common as UTILS
 
 # Py Packages
 import time
+import json
 
 class UpdatesHandler(Handler):
     ############
@@ -131,7 +132,7 @@ class UpdatesHandler(Handler):
                 variables_dict={
                     "name": template_obj.name[1],
                     "description": template_obj.description,
-                    "height": template_obj.height,
+                    "height": template_obj.size,
                     "ram" : template_obj.ram,
                     "disk" :template_obj.disk ,
                     "vcpus" : template_obj.vcpus,
@@ -159,8 +160,8 @@ class UpdatesHandler(Handler):
                         "network_details": rack_obj.network_details,
                         "creation_output": rack_obj._creation_output,
                         "openstack_stack_id" : rack_obj.id[1],
-                        "openstack_stack_owner" : rack_obj.metadata['user_cloud_name'],
-                        "openstack_stack_owner_id" : rack_obj.user_id_tuple[1],
+                        "openstack_stack_owner" : rack_obj.metadata['creator_cloud_name'],
+                        "openstack_stack_owner_id" : rack_obj.team_id_tuple[1],
                         "stack_status_reason": rack_obj._status_reason,
                         'openstack_stack_output': rack_obj.output
                     }
@@ -177,7 +178,7 @@ class UpdatesHandler(Handler):
         try:
             rack_resp = self.clients['concertim'].create_rack(
                 variables_dict={
-                    "user_id": rack_obj.user_id_tuple[0],
+                    "team_id": rack_obj.team_id_tuple[0],
                     "name": rack_obj.name[1],
                     "u_height": rack_obj.height,
                     "status" : rack_obj.status,
@@ -185,8 +186,8 @@ class UpdatesHandler(Handler):
                     "creation_output": rack_obj._creation_output,
                     "order_id": rack_obj.id[2],
                     "openstack_stack_id" : rack_obj.id[1],
-                    "openstack_stack_owner" : rack_obj.metadata['user_cloud_name'],
-                    "openstack_stack_owner_id" : rack_obj.user_id_tuple[1],
+                    "openstack_stack_owner" : rack_obj.metadata['creator_cloud_name'],
+                    "openstack_stack_owner_id" : rack_obj.team_id_tuple[1],
                     "stack_status_reason": rack_obj._status_reason,
                     'openstack_stack_output': rack_obj.output
                 }

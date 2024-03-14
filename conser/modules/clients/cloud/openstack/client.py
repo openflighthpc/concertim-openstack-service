@@ -792,7 +792,7 @@ class OpenstackClient(AbsCloudClient):
             'base_name':
             'project_cloud_id': 
             'description': 
-            'team_cloud_name':
+            'creator_cloud_name':
             'status': 
             'status_reason': 
             'cluster_resources': {
@@ -892,7 +892,7 @@ class OpenstackClient(AbsCloudClient):
             'base_name': cluster._info['stack_name'].split('--')[0],
             'project_cloud_id': cluster._info['parameters']['OS::project_id'],
             'description': cluster._info['description'],
-            'team_cloud_name': cluster._info['stack_owner'],
+            'creator_cloud_name': cluster._info['stack_owner'],
             'status': cluster._info['stack_status'],
             'status_reason': cluster._info['stack_status_reason'],
             'cluster_resources': resources,
