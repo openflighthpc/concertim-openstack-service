@@ -27,7 +27,12 @@ class ConcertimRack(object):
         self.metadata = {}
         self.cost = 0.0
         self._detailed_cost={}
-        self._resources = {}
+        self._resources = {
+                           'servers': {},
+                           'volumes': {},
+                           'networks': {},
+                           'other': {}
+                          }
         self._delete_marker = True
         self._updated = False
 

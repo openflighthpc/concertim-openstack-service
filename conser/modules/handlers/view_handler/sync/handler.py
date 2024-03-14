@@ -73,7 +73,6 @@ class SyncHandler(AbsViewHandler):
         self.__LOGGER.info(f"Starting - Populating Concertim View")
         self.fetch_concertim_teams()
         self.fetch_concertim_users()
-        self.fetch_concertim_teams()
         self.fetch_concertim_templates()
         self.fetch_concertim_racks()
         self.fetch_concertim_devices()
@@ -491,6 +490,7 @@ class SyncHandler(AbsViewHandler):
         new_rack._resources = cluster_dict['cluster_resources']
         new_rack._status_reason = cluster_dict['status_reason']
         new_rack._delete_marker = False
+        self.__LOGGER.debug(f"{new_rack.__repr__()}")
         self.view.add_rack(new_rack)
         self.__LOGGER.debug(f"Finished --- Created new ConcertimRack from cloud data")
 
@@ -555,6 +555,7 @@ class SyncHandler(AbsViewHandler):
         #-- Search for the containing rack
         matching_rack = None
         for rack_id_tup, con_rack in self.view.racks.items():
+            self.__LOGGER.debug(f"{con_rack.__repr__()}")
             #---- for every rack matching the project, check if server ID is in resources list
             if con_rack.metadata['project_cloud_id'] != server_dict['project_cloud_id']:
                 continue

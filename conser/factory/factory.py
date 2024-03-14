@@ -641,7 +641,7 @@ class Factory(object):
                 keystone_objs = DEFAULT_REQUIRED_KS_OBJS
             components_dict[component_name] = Factory.get_opstk_component(component_name, sess, log_file, log_level)
 
-        if billing_enabled: # and keystone_objs:
+        if billing_enabled and keystone_objs:
             keystone_objs['role'].append('rating')
             keystone_objs['user'].append('cloudkitty')
 

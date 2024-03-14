@@ -424,7 +424,7 @@ def update_status(obj_type, obj_id):
         handler_return = handler.update_status(
             concertim_obj_type=obj_type,
             cloud_obj_id=obj_id,
-            action=action
+            action=request_data['action']
         )
         app.logger.debug(f"Handler Return Data - {handler_return}")
 
@@ -434,7 +434,8 @@ def update_status(obj_type, obj_id):
         }
         return make_response(resp, handler_return['status_code'])
     except Exception as e:
-        return handle_exception(e)
+        raise e
+        # return handle_exception(e)
     finally:
         app.logger.info(f"Finished - Updating status for {obj_type}:{obj_id}")
         disconnect_handler(handler)
