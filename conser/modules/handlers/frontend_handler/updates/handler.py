@@ -290,6 +290,14 @@ class UpdatesHandler(Handler):
                         **device_obj.details
                     }
                 )
+            elif device_obj.details['type'] == 'Device::NetworkDetails':
+                return self.clients['concertim'].create_network_device(
+                    variables_dict={
+                        **common_vars,
+                        **device_obj.details
+                    }
+                )
+
         except Exception as e:
             self.__LOGGER.error(f"FAILED - Could not create device {device_obj} - {e} - skipping")
             self.__LOGGER.exception(e)
