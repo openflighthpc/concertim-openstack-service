@@ -523,6 +523,7 @@ class SyncHandler(AbsViewHandler):
             self.view.racks[rack_id_tup]._creation_output = clust_output_string
             self.view.racks[rack_id_tup]._updated = True
 
+        self.view.racks[rack_id_tup]._resources = cluster_dict['cluster_resources']
         curr_cluster_metadata = {}
         for con_md, cloud_md in SyncHandler.METADATA_MAPPING['rack'].items():
             if cloud_md in cluster_dict:
@@ -558,6 +559,8 @@ class SyncHandler(AbsViewHandler):
                     break
             if matching_rack:
                 break
+
+        # TODO: fix whatever I've broken here that makes it not found
         #---- If there is no matching rack, log Error and skip
         if not matching_rack:
             self.__LOGGER.error(f"ERROR --- No matching Rack found for device '{server_dict['id']}' - skipping")
