@@ -244,6 +244,14 @@ class UpdatesHandler(Handler):
                             **device_obj.details
                         }
                     )
+                elif device_obj.details['type'] == 'Device::NetworkDetails':
+                    self.clients['concertim'].update_network_device(
+                        ID=device_obj.id[0],
+                        variables_dict={
+                            **common_vars,
+                            **device_obj.details
+                        }
+                    )
                 else:
                     self.__LOGGER.error(f"Asked to update device of type {device_obj.details['type']} but don't know how")
                 device_obj._updated = False
