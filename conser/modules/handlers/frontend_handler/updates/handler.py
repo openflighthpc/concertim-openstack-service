@@ -166,6 +166,7 @@ class UpdatesHandler(Handler):
                         'openstack_stack_output': rack_obj.output
                     }
                 )
+                rack_obj._updated = False
             except Exception as e:
                 self.__LOGGER.error(f"FAILED - Could not update rack {rack_obj} - {e} - skipping")
                 self.__LOGGER.exception(e)
@@ -231,6 +232,7 @@ class UpdatesHandler(Handler):
                         "openstack_stack_id": device_obj.rack_id_tuple[1]
                     }
                 )
+                device_obj._updated = False
             except Exception as e:
                 self.__LOGGER.error(f"FAILED - Could not update device {device_obj} - {e} - skipping")
                 self.__LOGGER.exception(e)

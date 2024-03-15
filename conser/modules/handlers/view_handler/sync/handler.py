@@ -504,31 +504,23 @@ class SyncHandler(AbsViewHandler):
 
         # OBJECT LOGIC
         con_rack = self.view.racks[rack_id_tup]
+        self.__LOGGER.debug(f"Rack --- {con_rack}")
         #-- Get current accurate status
         cluster_status = 'FAILED'
         for con_status, valid_cloud_status_list in self.clients['cloud'].CONCERTIM_STATE_MAP['RACK'].items():
             if cluster_dict['status'] in valid_cloud_status_list:
                 cluster_status = con_status
         #-- Check dynamic vals
-        if con_rack.output != cluster_dict['cluster_outputs']:
-            self.view.racks[rack_id_tup].output = cluster_dict['cluster_outputs']
-            self.view.racks[rack_id_tup]._updated = True
 
         if con_rack.status != cluster_status:
+            self.__LOGGER.debug(f"status has changed {con_rack.status} to {cluster_status}")
             self.view.racks[rack_id_tup].status = cluster_status
             self.view.racks[rack_id_tup]._updated = True
 
         clust_output_string = self._get_output_as_string(cluster_dict['cluster_outputs'])
         if con_rack._creation_output != clust_output_string:
+            self.__LOGGER.debug(f"output string has changed {on_rack._creation_output} to {clust_output_string}")
             self.view.racks[rack_id_tup]._creation_output = clust_output_string
-            self.view.racks[rack_id_tup]._updated = True
-
-        if con_rack._resources != cluster_dict['cluster_resources']:
-            self.view.racks[rack_id_tup]._resources = cluster_dict['cluster_resources']
-            self.view.racks[rack_id_tup]._updated = True
-
-        if con_rack._status_reason != cluster_dict['status_reason']:
-            self.view.racks[rack_id_tup]._status_reason = cluster_dict['status_reason']
             self.view.racks[rack_id_tup]._updated = True
 
         curr_cluster_metadata = {}
@@ -537,6 +529,7 @@ class SyncHandler(AbsViewHandler):
                 curr_cluster_metadata = cluster_dict[cloud_md]
         for k,v in con_rack.metadata.items():
             if k in curr_cluster_metadata and v != curr_cluster_metadata[k]:
+                self.__LOGGER.debug(f"metadata has changed")
                 self.view.racks[rack_id_tup].metadata[k] = curr_cluster_metadata[k]
                 self.view.racks[rack_id_tup]._updated = True
         
@@ -626,24 +619,28 @@ class SyncHandler(AbsViewHandler):
             if server_dict['status'] in valid_cloud_status_list:
                 device_status = con_status
         #-- Check dynamic values
+
         if con_device.status != device_status:
+            self.__LOGGER.debug(f"Status has changed: {con_device.status} to {device_status}")
             self.view.devices[device_id_tup].status = device_status
             self.view.devices[device_id_tup]._updated = True
 
-        if con_device.volume_details != server_dict['volumes']:
-            self.view.devices[device_id_tup].volume_details = server_dict['volumes']
-            self.view.devices[device_id_tup]._updated = True
+          # This needs updating after new details structure supported
 
-        if con_device.public_ips != server_dict['public_ips']:
+#         if con_device.volume_details != server_dict['volumes']:
+#             self.__LOGGER.debug(f"Volume details have changed: {con_device.volume_details} to {server_dict['volumes']}")
+#             self.view.devices[device_id_tup].volume_details = server_dict['volumes']
+#             self.view.devices[device_id_tup]._updated = True
+
+        # One is a string of an array, the other is an array
+        if eval(con_device.public_ips) != server_dict['public_ips']:
+            self.__LOGGER.debug(f"Public ips have changed: {eval(con_device.public_ips)} to {server_dict['public_ips']}")
             self.view.devices[device_id_tup].public_ips = server_dict['public_ips']
             self.view.devices[device_id_tup]._updated = True
 
-        if con_device.private_ips != server_dict['private_ips']:
+        if eval(con_device.private_ips) != server_dict['private_ips']:
+            self.__LOGGER.debug(f"Private ips have changed: {eval(con_device.private_ips)} to {server_dict['private_ips']}")
             self.view.devices[device_id_tup].private_ips = server_dict['private_ips']
-            self.view.devices[device_id_tup]._updated = True
-
-        if con_device.network_interfaces != server_dict['network_interfaces']:
-            self.view.devices[device_id_tup].network_interfaces = server_dict['network_interfaces']
             self.view.devices[device_id_tup]._updated = True
 
         self.view.devices[device_id_tup]._delete_marker=False
