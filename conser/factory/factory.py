@@ -30,6 +30,7 @@ class Factory(object):
                     "gnocchi",
                     "heat",
                     "keystone",
+                    "neutron",
                     "nova"
                 ]
             }
@@ -52,7 +53,7 @@ class Factory(object):
             'openstack': ['gnocchi']
         },
         'view_sync': {
-            'openstack': ['cinder', 'keystone', 'heat', 'nova']
+            'openstack': ['cinder', 'keystone', 'heat', 'neutron', 'nova']
         },
         'view_queue': {
             'openstack': []
@@ -145,6 +146,8 @@ class Factory(object):
             component = Factory._build_cinder_component(session_obj, log_file, log_level)
         elif component_name == "nova":
             component = Factory._build_nova_component(session_obj, log_file, log_level)
+        elif component_name == "neutron":
+            component = Factory._build_neutron_component(session_obj, log_file, log_level)
         elif component_name == "heat":
             component = Factory._build_heat_component(session_obj, log_file, log_level)
         elif component_name == "gnocchi":
@@ -713,6 +716,15 @@ class Factory(object):
         # CREATE/RETURN COMPONENT
         nova_component = NovaComponent(session_obj, log_file, log_level)
         return nova_component
+
+# NEUTRON
+    @staticmethod
+    def _build_neutron_component(session_obj, log_file, log_level):
+        # IMPORTS
+        from conser.modules.clients.cloud.openstack.components.neutron import NeutronComponent
+        # CREATE/RETURN COMPONENT
+        neutron_component = NeutronComponent(session_obj, log_file, log_level)
+        return neutron_component
         
 # HEAT
     @staticmethod
