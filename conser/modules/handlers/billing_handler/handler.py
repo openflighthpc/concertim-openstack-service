@@ -12,7 +12,7 @@ class BillingHandler(AbsBillingHandler):
     ############
     # DEFAULTS #
     ############
-    BILLING_INTERVAL = 300
+    BILLING_INTERVAL = 60
 
     ########
     # INIT #
