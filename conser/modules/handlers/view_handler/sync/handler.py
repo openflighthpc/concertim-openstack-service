@@ -519,7 +519,7 @@ class SyncHandler(AbsViewHandler):
 
         clust_output_string = self._get_output_as_string(cluster_dict['cluster_outputs'])
         if con_rack._creation_output != clust_output_string:
-            self.__LOGGER.debug(f"output string has changed {on_rack._creation_output} to {clust_output_string}")
+            self.__LOGGER.debug(f"output string has changed {con_rack._creation_output} to {clust_output_string}")
             self.view.racks[rack_id_tup]._creation_output = clust_output_string
             self.view.racks[rack_id_tup]._updated = True
 
