@@ -174,14 +174,15 @@ class SyncHandler(AbsViewHandler):
             #-- Grab IDs
             cluster_team_concertim_id = None if not con_rack['owner']['id'] else con_rack['owner']['id']
             cluster_user_project_id = None if not con_rack['owner']['project_id'] else con_rack['owner']['project_id']
+            cluster_billing_id = None if not con_rack['owner']['billing_acct_id'] else con_rack['owner']['billing_acct_id']
             #-- Create rack
             new_rack = ConcertimRack(
                 concertim_id=con_rack['id'], 
                 cloud_id=cluster_cloud_id, 
                 billing_id=None if not con_rack['order_id'] else con_rack['order_id'],
-                concertim_name=con_rack['name'], 
-                cloud_name=con_rack['name'] , 
-                team_id_tuple=tuple((cluster_team_concertim_id, cluster_user_project_id, None)),
+                concertim_name=con_rack['name'],
+                cloud_name=con_rack['name'],
+                team_id_tuple=tuple((cluster_team_concertim_id, cluster_user_project_id, cluster_billing_id)),
                 height=con_rack['u_height'], 
                 description='' if 'description' not in con_rack else con_rack['description'], 
                 status=con_rack['status']

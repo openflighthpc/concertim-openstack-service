@@ -51,7 +51,7 @@ class BillingHandler(AbsBillingHandler):
         #-- Loop over all billable devices and push cost data to concertim for each
         for device_id_tup, device in self.view.devices.items():
             containing_rack = self.view.racks[device.rack_id_tuple]
-            owner = self.view.users[containing_rack.user_id_tuple]
+            owner = self.view.teams[containing_rack.team_id_tuple]
             if not owner.id[2] or not containing_rack.id[2]:
                 self.__LOGGER.debug(f"Device {device_id_tup} is not billable - Owner:{owner.id} Containing Rack:{containing_rack.id} - skipping")
                 continue
@@ -78,7 +78,7 @@ class BillingHandler(AbsBillingHandler):
         # OBJECT LOGIC
         #-- Loop over all billable racks and push cost data to concertim and billing app for each
         for rack_id_tup, rack in self.view.racks.items():
-            owner = self.view.users[rack.user_id_tuple]
+            owner = self.view.teams[rack.team_id_tuple]
             if not owner.id[2] or not rack_id_tup[2]:
                 self.__LOGGER.debug(f"Rack {rack_id_tup} is not billable - Owner:{owner.id} - skipping")
                 continue
