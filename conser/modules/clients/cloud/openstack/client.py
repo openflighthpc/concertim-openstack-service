@@ -836,6 +836,10 @@ class OpenstackClient(AbsCloudClient):
             stack_id=cluster_cloud_id
         )
         for resource in resources_list:
+            # This seems to be an edge case, if an issue during creation
+            if not resource.physical_resource_id:
+                continue
+
             res_type = resource.resource_type.split("::")
             #---- res_types could be (not all listed, just examples)
             #------ OS::Cinder::VolumeAttachment, OS::Cinder::Volume, 
@@ -867,7 +871,7 @@ class OpenstackClient(AbsCloudClient):
                     'name': resource._info['resource_name']
                 }
             elif res_type[1] == "Heat" and res_type[2] == "ResourceGroup":
-                group_entries = self.components['heat'].list_stack_resources(stack_id=resource._info['physical_resource_id'])
+                group_entries = self.components['heat'].list_stack_resources(stack_id=resource.physical_resource_id)
                 for entry in group_entries:
                     servers = self.components['heat'].list_stack_resources(stack_id=entry.physical_resource_id, type='OS::Nova::Server')
                     for s in servers:
