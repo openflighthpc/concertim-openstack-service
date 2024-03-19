@@ -50,14 +50,15 @@ def merge_views():
     # Sort all files in acending order (when merging this will make the most recent view applied last)
     sorted_files = sorted(os.listdir(view_location))
     # Loop over all files
-    for file_name in os.listdir(view_location):
+    for file_name in sorted_files:
         # Grab only view files with a timestamp
         if file_name.endswith('.pickle') and '~' in file_name:
             # Merge
             print(f"Merging {file_name}")
             with open(view_location+file_name, 'rb') as t_view:
                 temp_view = pickle.load(t_view)
-                latest_view.merge(temp_view)
+                if temp_view:
+                    latest_view.merge(temp_view)
             os.remove(view_location+file_name)
 
     # Delete any stale items from the view after merge
