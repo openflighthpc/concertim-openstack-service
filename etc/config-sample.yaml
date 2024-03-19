@@ -14,9 +14,12 @@ concertim:
 # CLOUD
 openstack:
     auth_url: "http://host:35357/v3"
-    admin_user_id: "admin"
-    admin_user_password: "password"
-    admin_project_id: "id"
+    username: "admin"
+    password: "password"
+    project_id: "id"
+    project_domain_name: "Default"
+    user_domain_name: "Default"
+    project_name: "admin"
 
 # MESSAGE QUEUE
 rmq:
