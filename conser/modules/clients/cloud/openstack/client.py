@@ -432,7 +432,12 @@ class OpenstackClient(AbsCloudClient):
         #-- Call internal calculation functions to build metric_vals
         metric_vals = {}
         for metric_type in OpenstackClient.SUPPORTED_METRIC_GROUPS['resource_map'][resource_type]['metrics_list']:
-            value, result = locals()[OpenstackClient.SUPPORTED_METRIC_GROUPS['metric_functions'][metric_type]]()
+            value = 0.0
+            result = False
+            try:
+                value, result = locals()[OpenstackClient.SUPPORTED_METRIC_GROUPS['metric_functions'][metric_type]]()
+            except UTILS.MissingResourceMetric as e:
+                self.__LOGGER.exception(e)
             metric_vals[metric_type] = {
                 'value': value, 
                 'unit': OpenstackClient.SUPPORTED_METRIC_GROUPS['resource_map'][resource_type]['metrics_list'][metric_type]
