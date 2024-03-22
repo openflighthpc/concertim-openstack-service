@@ -39,8 +39,8 @@ class ConcertimClient(Client):
     def list_available_endpoints(self):
         return ENDPOINTS
 
-    def create_device(self, variables_dict):
-        response = self._api_call('post', 'CREATE_DEVICE', variables_dict=variables_dict)
+    def create_compute_device(self, variables_dict):
+        response = self._api_call('post', 'CREATE_COMPUTE_DEVICE', variables_dict=variables_dict)
         return response
     
     def create_rack(self, variables_dict):

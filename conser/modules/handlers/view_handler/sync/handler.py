@@ -146,7 +146,8 @@ class SyncHandler(AbsViewHandler):
                 disk=con_template['disk'], 
                 vcpus=con_template['vcpus'], 
                 size=con_template['height'], 
-                description=con_template['description']
+                description=con_template['description'],
+                tag=con_template.get('tag'),
             )
             self.view.add_template(new_template)
             self.__LOGGER.debug(f"Finished --- New ConcertimTemplate created in View : '{new_template}'")
@@ -206,8 +207,7 @@ class SyncHandler(AbsViewHandler):
         con_devices_list = self.clients['concertim'].list_devices()
         for con_device in con_devices_list:
             self.__LOGGER.debug(f"Starting --- Creating new ConcertimDevice -> '{con_device['id']}'")
-            #-- CHECK FOR DEVICE TYPE HERE
-            new_device = self._create_server_device_from_concertim(con_device)
+            new_device = self._create_device_from_concertim(con_device)
             self.view.add_device(new_device)
             self.__LOGGER.debug(f"Finished --- New ConcertimDevice created in View : '{new_device}'")  
         self.__LOGGER.debug("Finished -- Fetching Concertim Devices")
@@ -587,7 +587,7 @@ class SyncHandler(AbsViewHandler):
         new_device = ConcertimDevice(
             concertim_id=None, 
             cloud_id=server_dict['id'], 
-            concertim_name=server_dict['name'].replace('.','-').replace('_','-'), 
+            concertim_name=server_dict['name'].replace('.','-').replace('_','-'),
             cloud_name=server_dict['name'], 
             rack_id_tuple=matching_rack.id, 
             template=server_template, 
@@ -595,13 +595,18 @@ class SyncHandler(AbsViewHandler):
             description="Server Device created from Cloud by Concertim Service", 
             status=device_status
         )
-        new_device.ssh_key = server_dict['ssh_key_name']
-        new_device.volume_details = server_dict['volumes']
-        new_device.public_ips = server_dict['public_ips']
-        new_device.private_ips = server_dict['private_ips']
+
         new_device.network_interfaces = server_dict['network_interfaces']
-        #TODO: Get login user for server
-        new_device.login_user = ''
+
+        new_device.details = {
+            'type': 'Device::ComputeDetails',
+            'ssh_key': server_dict['ssh_key_name'],
+            'public_ips': server_dict['public_ips'],
+            'private_ips': server_dict['private_ips'],
+            'volume_details': server_dict['volumes'],
+            #TODO: Get login user for server
+        }
+
         new_device._delete_marker=False
         self.view.add_device(new_device)
         self.view.racks[matching_rack.id].add_device(new_device.id, new_device.location)
@@ -629,22 +634,20 @@ class SyncHandler(AbsViewHandler):
             self.view.devices[device_id_tup].status = device_status
             self.view.devices[device_id_tup]._updated = True
 
-          # This needs updating after new details structure supported
-
-#         if con_device.volume_details != server_dict['volumes']:
-#             self.__LOGGER.debug(f"Volume details have changed: {con_device.volume_details} to {server_dict['volumes']}")
-#             self.view.devices[device_id_tup].volume_details = server_dict['volumes']
-#             self.view.devices[device_id_tup]._updated = True
-
-        # One is a string of an array, the other is an array
-        if eval(con_device.public_ips) != server_dict['public_ips']:
-            self.__LOGGER.debug(f"Public ips have changed: {eval(con_device.public_ips)} to {server_dict['public_ips']}")
-            self.view.devices[device_id_tup].public_ips = server_dict['public_ips']
+        # One is a string of an array, the other an array
+        if eval(con_device.details['volume_details']) != server_dict['volumes']:
+            self.__LOGGER.debug(f"Volume details have changed: {eval(con_device.details['volume_details'])} to {server_dict['volumes']}")
+            self.view.devices[device_id_tup].details['volume_details'] = server_dict['volumes']
             self.view.devices[device_id_tup]._updated = True
 
-        if eval(con_device.private_ips) != server_dict['private_ips']:
-            self.__LOGGER.debug(f"Private ips have changed: {eval(con_device.private_ips)} to {server_dict['private_ips']}")
-            self.view.devices[device_id_tup].private_ips = server_dict['private_ips']
+        if eval(con_device.details['public_ips']) != server_dict['public_ips']:
+            self.__LOGGER.debug(f"Public ips have changed: {eval(con_device.details['public_ips'])} to {server_dict['public_ips']}")
+            self.view.devices[device_id_tup].details['public_ips'] = server_dict['public_ips']
+            self.view.devices[device_id_tup]._updated = True
+
+        if eval(con_device.details['private_ips']) != server_dict['private_ips']:
+            self.__LOGGER.debug(f"Private ips have changed: {con_device.details['private_ips']} to {server_dict['private_ips']}")
+            self.view.devices[device_id_tup].details['private_ips'] = server_dict['private_ips']
             self.view.devices[device_id_tup]._updated = True
 
         self.view.devices[device_id_tup]._delete_marker=False
@@ -707,7 +710,7 @@ class SyncHandler(AbsViewHandler):
             output_str += f", {output_tup[0]}={output_tup[1]}" if output_str else f"{output_tup[0]}={output_tup[1]}"
         return output_str
 
-    def _create_server_device_from_concertim(self, con_device):
+    def _create_device_from_concertim(self, con_device):
         #-- Parse metadata
             device_cloud_id = None
             rack_cloud_id = None
@@ -746,11 +749,21 @@ class SyncHandler(AbsViewHandler):
                 description=con_device['description'], 
                 status=con_device['status']
             )
-            new_device.ssh_key = con_device['ssh_key'] if 'ssh_key' in con_device and con_device['ssh_key'] else ''
-            new_device.volume_details = con_device['volume_details'] if 'volume_details' in con_device and con_device['volume_details'] else []
-            new_device.public_ips = con_device['public_ips'] if 'public_ips' in con_device and con_device['public_ips'] else ''
-            new_device.private_ips = con_device['private_ips'] if 'private_ips' in con_device and con_device['private_ips'] else ''
-            new_device.login_user = con_device['login_user'] if 'login_user' in con_device and con_device['login_user'] else ''
+
+            if 'details' in con_device:
+                new_device.details = con_device['details']
+            else:
+                # Legacy (pre-1.2) Concertim API doesn't have the `details`
+                # object, and instead has the attributes inlined; and only
+                # supports compute devices.
+                new_device.details = {
+                    'type': 'Device::ComputeDetails',
+                    'ssh_key': con_device.get('ssh_key', ''),
+                    'volume_details': con_device.get('volume_details', []),
+                    'public_ips': con_device.get('public_ips', ''),
+                    'private_ips': con_device.get('private_ips', ''),
+                    'login_user': con_device.get('login_user', '')
+                }
             return new_device
 
     def _find_empty_slot(self, device_type, rack, device_size):

@@ -1,13 +1,13 @@
 class ConcertimDevice(object):
-    def __init__(self, 
-        concertim_id=None, 
-        cloud_id=None, 
-        concertim_name=None, 
-        cloud_name=None, 
-        rack_id_tuple=None, 
-        template=None, 
-        location=None, 
-        description='', 
+    def __init__(self,
+        concertim_id=None,
+        cloud_id=None,
+        concertim_name=None,
+        cloud_name=None,
+        rack_id_tuple=None,
+        template=None,
+        location=None,
+        description='',
         status=None
     ):
         self.id = tuple((concertim_id, cloud_id))
@@ -18,12 +18,10 @@ class ConcertimDevice(object):
         self.location = location
         self.status = status
         self.network_interfaces = []
-        self.private_ips = ''
-        self.public_ips = ''
-        self.ssh_key = ''
-        self.volume_details = []
-        self.login_user = ''
         self.cost = 0.0
+
+        self.details = {}
+
         self._delete_marker = True
         self._updated = False
 
@@ -38,12 +36,8 @@ class ConcertimDevice(object):
                 f"template:{repr(self.template)}, "
                 f"location:{repr(self.location)}, "
                 f"network_interfaces:{repr(self.network_interfaces)}, "
-                f"private_ips:{repr(self.private_ips)}, "
-                f"public_ips:{repr(self.public_ips)}, "
-                f"ssh_key:{repr(self.ssh_key)}, "
-                f"login_user:{repr(self.login_user)}, "
-                f"volume_details:{repr(self.volume_details)}, "
-                f"cost:{repr(self.cost)}}}>"
+                f"cost:{repr(self.cost)}, "
+                f"details:{repr(self.details)}}}>"
         )
 
     def __eq__(self, other):

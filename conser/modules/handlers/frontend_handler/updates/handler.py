@@ -43,7 +43,7 @@ class UpdatesHandler(Handler):
             elif not template_id_tup[0] and template_id_tup[1]:
                 self.__LOGGER.debug(f"Template not found in Concertim - creating template {template_id_tup}")
                 self.create_new_template(template)
-            else:
+            elif template.tag is None:
                 self.__LOGGER.warning(f"Unrecognized template found in view {template}")
         self.__LOGGER.debug("Finished -- Sending templates changes")
 
@@ -222,11 +222,11 @@ class UpdatesHandler(Handler):
                         "name": device_obj.name[1],
                         "description": device_obj.description,
                         "status" : device_obj.status,
-                        "public_ips": device_obj.public_ips,
-                        "private_ips": device_obj.private_ips,
-                        "ssh_key": device_obj.ssh_key,
-                        "volume_details": device_obj.volume_details,
-                        "login_user": device_obj.login_user,
+                        "public_ips": device_obj.details['public_ips'],
+                        "private_ips": device_obj.details['private_ips'],
+                        "ssh_key": device_obj.details['ssh_key'],
+                        "volume_details": device_obj.details['volume_details'],
+                        "login_user": device_obj.details['login_user'],
                         "net_interfaces": device_obj.network_interfaces,
                         'openstack_instance_id': device_obj.id[1],
                         "openstack_stack_id": device_obj.rack_id_tuple[1]
@@ -243,21 +243,21 @@ class UpdatesHandler(Handler):
         self.__LOGGER.debug(f"Starting --- Creating new device {device_obj.id}")
         # OBJECT LOGIC
         try:
-            self.clients['concertim'].create_device(
+            self.clients['concertim'].create_compute_device(
                 variables_dict={
                     "template_id": device_obj.template.id[0],
-                    "name": device_obj.name[1],
+                    "name": device_obj.name[0],
                     "description": device_obj.description,
                     "status" : device_obj.status,
                     "facing": device_obj.location.facing,
                     "rack_id": self.view.racks[device_obj.rack_id_tuple].id[0],
                     "start_u": device_obj.location.start_u,
-                    "public_ips": device_obj.public_ips,
-                    "private_ips": device_obj.private_ips,
-                    "ssh_key": device_obj.ssh_key,
-                    "volume_details": device_obj.volume_details,
-                    "login_user": device_obj.login_user,
                     "net_interfaces": device_obj.network_interfaces,
+                    "public_ips": device_obj.details.get('public_ips'),
+                    "private_ips": device_obj.details.get('private_ips'),
+                    "ssh_key": device_obj.details.get('ssh_key'),
+                    "volume_details": device_obj.details.get('volume_details'),
+                    "login_user": device_obj.details.get('login_user'),
                     'openstack_instance_id': device_obj.id[1],
                     "openstack_stack_id": self.view.racks[device_obj.rack_id_tuple].id[1]
                 }

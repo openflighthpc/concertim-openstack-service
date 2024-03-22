@@ -8,7 +8,8 @@ class ConcertimTemplate(object):
         disk=None, 
         vcpus=None, 
         size=None, 
-        description=''
+        description='',
+        tag=None
     ):
         self.id = tuple((concertim_id, cloud_id))
         self.name = tuple((concertim_name, cloud_name))
@@ -17,6 +18,7 @@ class ConcertimTemplate(object):
         self.disk = disk
         self.vcpus = vcpus
         self.size = size
+        self.tag = tag
         self._updated=False
 
     def __repr__(self):
@@ -28,7 +30,8 @@ class ConcertimTemplate(object):
                 f"size:{repr(self.size)}, "
                 f"vcpus:{repr(self.vcpus)}, "
                 f"disk:{repr(self.disk)}, "
-                f"ram:{repr(self.ram)}}}>"
+                f"ram:{repr(self.ram)}, "
+                f"tag:{repr(self.tag)}}}>"
         )
     
     def __eq__(self, other):
