@@ -685,6 +685,7 @@ class SyncHandler(AbsViewHandler):
         if new_status != existing_device.status:
             existing_device.status = new_status
             existing_device._updated = True
+
         existing_device._delete_marker=False
 
     TEMPLATE_TAGS_BY_RESOURCE_TYPE = {
@@ -721,7 +722,7 @@ class SyncHandler(AbsViewHandler):
                         status=status
                     )
                     new_device.details = details
-
+                    new_device._delete_marker = False
                     self.view.add_device(new_device)
                     rack.add_device(new_device.id, new_device.location)
 
@@ -737,17 +738,16 @@ class SyncHandler(AbsViewHandler):
         return None
 
     def _get_resource_details(self, resource):
-        match resource.resource_type:
-            case 'OS::Cinder::Volume':
-                os_data = self.clients['cloud'].get_volume_info(resource.physical_resource_id)
-                return {
-                    'type': 'Device::VolumeDetails',
-                    'availability_zone': os_data.availability_zone,
-                    'bootable': os_data.bootable,
-                    'encrypted': os_data.encrypted,
-                    'size': os_data.size,
-                    'volume_type': os_data.volume_type
-                }
+        if resource.resource_type == 'OS::Cinder::Volume':
+            os_data = self.clients['cloud'].get_volume_info(resource.physical_resource_id)
+            return {
+                'type': 'Device::VolumeDetails',
+                'availability_zone': os_data.availability_zone,
+                'bootable': os_data.bootable,
+                'encrypted': os_data.encrypted,
+                'size': os_data.size,
+                'volume_type': os_data.volume_type
+            }
 
     def _find_tagged_template(self, tag):
         for template in self.view.templates.values():

@@ -223,30 +223,29 @@ class UpdatesHandler(Handler):
                 "openstack_stack_id": device_obj.rack_id_tuple[1]
             }
             try:
-                match device_obj.details['type']:
-                    case 'Device::ComputeDetails':
-                        self.clients['concertim'].update_compute_device(
-                            ID=device_obj.id[0],
-                            variables_dict={
-                                **common_vars,
-                                "public_ips": device_obj.details['public_ips'],
-                                "private_ips": device_obj.details['private_ips'],
-                                "ssh_key": device_obj.details['ssh_key'],
-                                "volume_details": device_obj.details['volume_details'],
-                                "login_user": device_obj.details['login_user'],
-                                "net_interfaces": device_obj.network_interfaces,
-                            }
-                        )
-                    case 'Device::VolumeDetails':
-                        self.clients['concertim'].update_volume_device(
-                            ID=device_obj.id[0],
-                            variables_dict={
-                                **common_vars,
-                                **device_obj.details
-                            }
-                        )
-                    case _:
-                        self.__LOGGER.error(f"Asked to update device of type {device_obj.details['type']} but don't know how")
+                if device_obj.details['type'] == 'Device::ComputeDetails':
+                    self.clients['concertim'].update_compute_device(
+                        ID=device_obj.id[0],
+                        variables_dict={
+                            **common_vars,
+                            "public_ips": device_obj.details['public_ips'],
+                            "private_ips": device_obj.details['private_ips'],
+                            "ssh_key": device_obj.details['ssh_key'],
+                            "volume_details": device_obj.details['volume_details'],
+                            "login_user": device_obj.details['login_user'],
+                            "net_interfaces": device_obj.network_interfaces,
+                        }
+                    )
+                elif device_obj.details['type'] == 'Device::VolumeDetails':
+                    self.clients['concertim'].update_volume_device(
+                        ID=device_obj.id[0],
+                        variables_dict={
+                            **common_vars,
+                            **device_obj.details
+                        }
+                    )
+                else:
+                    self.__LOGGER.error(f"Asked to update device of type {device_obj.details['type']} but don't know how")
                 device_obj._updated = False
                 # "But wait! If we fall into the default case above, the device hasn't really been updated!"
                 # That's true, but running the loop more times isn't going to change that. We've logged the problem,
@@ -272,26 +271,25 @@ class UpdatesHandler(Handler):
             "openstack_stack_id": self.view.racks[device_obj.rack_id_tuple].id[1],
         }
         try:
-            match device_obj.details['type']:
-                case 'Device::ComputeDetails':
-                    return self.clients['concertim'].create_compute_device(
-                        variables_dict={
-                            **common_vars,
-                            "net_interfaces": device_obj.network_interfaces,
-                            "public_ips": device_obj.details.get('public_ips'),
-                            "private_ips": device_obj.details.get('private_ips'),
-                            "ssh_key": device_obj.details.get('ssh_key'),
-                            "volume_details": device_obj.details.get('volume_details'),
-                            "login_user": device_obj.details.get('login_user'),
-                        }
-                    )
-                case 'Device::VolumeDetails':
-                    return self.clients['concertim'].create_volume_device(
-                        variables_dict={
-                            **common_vars,
-                            **device_obj.details
-                        }
-                    )
+            if device_obj.details['type'] == 'Device::ComputeDetails':
+                return self.clients['concertim'].create_compute_device(
+                    variables_dict={
+                        **common_vars,
+                        "net_interfaces": device_obj.network_interfaces,
+                        "public_ips": device_obj.details.get('public_ips'),
+                        "private_ips": device_obj.details.get('private_ips'),
+                        "ssh_key": device_obj.details.get('ssh_key'),
+                        "volume_details": device_obj.details.get('volume_details'),
+                        "login_user": device_obj.details.get('login_user'),
+                    }
+                )
+            elif device_obj.details['type'] == 'Device::VolumeDetails':
+                return self.clients['concertim'].create_volume_device(
+                    variables_dict={
+                        **common_vars,
+                        **device_obj.details
+                    }
+                )
         except Exception as e:
             self.__LOGGER.error(f"FAILED - Could not create device {device_obj} - {e} - skipping")
             self.__LOGGER.exception(e)
