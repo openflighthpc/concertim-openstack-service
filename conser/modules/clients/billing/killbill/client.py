@@ -169,8 +169,8 @@ class KillbillClient(AbsBillingClient):
 
         # BILLING OBJECT LOGIC
         start_date = datetime.today().date().replace(day=1)
-        end_date = (begin_date + timedelta(days=32)).replace(day=1)
-        METRIC_PREFIX = 'cloud_'
+        end_date = (start_date + timedelta(days=32)).replace(day=1)
+        METRIC_PREFIX = 'openstack-billed-'
         # Get current usage and subtract because killbill's record usage is accumlative
         curr_usage_resp = self.apis['usage'].get_usage_with_http_info(
             subscription_id=cluster_billing_id,
@@ -179,10 +179,13 @@ class KillbillClient(AbsBillingClient):
             end_date=end_date
         )
         curr_usage_dict = self._get_dict_from_resp(curr_usage_resp)
+        self.__LOGGER.debug(f"{curr_usage_dict}")
         if len(curr_usage_dict['data'].rolled_up_units) > 0:
             amount_to_post = usage_metric_value - curr_usage_dict['data'].rolled_up_units[0].amount
+            self.__LOGGER.debug(f"{amount_to_post} = {usage_metric_value} - {curr_usage_dict['data'].rolled_up_units[0].amount}")
         else:
             amount_to_post = usage_metric_value
+            self.__LOGGER.debug(f"{amount_to_post}")
 
         usage_body = {
             "subscriptionId": cluster_billing_id,
@@ -191,25 +194,25 @@ class KillbillClient(AbsBillingClient):
                     "unitType": METRIC_PREFIX + usage_metric_type,
                     "usageRecords": [
                         {
-                            "recordDate": datetime.date.today().strftime("%Y-%m-%d"),
+                            "recordDate": datetime.today().strftime("%Y-%m-%d"),
                             "amount": amount_to_post,
                         }
                     ],
                 }
             ],
-            "trackingId": datetime.datetime.now().isoformat(),
+            "trackingId": datetime.now().isoformat(),
         }
+        self.__LOGGER.debug(f"{usage_body}")
         resp = self.apis['usage'].record_usage_with_http_info(
             body=usage_body,
             created_by='KillbillClient'
         )
-        resp_dict = self._get_dict_from_resp(resp)
+        #resp_dict = self._get_dict_from_resp(resp)
 
         # BUILD RETURN DICT
         self.__LOGGER.debug(f"Building Return dictionary")
         return_dict = {
             'submitted': True,
-            'usage': resp_dict['data'].to_dict()
         }
         # RETURN
         return return_dict
