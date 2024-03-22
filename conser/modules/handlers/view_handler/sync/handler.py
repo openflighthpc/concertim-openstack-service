@@ -634,13 +634,12 @@ class SyncHandler(AbsViewHandler):
             self.view.devices[device_id_tup].status = device_status
             self.view.devices[device_id_tup]._updated = True
 
-        # This needs testing
-        if con_device.details['volume_details'] != server_dict['volumes']:
-            self.__LOGGER.debug(f"Volume details have changed: {con_device.details['volume_details']} to {server_dict['volumes']}")
+        # One is a string of an array, the other an array
+        if eval(con_device.details['volume_details']) != server_dict['volumes']:
+            self.__LOGGER.debug(f"Volume details have changed: {eval(con_device.details['volume_details'])} to {server_dict['volumes']}")
             self.view.devices[device_id_tup].details['volume_details'] = server_dict['volumes']
             self.view.devices[device_id_tup]._updated = True
 
-        # One is a string of an array, the other is an array
         if eval(con_device.details['public_ips']) != server_dict['public_ips']:
             self.__LOGGER.debug(f"Public ips have changed: {eval(con_device.details['public_ips'])} to {server_dict['public_ips']}")
             self.view.devices[device_id_tup].details['public_ips'] = server_dict['public_ips']
