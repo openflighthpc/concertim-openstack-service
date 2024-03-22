@@ -559,8 +559,8 @@ class KillbillClient(AbsBillingClient):
             raise EXCP.MissingRequiredArgs('project_billing_id')
 
         # BILLING OBJECT LOGIC
-        next_month = datetime.today().date().replace(day=28) + datetime.timedelta(days=4)
-        eom = next_month - datetime.timedelta(days=next_month.day)
+        next_month = datetime.today().date().replace(day=28) + timedelta(days=4)
+        eom = next_month - timedelta(days=next_month.day)
         dryrun_body = killbill.InvoiceDryRun(dry_run_type='UPCOMING_INVOICE')
         resp = self.apis['invoice'].generate_dry_run_invoice_with_http_info(
             body=dryrun_body,
