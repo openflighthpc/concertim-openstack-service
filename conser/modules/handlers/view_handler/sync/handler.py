@@ -673,7 +673,14 @@ class SyncHandler(AbsViewHandler):
             # nothing to do here
             return
 
-        new_details = self._get_resource_details(new_resource)
+        try:
+            new_details = self._get_resource_details(new_resource)
+        except EXCP.MissingCloudObject as e:
+            # In openstack a device (e.g. volume) can appear in the stack resources even after deleted
+            self.__LOGGER.debug(f"Device could not be found in cloud. Marking for deletion")
+            existing_device._delete_marker=True
+            return
+
         if new_details and new_details != existing_device.details:  # != in Python does a deep equality check on dicts
             existing_device.details = new_details
             existing_device._updated = True
@@ -694,7 +701,13 @@ class SyncHandler(AbsViewHandler):
     def _create_device_from_cloud(self, resource, cluster_cloud_id):
         rack = self._find_rack_by_cloud_id(cluster_cloud_id)
         if rack:
-            details = self._get_resource_details(resource)
+            try:
+                details = self._get_resource_details(resource)
+            except EXCP.MissingCloudObject as e:
+                # It is possible for devices to exist in stack resources but been deleted
+                # Suggests perhaps we need a different way of getting list of active devices.
+                self.__LOGGER.debug(f"Device could not be found in cloud. It may have been deleted. Skipping")
+                details = None
             if details:  # in other words: if it's a resource type we care about...
                 template = self._find_tagged_template(self.TEMPLATE_TAGS_BY_RESOURCE_TYPE.get(details['type']))
                 if template:

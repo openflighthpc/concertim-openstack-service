@@ -1,10 +1,12 @@
 # Local Imports
 from conser.utils.service_logger import create_logger
 from conser.modules.clients.cloud.openstack.components.base import OpstkBaseComponent
+import conser.exceptions as EXCP
 # Py Packages
 import time
 # Openstack Packages
 from cinderclient import client as c_client
+from cinderclient.exceptions import NotFound as NotFound
 #import heatclient.exceptions
 
 class CinderComponent(OpstkBaseComponent):
@@ -30,4 +32,7 @@ class CinderComponent(OpstkBaseComponent):
         raise error
 
     def get_volume(self, volume_id):
-        return self.client.volumes.get(volume_id)
+        try:
+            return self.client.volumes.get(volume_id)
+        except NotFound as e:
+            raise EXCP.MissingCloudObject(f"{volume_id}")
