@@ -685,7 +685,6 @@ class SyncHandler(AbsViewHandler):
         if new_status != existing_device.status:
             existing_device.status = new_status
             existing_device._updated = True
-
         existing_device._delete_marker=False
 
     TEMPLATE_TAGS_BY_RESOURCE_TYPE = {
@@ -856,16 +855,25 @@ class SyncHandler(AbsViewHandler):
                 new_device.details = con_device['details']
             else:
                 # Legacy (pre-1.2) Concertim API doesn't have the `details`
-                # object, and instead has the attributes inlined; and only
-                # supports compute devices.
-                new_device.details = {
-                    'type': 'Device::ComputeDetails',
-                    'ssh_key': con_device.get('ssh_key', ''),
-                    'volume_details': con_device.get('volume_details', []),
-                    'public_ips': con_device.get('public_ips', ''),
-                    'private_ips': con_device.get('private_ips', ''),
-                    'login_user': con_device.get('login_user', '')
-                }
+                # object, and instead has the attributes inlined;
+                if con_device['type'] == 'Device::ComputeDetails':
+                    new_device.details = {
+                        'type': 'Device::ComputeDetails',
+                        'ssh_key': con_device.get('ssh_key', ''),
+                        'volume_details': con_device.get('volume_details', []),
+                        'public_ips': con_device.get('public_ips', ''),
+                        'private_ips': con_device.get('private_ips', ''),
+                        'login_user': con_device.get('login_user', '')
+                    }
+                elif con_device['type'] == 'Device::VolumeDetails':
+                    new_device.details = {
+                        'type': 'Device::VolumeDetails',
+                        "availability_zone": con_device.get('availability_zone', ''),
+                        "bootable": con_device.get('bootable', ''),
+                        "encrypted": con_device.get('encrypted', ''),
+                        "size":  con_device.get('size', ''),
+                        "volume_type": con_device.get('volume_type', '')
+                    }
             return new_device
 
     def _find_empty_slot(self, device_type, rack, device_size):
