@@ -358,6 +358,18 @@ class SyncHandler(AbsViewHandler):
             self.__LOGGER.warning("Warning --- No existing Devices found in view - Creating all new devices from cloud data")
             create_all = True
 
+        def action_device(resource, create_all):
+            if not create_all:
+                existing_resource = self.view.search(
+                    object_type='device',
+                    id_value=resource.physical_resource_id,
+                    id_origin='cloud'
+                )
+                if existing_resource:
+                    self._update_device_from_cloud(existing_resource, resource)
+                    return
+            self._create_device_from_cloud(resource, cluster_cloud_id)
+
         # OBJECT LOGIC
         #-- Getting all Concertim Managed projects
         cm_projects_list = self.clients['cloud'].get_all_cm_projects()
@@ -382,18 +394,16 @@ class SyncHandler(AbsViewHandler):
 
             cloud_clusters_dict = self.clients['cloud'].get_all_clusters(project_cloud_id=project_cloud_id)
             for cluster_cloud_id in cloud_clusters_dict['clusters'].keys():
-                resources = self.clients['cloud'].get_all_stack_resources(cluster_cloud_id)
+                resources = self.clients['cloud'].get_all_stack_resources(stack_id=cluster_cloud_id)
                 for resource in resources:
-                    if not create_all:
-                        existing_resource = self.view.search(
-                            object_type='device',
-                            id_value=resource.physical_resource_id,
-                            id_origin='cloud'
-                        )
-                        if existing_resource:
-                            self._update_device_from_cloud(existing_resource, resource)
-                            continue
-                    self._create_device_from_cloud(resource, cluster_cloud_id)
+                    if resource.resource_type == "OS::Heat::ResourceGroup":
+                        group_resources = self.clients['cloud'].get_all_stack_resources(resource.physical_resource_id)
+                        for nested_resource in group_resources:
+                            devices = self.clients['cloud'].get_all_stack_resources(nested_resource.physical_resource_id)
+                            for d in devices:
+                                action_device(d, create_all)
+                    else:
+                        action_device(resource, create_all)
 
         self.__LOGGER.debug("Finished -- Layering Cloud Devices onto existing View")
 
@@ -575,7 +585,6 @@ class SyncHandler(AbsViewHandler):
             if matching_rack:
                 break
 
-        # TODO: fix whatever I've broken here that makes it not found
         #---- If there is no matching rack, log Error and skip
         if not matching_rack:
             self.__LOGGER.error(f"ERROR --- No matching Rack found for device '{server_dict['id']}' - skipping")
@@ -673,16 +682,19 @@ class SyncHandler(AbsViewHandler):
             # nothing to do here
             return
 
+        self.__LOGGER.debug(f"Starting --- Updating existing ConcertimDevice '{existing_device}' with cloud data")
+
         try:
-            new_details = self._get_resource_details(new_resource)
+            new_info = self._get_resource_information(new_resource)
         except EXCP.MissingCloudObject as e:
             # In openstack a device (e.g. volume) can appear in the stack resources even after deleted
             self.__LOGGER.debug(f"Device could not be found in cloud. Marking for deletion")
             existing_device._delete_marker=True
             return
 
-        if new_details and new_details != existing_device.details:  # != in Python does a deep equality check on dicts
-            existing_device.details = new_details
+        if new_info and new_info['details'] != existing_device.details:  # != in Python does a deep equality check on dicts
+            self.__LOGGER.debug(f"Details have changed from {existing_device.details} to {new_info['details']}")
+            existing_device.details = new_info['details']
             existing_device._updated = True
 
         new_status = 'FAILED'
@@ -690,6 +702,7 @@ class SyncHandler(AbsViewHandler):
             if new_resource.resource_status in os_statuses:
                 new_status = concertim_status
         if new_status != existing_device.status:
+            self.__LOGGER.debug(f"Status has changed from {existing_device.status} to {new_status}")
             existing_device.status = new_status
             existing_device._updated = True
         existing_device._delete_marker=False
@@ -702,13 +715,16 @@ class SyncHandler(AbsViewHandler):
         rack = self._find_rack_by_cloud_id(cluster_cloud_id)
         if rack:
             try:
-                details = self._get_resource_details(resource)
+                info = self._get_resource_information(resource)
             except EXCP.MissingCloudObject as e:
                 # It is possible for devices to exist in stack resources but been deleted
                 # Suggests perhaps we need a different way of getting list of active devices.
                 self.__LOGGER.debug(f"Device could not be found in cloud. It may have been deleted. Skipping")
-                details = None
-            if details:  # in other words: if it's a resource type we care about...
+                info = None
+            if info:  # in other words: if it's a resource type we care about...
+                details = info['details']
+                # below is needed as if part of a resource group, some APIs give the group name instead of device name
+                name = info['name']
                 template = self._find_tagged_template(self.TEMPLATE_TAGS_BY_RESOURCE_TYPE.get(details['type']))
                 if template:
                     location = self._find_empty_slot(
@@ -725,8 +741,8 @@ class SyncHandler(AbsViewHandler):
                     new_device = ConcertimDevice(
                         concertim_id=None,
                         cloud_id=resource.physical_resource_id,
-                        concertim_name=resource.resource_name.replace('.','-').replace('_','-'),
-                        cloud_name=resource.resource_name,
+                        concertim_name=name.replace('.','-').replace('_','-'),
+                        cloud_name=name,
                         rack_id_tuple=rack.id,
                         template=template,
                         location=location,
@@ -735,6 +751,7 @@ class SyncHandler(AbsViewHandler):
                     )
                     new_device.details = details
                     new_device._delete_marker = False
+                    self.__LOGGER.debug(f"Adding new device: {new_device}")
                     self.view.add_device(new_device)
                     rack.add_device(new_device.id, new_device.location)
 
@@ -749,16 +766,19 @@ class SyncHandler(AbsViewHandler):
                 return rack
         return None
 
-    def _get_resource_details(self, resource):
+    def _get_resource_information(self, resource):
         if resource.resource_type == 'OS::Cinder::Volume':
             os_data = self.clients['cloud'].get_volume_info(resource.physical_resource_id)
             return {
-                'type': 'Device::VolumeDetails',
-                'availability_zone': os_data.availability_zone,
-                'bootable': os_data.bootable,
-                'encrypted': os_data.encrypted,
-                'size': os_data.size,
-                'volume_type': os_data.volume_type
+                'details': {
+                    'type': 'Device::VolumeDetails',
+                    'availability_zone': os_data.availability_zone,
+                    'bootable': os_data.bootable,
+                    'encrypted': os_data.encrypted,
+                    'size': os_data.size,
+                    'volume_type': os_data.volume_type
+                },
+                'name': os_data.name
             }
 
     def _find_tagged_template(self, tag):
