@@ -13,6 +13,7 @@ from conser.modules.clients.concertim.objects.location import Location
 
 # Py Packages
 import time
+import json
 
 class SyncHandler(AbsViewHandler):
     """
@@ -773,7 +774,7 @@ class SyncHandler(AbsViewHandler):
                 'details': {
                     'type': 'Device::VolumeDetails',
                     'availability_zone': os_data.availability_zone,
-                    'bootable': os_data.bootable,
+                    'bootable': json.loads(os_data.bootable.lower()),
                     'encrypted': os_data.encrypted,
                     'size': os_data.size,
                     'volume_type': os_data.volume_type
