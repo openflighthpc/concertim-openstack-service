@@ -70,7 +70,12 @@ class BillingHandler(AbsBillingHandler):
                 else:
                     self.view.racks[containing_rack.id]._detailed_cost[charge_type] = amt
             #-- Push cost to concertim
-            self.concertim_cost_update('device', self.view.devices[device_id_tup])
+            device =  self.view.devices[device_id_tup]
+            if device.details['type'] == "Device::ComputeDetails":
+                type = "compute_device"
+            elif device.details['type'] == "Device::VolumeDetails":
+                type = "volume_device"
+            self.concertim_cost_update(type, self.view.devices[device_id_tup])
         self.__LOGGER.debug(f"Finished --- Updating cost data from Cloud for all devices")
 
     def update_rack_costs(self, start_date, end_date):
@@ -141,7 +146,10 @@ class BillingHandler(AbsBillingHandler):
         Process for updating Concertim object costs.
         """
         obj_updates = {
-            'device': [
+            'compute_device': [
+                'cost'
+            ],
+            'volume_device': [
                 'cost'
             ],
             'rack': [
