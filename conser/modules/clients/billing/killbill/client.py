@@ -194,7 +194,7 @@ class KillbillClient(AbsBillingClient):
                     "unitType": METRIC_PREFIX + usage_metric_type,
                     "usageRecords": [
                         {
-                            "recordDate": datetime.today().strftime("%Y-%m-%d"),
+                            "recordDate": datetime.today().strftime("%Y-%m-%d") + "T12:00:00Z",
                             "amount": amount_to_post,
                         }
                     ],
