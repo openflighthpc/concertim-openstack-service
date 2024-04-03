@@ -13,6 +13,7 @@ from conser.modules.clients.concertim.objects.location import Location
 
 # Py Packages
 import time
+import json
 
 class SyncHandler(AbsViewHandler):
     """
@@ -143,9 +144,9 @@ class SyncHandler(AbsViewHandler):
                 concertim_name=con_template['name'], 
                 cloud_name=con_template['name'], 
                 ram=con_template['ram'], 
-                disk=con_template['disk'], 
-                vcpus=con_template['vcpus'], 
-                size=con_template['height'], 
+                disk=con_template['disk'],
+                vcpus=con_template['vcpus'],
+                height=con_template['height'],
                 description=con_template['description'],
                 tag=con_template.get('tag'),
             )
@@ -358,6 +359,18 @@ class SyncHandler(AbsViewHandler):
             self.__LOGGER.warning("Warning --- No existing Devices found in view - Creating all new devices from cloud data")
             create_all = True
 
+        def action_device(resource, create_all):
+            if not create_all:
+                existing_resource = self.view.search(
+                    object_type='device',
+                    id_value=resource.physical_resource_id,
+                    id_origin='cloud'
+                )
+                if existing_resource:
+                    self._update_device_from_cloud(existing_resource, resource)
+                    return
+            self._create_device_from_cloud(resource, cluster_cloud_id)
+
         # OBJECT LOGIC
         #-- Getting all Concertim Managed projects
         cm_projects_list = self.clients['cloud'].get_all_cm_projects()
@@ -379,8 +392,20 @@ class SyncHandler(AbsViewHandler):
                         continue         
                 #------ If reaching here then need to create a new ConcertimDevice from cloud data
                 self.create_server_device_from_cloud(cloud_server_dict)
-            ## VOLS
-            ## NETS
+
+            cloud_clusters_dict = self.clients['cloud'].get_all_clusters(project_cloud_id=project_cloud_id)
+            for cluster_cloud_id in cloud_clusters_dict['clusters'].keys():
+                resources = self.clients['cloud'].get_all_stack_resources(stack_id=cluster_cloud_id)
+                for resource in resources:
+                    if resource.resource_type == "OS::Heat::ResourceGroup":
+                        group_resources = self.clients['cloud'].get_all_stack_resources(resource.physical_resource_id)
+                        for nested_resource in group_resources:
+                            devices = self.clients['cloud'].get_all_stack_resources(nested_resource.physical_resource_id)
+                            for d in devices:
+                                action_device(d, create_all)
+                    else:
+                        action_device(resource, create_all)
+
         self.__LOGGER.debug("Finished -- Layering Cloud Devices onto existing View")
 
     def create_template_from_cloud(self, template_dict):
@@ -389,7 +414,7 @@ class SyncHandler(AbsViewHandler):
             raise EXCP.MissingRequiredArgs('template_dict')
         self.__LOGGER.debug(f"Starting --- Creating new ConcertimTemplate -> '{template_dict['name']}' - from cloud data")
         # OBJECT LOGIC
-        template_size = min((int( template_dict['vcpus'] / 2 ) + 1), 4)
+        template_height = min((int( template_dict['vcpus'] / 2 ) + 1), 4)
         new_template = ConcertimTemplate(
             concertim_id=None, 
             cloud_id=template_dict['id'], 
@@ -398,7 +423,7 @@ class SyncHandler(AbsViewHandler):
             ram=template_dict['ram'], 
             disk=template_dict['disk'], 
             vcpus=template_dict['vcpus'], 
-            size=template_size, 
+            height=template_height,
             description="Template created from Cloud by Concertim Service"
         )
         self.view.add_template(new_template)
@@ -426,9 +451,9 @@ class SyncHandler(AbsViewHandler):
             self.view.templates[template_id_tup].vcpus = template_dict['vcpus']
             self.view.templates[template_id_tup]._updated = True
 
-        cloud_template_size = min((int( template_dict['vcpus'] / 2 ) + 1), 4)
-        if con_template.size != cloud_template_size:
-            self.view.templates[template_id_tup].size = cloud_template_size
+        cloud_template_height = min((int( template_dict['vcpus'] / 2 ) + 1), 4)
+        if con_template.height != cloud_template_height:
+            self.view.templates[template_id_tup].height = cloud_template_height
             self.view.templates[template_id_tup]._updated = True
 
         self.__LOGGER.debug(f"Finished --- Updated existing ConcertimTemplate from cloud data")
@@ -561,7 +586,6 @@ class SyncHandler(AbsViewHandler):
             if matching_rack:
                 break
 
-        # TODO: fix whatever I've broken here that makes it not found
         #---- If there is no matching rack, log Error and skip
         if not matching_rack:
             self.__LOGGER.error(f"ERROR --- No matching Rack found for device '{server_dict['id']}' - skipping")
@@ -581,7 +605,7 @@ class SyncHandler(AbsViewHandler):
         server_location = self._find_empty_slot(
             device_type='server', 
             rack=matching_rack, 
-            device_size=server_template.size
+            device_size=server_template.height
         )
         #-- Create device
         new_device = ConcertimDevice(
@@ -652,6 +676,117 @@ class SyncHandler(AbsViewHandler):
 
         self.view.devices[device_id_tup]._delete_marker=False
         self.__LOGGER.debug(f"Finished --- Updated existing ConcertimDevice from cloud data")
+
+    def _update_device_from_cloud(self, existing_device, new_resource):
+        if existing_device.details['type'] == 'Device::ComputeDetails':
+            # Device will have been updated in update_server_device_from_cloud -
+            # nothing to do here
+            return
+
+        self.__LOGGER.debug(f"Starting --- Updating existing ConcertimDevice '{existing_device}' with cloud data")
+
+        try:
+            new_info = self._get_resource_information(new_resource)
+        except EXCP.MissingCloudObject as e:
+            # In openstack a device (e.g. volume) can appear in the stack resources even after deleted
+            self.__LOGGER.debug(f"Device could not be found in cloud. Marking for deletion")
+            existing_device._delete_marker=True
+            return
+
+        if new_info and new_info['details'] != existing_device.details:  # != in Python does a deep equality check on dicts
+            self.__LOGGER.debug(f"Details have changed from {existing_device.details} to {new_info['details']}")
+            existing_device.details = new_info['details']
+            existing_device._updated = True
+
+        new_status = 'FAILED'
+        for concertim_status, os_statuses in self.clients['cloud'].CONCERTIM_STATE_MAP['RACK'].items():
+            if new_resource.resource_status in os_statuses:
+                new_status = concertim_status
+        if new_status != existing_device.status:
+            self.__LOGGER.debug(f"Status has changed from {existing_device.status} to {new_status}")
+            existing_device.status = new_status
+            existing_device._updated = True
+        existing_device._delete_marker=False
+
+    TEMPLATE_TAGS_BY_RESOURCE_TYPE = {
+        'Device::VolumeDetails': 'volume'
+    }
+
+    def _create_device_from_cloud(self, resource, cluster_cloud_id):
+        rack = self._find_rack_by_cloud_id(cluster_cloud_id)
+        if rack:
+            try:
+                info = self._get_resource_information(resource)
+            except EXCP.MissingCloudObject as e:
+                # It is possible for devices to exist in stack resources but been deleted
+                # Suggests perhaps we need a different way of getting list of active devices.
+                self.__LOGGER.debug(f"Device could not be found in cloud. It may have been deleted. Skipping")
+                info = None
+            if info:  # in other words: if it's a resource type we care about...
+                details = info['details']
+                # below is needed as if part of a resource group, some APIs give the group name instead of device name
+                name = info['name']
+                template = self._find_tagged_template(self.TEMPLATE_TAGS_BY_RESOURCE_TYPE.get(details['type']))
+                if template:
+                    location = self._find_empty_slot(
+                        device_type=details['type'],
+                        rack=rack,
+                        device_size=template.height
+                    )
+
+                    status = 'FAILED'
+                    for concertim_status, os_statuses in self.clients['cloud'].CONCERTIM_STATE_MAP['RACK'].items():
+                        if resource.resource_status in os_statuses:
+                            status = concertim_status
+
+                    new_device = ConcertimDevice(
+                        concertim_id=None,
+                        cloud_id=resource.physical_resource_id,
+                        concertim_name=name.replace('.','-').replace('_','-'),
+                        cloud_name=name,
+                        rack_id_tuple=rack.id,
+                        template=template,
+                        location=location,
+                        description="Device created from Cloud by Concertim Service",
+                        status=status
+                    )
+                    new_device.details = details
+                    new_device._delete_marker = False
+                    self.__LOGGER.debug(f"Adding new device: {new_device}")
+                    self.view.add_device(new_device)
+                    rack.add_device(new_device.id, new_device.location)
+
+                else:
+                    self.__LOGGER.error(f'Unable to find tagged template for device type {details.type}')
+        else:
+            self.__LOGGER.debug(f'Skipping resource {resource.physical_resource_id} with unknown stack ID {cluster_cloud_id}')
+
+    def _find_rack_by_cloud_id(self, cluster_cloud_id):
+        for rack in self.view.racks.values():
+            if rack.id[1] == cluster_cloud_id:
+                return rack
+        return None
+
+    def _get_resource_information(self, resource):
+        if resource.resource_type == 'OS::Cinder::Volume':
+            os_data = self.clients['cloud'].get_volume_info(resource.physical_resource_id)
+            return {
+                'details': {
+                    'type': 'Device::VolumeDetails',
+                    'availability_zone': os_data.availability_zone,
+                    'bootable': json.loads(os_data.bootable.lower()),
+                    'encrypted': os_data.encrypted,
+                    'size': os_data.size,
+                    'volume_type': os_data.volume_type
+                },
+                'name': os_data.name
+            }
+
+    def _find_tagged_template(self, tag):
+        for template in self.view.templates.values():
+            if template.tag == tag:
+                return template
+        return None
 
     ##############################
     # HANDLER REQUIRED FUNCTIONS #
@@ -754,23 +889,32 @@ class SyncHandler(AbsViewHandler):
                 new_device.details = con_device['details']
             else:
                 # Legacy (pre-1.2) Concertim API doesn't have the `details`
-                # object, and instead has the attributes inlined; and only
-                # supports compute devices.
-                new_device.details = {
-                    'type': 'Device::ComputeDetails',
-                    'ssh_key': con_device.get('ssh_key', ''),
-                    'volume_details': con_device.get('volume_details', []),
-                    'public_ips': con_device.get('public_ips', ''),
-                    'private_ips': con_device.get('private_ips', ''),
-                    'login_user': con_device.get('login_user', '')
-                }
+                # object, and instead has the attributes inlined;
+                if con_device['type'] == 'Device::ComputeDetails':
+                    new_device.details = {
+                        'type': 'Device::ComputeDetails',
+                        'ssh_key': con_device.get('ssh_key', ''),
+                        'volume_details': con_device.get('volume_details', []),
+                        'public_ips': con_device.get('public_ips', ''),
+                        'private_ips': con_device.get('private_ips', ''),
+                        'login_user': con_device.get('login_user', '')
+                    }
+                elif con_device['type'] == 'Device::VolumeDetails':
+                    new_device.details = {
+                        'type': 'Device::VolumeDetails',
+                        "availability_zone": con_device.get('availability_zone', ''),
+                        "bootable": con_device.get('bootable', ''),
+                        "encrypted": con_device.get('encrypted', ''),
+                        "size":  con_device.get('size', ''),
+                        "volume_type": con_device.get('volume_type', '')
+                    }
             return new_device
 
     def _find_empty_slot(self, device_type, rack, device_size):
         occupied_spots = self.view.racks[rack.id]._occupied
         height = self.view.racks[rack.id].height
         self.__LOGGER.debug(f"Finding spot in Rack[ID:{rack.id}] - Occupied Slots: {occupied_spots}")
-        
+
         def from_bottom():
             spot_found = False
             start_location = -1
@@ -815,7 +959,7 @@ class SyncHandler(AbsViewHandler):
                 self.__LOGGER.error(f"No space found in Rack[ID:{rack.id}] for {device_type} of size '{device_size}'")
                 return None
 
-        if device_type in ['server']:
+        if device_type in ['server', 'Device::VolumeDetails']:
             return from_bottom()
         elif device_type in []:
             return from_top()

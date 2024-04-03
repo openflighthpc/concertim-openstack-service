@@ -5,9 +5,9 @@ class ConcertimTemplate(object):
         concertim_name=None, 
         cloud_name=None, 
         ram=None, 
-        disk=None, 
-        vcpus=None, 
-        size=None, 
+        disk=None,
+        vcpus=None,
+        height=None,
         description='',
         tag=None
     ):
@@ -17,7 +17,7 @@ class ConcertimTemplate(object):
         self.ram = ram
         self.disk = disk
         self.vcpus = vcpus
-        self.size = size
+        self.height = height
         self.tag = tag
         self._updated=False
 
@@ -27,7 +27,7 @@ class ConcertimTemplate(object):
                 f"id:{repr(self.id)}, "
                 f"name:{repr(self.name)}, "
                 f"description:{repr(self.description)}, "
-                f"size:{repr(self.size)}, "
+                f"height:{repr(self.height)}, "
                 f"vcpus:{repr(self.vcpus)}, "
                 f"disk:{repr(self.disk)}, "
                 f"ram:{repr(self.ram)}, "

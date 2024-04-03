@@ -878,12 +878,18 @@ class OpenstackClient(AbsCloudClient):
             elif res_type[1] == "Heat" and res_type[2] == "ResourceGroup":
                 group_entries = self.components['heat'].list_stack_resources(stack_id=resource.physical_resource_id)
                 for entry in group_entries:
-                    servers = self.components['heat'].list_stack_resources(stack_id=entry.physical_resource_id, type='OS::Nova::Server')
-                    for s in servers:
-                        resources['servers'][s.physical_resource_id] = {
-                            'id': s.physical_resource_id,
-                            'name': s.resource_name
-                        }
+                    devices = self.components['heat'].list_stack_resources(stack_id=entry.physical_resource_id)
+                    for d in devices:
+                        if d.resource_type == "OS::Nova::Server":
+                            resources['servers'][d.physical_resource_id] = {
+                                'id': d.physical_resource_id,
+                                'name': d.resource_name
+                            }
+                        elif d.resource_type == "OS::Cinder::Volume":
+                            resources['volumes'][d.physical_resource_id] = {
+                                'id': d.physical_resource_id,
+                                'name': d.resource_name
+                            }
             else:
                 resources['other'][resource.physical_resource_id] = {
                     'id': resource._info['physical_resource_id'],
@@ -919,6 +925,20 @@ class OpenstackClient(AbsCloudClient):
 
         # RETURN
         return return_dict
+
+    def get_all_stack_resources(self, stack_id):
+        if 'heat' not in self.components or not self.components['heat']:
+            raise EXCP.NoComponentFound('heat')
+        self.__LOGGER.debug(f"Fetching all resources for stack {stack_id}")
+        resources = self.components['heat'].list_stack_resources(stack_id=stack_id)
+        return resources
+
+    def get_volume_info(self, volume_id):
+        if 'cinder' not in self.components or not self.components['cinder']:
+            raise EXCP.NoComponentFound('cinder')
+        self.__LOGGER.debug(f"Fetching volume {volume_id}")
+        volume = self.components['cinder'].get_volume(volume_id)
+        return volume
 
     def get_all_servers(self, project_cloud_id=None):
         """

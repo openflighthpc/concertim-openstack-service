@@ -41,6 +41,35 @@ ENDPOINTS = {
                             }
                         }
                     },
+                    'CREATE_VOLUME_DEVICE':{
+                        'endpoint': '/api/v1/nodes',
+                        'required_vars': ['template_id', 'name', 'description', 'facing', 'rack_id', 'start_u', 'status'],
+                        'data': {
+                            "template_id": '{template_id}',
+                            "device": {
+                                "name": '{name}',
+                                "description": '{description}',
+                                "status" : "{status}",
+                                "location": {
+                                    "facing": '{facing}',
+                                    "rack_id": '{rack_id}',
+                                    "start_u": '{start_u}'
+                                },
+                                "metadata" : {
+                                    "openstack_instance_id" : "{openstack_instance_id}",
+                                    "openstack_stack_id": "{openstack_stack_id}"
+                                },
+                                "details": {
+                                    "type": "Device::VolumeDetails",
+                                    "availability_zone": "{availability_zone}",
+                                    "bootable": "{bootable}",
+                                    "encrypted": "{encrypted}",
+                                    "size": "{size}",
+                                    "volume_type": "{volume_type}"
+                                }
+                            }
+                        }
+                    },
                     'CREATE_RACK':{
                         'endpoint': '/api/v1/racks',
                         'required_vars': ['team_id','name','u_height', 'status'],
@@ -159,7 +188,7 @@ ENDPOINTS = {
                             }
                         }
                     },
-                    'UPDATE_DEVICE':{
+                    'UPDATE_COMPUTE_DEVICE':{
                         'endpoint': '/api/v1/devices/{}',
                         'required_vars': [],
                         'data': {
@@ -168,13 +197,39 @@ ENDPOINTS = {
                                 "description": '{description}',
                                 "cost": '{cost}',
                                 "status" : '{status}',
-                                "public_ips": '{public_ips}',
-                                "private_ips": '{private_ips}',
-                                "ssh_key": '{ssh_key}',
-                                "volume_details": '{volume_details}',
-                                "login_user": '{login_user}',
+                                "details": {
+                                    "public_ips": '{public_ips}',
+                                    "private_ips": '{private_ips}',
+                                    "ssh_key": '{ssh_key}',
+                                    "volume_details": '{volume_details}',
+                                    "login_user": '{login_user}',
+                                },
                                 "metadata" : {
                                     "net_interfaces": "{net_interfaces}",
+                                    'openstack_instance_id': '{openstack_instance_id}',
+                                    "openstack_stack_id": "{openstack_stack_id}"
+                                }
+                            }
+                        }
+                    },
+                    'UPDATE_VOLUME_DEVICE':{
+                        'endpoint': '/api/v1/devices/{}',
+                        'required_vars': [],
+                        'data': {
+                            "device": {
+                                "name": '{name}',
+                                "description": '{description}',
+                                "cost": '{cost}',
+                                "status" : '{status}',
+                                "details": {
+                                    "type": "Device::VolumeDetails",
+                                    "availability_zone": "{availability_zone}",
+                                    "bootable": "{bootable}",
+                                    "encrypted": "{encrypted}",
+                                    "size": "{size}",
+                                    "volume_type": "{volume_type}"
+                                },
+                                "metadata" : {
                                     'openstack_instance_id': '{openstack_instance_id}',
                                     "openstack_stack_id": "{openstack_stack_id}"
                                 }
