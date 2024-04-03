@@ -268,26 +268,14 @@ class ConcertimClient(Client):
                 else:
                     if key in casting:
                         data_dict[key] = casting[key](value.format(**variables_dict))
-<<<<<<< HEAD
-                    elif value.replace('{','').replace('}','') not in variables_dict and endpoint_name in [
-                        'UPDATE_COMPUTE_DEVICE',
-=======
-<<<<<<< HEAD
-                    elif value.replace('{','').replace('}','') not in variables_dict and endpoint_name in ['UPDATE_DEVICE','UPDATE_RACK','UPDATE_TEMPLATE', 'UPDATE_USER']:
-=======
                     elif value.replace('{','').replace('}','') not in variables_dict and endpoint_name in [
                         'UPDATE_COMPUTE_DEVICE',
                         'UPDATE_NETWORK_DEVICE',
->>>>>>> 403cbd4 (Update network devices.)
                         'UPDATE_VOLUME_DEVICE',
                         'UPDATE_RACK',
                         'UPDATE_TEMPLATE',
                         'UPDATE_USER'
                     ]:
-<<<<<<< HEAD
-=======
->>>>>>> a64736b (Update network devices.)
->>>>>>> 403cbd4 (Update network devices.)
                         continue
                     else:
                         data_dict[key] = value.format(**variables_dict)

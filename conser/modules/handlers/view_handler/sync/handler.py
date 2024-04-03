@@ -677,7 +677,7 @@ class SyncHandler(AbsViewHandler):
         self.view.devices[device_id_tup]._delete_marker=False
         self.__LOGGER.debug(f"Finished --- Updated existing ConcertimDevice from cloud data")
 
-def _update_device_from_cloud(self, existing_device, new_resource):
+    def _update_device_from_cloud(self, existing_device, new_resource):
         if existing_device.details['type'] == 'Device::ComputeDetails':
             # Device will have been updated in update_server_device_from_cloud -
             # nothing to do here
@@ -784,17 +784,17 @@ def _update_device_from_cloud(self, existing_device, new_resource):
             }
         elif resource.resource_type == 'OS::Neutron::Net':
             os_net_data = self.clients['cloud'].get_network_info(resource.physical_resource_id)
-                return {
-                    'details': {
-                        'type': 'Device::NetworkDetails',
-                        'admin_state_up': os_net_data.get('admin_state_up', False),
-                        'l2_adjacency': os_net_data.get('l2_adjacency', False),
-                        'mtu': os_net_data.get('mtu'),
-                        'shared': os_net_data.get('shared', False),
-                        'port_security_enabled': os_net_data.get('port_security_enabled', False)
-                    },
-                    'name': os_net_data.name
-                }
+            return {
+                'details': {
+                    'type': 'Device::NetworkDetails',
+                    'admin_state_up': os_net_data.get('admin_state_up', False),
+                    'l2_adjacency': os_net_data.get('l2_adjacency', False),
+                    'mtu': os_net_data.get('mtu'),
+                    'shared': os_net_data.get('shared', False),
+                    'port_security_enabled': os_net_data.get('port_security_enabled', False)
+                },
+                'name': os_net_data.name
+            }
 
     def _find_tagged_template(self, tag):
         for template in self.view.templates.values():
