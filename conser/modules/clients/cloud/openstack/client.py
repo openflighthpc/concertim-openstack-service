@@ -940,6 +940,13 @@ class OpenstackClient(AbsCloudClient):
         volume = self.components['cinder'].get_volume(volume_id)
         return volume
 
+    def get_network_info(self, network_id):
+        if 'neutron' not in self.components or not self.components['neutron']:
+            raise EXCP.NoComponentFound('neutron')
+        self.__LOGGER.debug(f"Fetching network {network_id}")
+        network = self.components['neutron'].get_network(network_id)
+        return network.get('network')
+
     def get_all_servers(self, project_cloud_id=None):
         """
         Get all servers - optionally for a given Project/Account.

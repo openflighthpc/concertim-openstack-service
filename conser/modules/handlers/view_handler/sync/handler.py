@@ -709,6 +709,7 @@ class SyncHandler(AbsViewHandler):
         existing_device._delete_marker=False
 
     TEMPLATE_TAGS_BY_RESOURCE_TYPE = {
+        'Device::NetworkDetails': 'network',
         'Device::VolumeDetails': 'volume'
     }
 
@@ -780,6 +781,19 @@ class SyncHandler(AbsViewHandler):
                     'volume_type': os_data.volume_type
                 },
                 'name': os_data.name
+            }
+        elif resource.resource_type == 'OS::Neutron::Net':
+            os_net_data = self.clients['cloud'].get_network_info(resource.physical_resource_id)
+            return {
+                'details': {
+                    'type': 'Device::NetworkDetails',
+                    'admin_state_up': os_net_data.get('admin_state_up', False),
+                    'l2_adjacency': os_net_data.get('l2_adjacency', False),
+                    'mtu': os_net_data.get('mtu'),
+                    'shared': os_net_data.get('shared', False),
+                    'port_security_enabled': os_net_data.get('port_security_enabled', False)
+                },
+                'name': os_net_data['name']
             }
 
     def _find_tagged_template(self, tag):
@@ -882,7 +896,8 @@ class SyncHandler(AbsViewHandler):
                 template=device_template, 
                 location=device_location, 
                 description=con_device['description'], 
-                status=con_device['status']
+                status=con_device['status'],
+                cost=float(con_device['cost'])
             )
 
             if 'details' in con_device:
@@ -907,6 +922,15 @@ class SyncHandler(AbsViewHandler):
                         "encrypted": con_device.get('encrypted', ''),
                         "size":  con_device.get('size', ''),
                         "volume_type": con_device.get('volume_type', '')
+                    }
+                elif con_device['type'] == 'Device::NetworkDetails':
+                    new_device.details = {
+                        'type': 'Device::NetworkDetails',
+                        'admin_state_up': con_device.get('admin_state_up', False),
+                        'l2_adjacency': con_device.get('l2_adjacency', False),
+                        'mtu': con_device.get('mtu'),
+                        'shared': con_device.get('shared', False),
+                        'port_security_enabled': con_device.get('port_security_enabled', False)
                     }
             return new_device
 
@@ -961,7 +985,7 @@ class SyncHandler(AbsViewHandler):
 
         if device_type in ['server', 'Device::VolumeDetails']:
             return from_bottom()
-        elif device_type in []:
+        elif device_type in ['Device::NetworkDetails']:
             return from_top()
         else:
             raise EXCP.InvalidArguments(f"device_type:{device_type}")

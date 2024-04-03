@@ -41,6 +41,35 @@ ENDPOINTS = {
                             }
                         }
                     },
+                    'CREATE_NETWORK_DEVICE':{
+                        'endpoint': '/api/v1/nodes',
+                        'required_vars': ['template_id', 'name', 'description', 'facing', 'rack_id', 'start_u', 'status'],
+                        'data': {
+                            "template_id": '{template_id}',
+                            "device": {
+                                "name": '{name}',
+                                "description": '{description}',
+                                "status" : "{status}",
+                                "location": {
+                                    "facing": '{facing}',
+                                    "rack_id": '{rack_id}',
+                                    "start_u": '{start_u}'
+                                },
+                                "metadata" : {
+                                    "openstack_instance_id" : "{openstack_instance_id}",
+                                    "openstack_stack_id": "{openstack_stack_id}"
+                                },
+                                "details": {
+                                    "type": "Device::NetworkDetails",
+                                    "admin_state_up": "{admin_state_up}",
+                                    "l2_adjacency": "{l2_adjacency}",
+                                    "mtu": "{mtu}",
+                                    "shared": "{shared}",
+                                    "port_security_enabled": "{port_security_enabled}"
+                                }
+                            }
+                        }
+                    },
                     'CREATE_VOLUME_DEVICE':{
                         'endpoint': '/api/v1/nodes',
                         'required_vars': ['template_id', 'name', 'description', 'facing', 'rack_id', 'start_u', 'status'],
@@ -206,6 +235,30 @@ ENDPOINTS = {
                                 },
                                 "metadata" : {
                                     "net_interfaces": "{net_interfaces}",
+                                    'openstack_instance_id': '{openstack_instance_id}',
+                                    "openstack_stack_id": "{openstack_stack_id}"
+                                }
+                            }
+                        }
+                    },
+                    'UPDATE_NETWORK_DEVICE':{
+                        'endpoint': '/api/v1/devices/{}',
+                        'required_vars': [],
+                        'data': {
+                            "device": {
+                                "name": '{name}',
+                                "description": '{description}',
+                                "cost": '{cost}',
+                                "status" : '{status}',
+                                "details": {
+                                    "type": "Device::NetworkDetails",
+                                    "admin_state_up": "{admin_state_up}",
+                                    "l2_adjacency": "{l2_adjacency}",
+                                    "mtu": "{mtu}",
+                                    "shared": "{shared}",
+                                    "port_security_enabled": "{port_security_enabled}"
+                                },
+                                "metadata" : {
                                     'openstack_instance_id': '{openstack_instance_id}',
                                     "openstack_stack_id": "{openstack_stack_id}"
                                 }

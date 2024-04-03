@@ -12,6 +12,7 @@ Werkzeug==2.2.2
 ### OPENSTACK
 keystoneauth1==4.5.0
 python-heatclient==2.5.1
+python-neutronclient==11.1.0
 python-novaclient==17.7.0
 python-keystoneclient==4.4.0
 python-cloudkittyclient==4.7.0

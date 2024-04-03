@@ -43,6 +43,10 @@ class ConcertimClient(Client):
         response = self._api_call('post', 'CREATE_COMPUTE_DEVICE', variables_dict=variables_dict)
         return response
 
+    def create_network_device(self, variables_dict):
+        response = self._api_call('post', 'CREATE_NETWORK_DEVICE', variables_dict=variables_dict)
+        return response
+
     def create_volume_device(self, variables_dict):
         response = self._api_call('post', 'CREATE_VOLUME_DEVICE', variables_dict=variables_dict)
         return response
@@ -115,6 +119,10 @@ class ConcertimClient(Client):
 
     def update_compute_device(self, ID, variables_dict):
         response = self._api_call('patch', 'UPDATE_COMPUTE_DEVICE', variables_dict=variables_dict, endpoint_var=str(ID))
+        return response
+
+    def update_network_device(self, ID, variables_dict):
+        response = self._api_call('patch', 'UPDATE_NETWORK_DEVICE', variables_dict=variables_dict, endpoint_var=str(ID))
         return response
 
     def update_volume_device(self, ID, variables_dict):
@@ -262,6 +270,7 @@ class ConcertimClient(Client):
                         data_dict[key] = casting[key](value.format(**variables_dict))
                     elif value.replace('{','').replace('}','') not in variables_dict and endpoint_name in [
                         'UPDATE_COMPUTE_DEVICE',
+                        'UPDATE_NETWORK_DEVICE',
                         'UPDATE_VOLUME_DEVICE',
                         'UPDATE_RACK',
                         'UPDATE_TEMPLATE',
