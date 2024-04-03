@@ -61,6 +61,7 @@ class BillingHandler(AbsBillingHandler):
                 start=start_date,
                 stop=end_date
             )
+            original_cost = self.view.devices[device_id_tup].cost
             self.view.devices[device_id_tup].cost = float(cost_dict['total_cost'])
             #-- Total device cost into containing rack cost
             self.view.racks[containing_rack.id].cost += float(cost_dict['total_cost'])
@@ -69,12 +70,19 @@ class BillingHandler(AbsBillingHandler):
                     self.view.racks[containing_rack.id]._detailed_cost[charge_type] += amt
                 else:
                     self.view.racks[containing_rack.id]._detailed_cost[charge_type] = amt
+
+            if original_cost == self.view.devices[device_id_tup].cost:
+                continue
+
+            self.__LOGGER.debug(f"Cost changed: from {original_cost} to {self.view.devices[device_id_tup].cost}")
             #-- Push cost to concertim
             device =  self.view.devices[device_id_tup]
             if device.details['type'] == "Device::ComputeDetails":
                 type = "compute_device"
             elif device.details['type'] == "Device::VolumeDetails":
                 type = "volume_device"
+            elif device.details['type'] == "Device::NetworkDetails":
+                type = "network_device"
             self.concertim_cost_update(type, self.view.devices[device_id_tup])
         self.__LOGGER.debug(f"Finished --- Updating cost data from Cloud for all devices")
 
@@ -150,6 +158,9 @@ class BillingHandler(AbsBillingHandler):
                 'cost'
             ],
             'volume_device': [
+                'cost'
+            ],
+            'network_device': [
                 'cost'
             ],
             'rack': [

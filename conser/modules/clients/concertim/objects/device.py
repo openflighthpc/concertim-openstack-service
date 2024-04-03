@@ -8,7 +8,8 @@ class ConcertimDevice(object):
         template=None,
         location=None,
         description='',
-        status=None
+        status=None,
+        cost=0.0
     ):
         self.id = tuple((concertim_id, cloud_id))
         self.name = tuple((concertim_name, cloud_name))
@@ -18,7 +19,7 @@ class ConcertimDevice(object):
         self.location = location
         self.status = status
         self.network_interfaces = []
-        self.cost = 0.0
+        self.cost = cost
 
         self.details = {}
 
