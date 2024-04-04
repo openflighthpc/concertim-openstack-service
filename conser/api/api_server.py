@@ -828,7 +828,46 @@ def create_order():
         app.logger.info(f"Finished - Creating Order")
         disconnect_handler(handler)
 
-# We are missing order deletion
+def delete_order():
+    app.logger.info("Starting - Deleting Order")
+    try:
+        # Authenticate with JWT
+        authenticate(request.headers)
+
+        # Validate Required Data
+        request_data = request.get_json()
+        app.logger.debug(request_data)
+        verify_required_data(request_data, 
+            'order')
+        
+        # Create API Handler
+        handler = Factory.get_handler(
+            "api", 
+            conf_dict,
+            log_file,
+            enable_concertim_client=False,
+            enable_cloud_client=False,
+            enable_billing_client=True
+        )
+
+        # Call Function in API Handler
+        handler_return = handler.delete_order(
+            project_billing_id=request_data['order']['order_id']
+        )
+        app.logger.debug(f"Handler Return Data - {handler_return}")
+
+        # Return to Concertim
+        resp = {
+            'success': True,
+            'order': handler_return['order_id']
+        }
+        return make_response(resp, 201)
+    except Exception as e:
+        raise e
+        # return handle_exception(e)
+    finally:
+        app.logger.info(f"Finished - Creating Order")
+        disconnect_handler(handler)
 
 def add_order_tag():
     app.logger.info("Starting - Adding tag to Order")
@@ -1012,6 +1051,10 @@ app.add_url_rule('/get_credits', endpoint='get_credits',
 #### BILLING ORDERS
 app.add_url_rule('/create_order', endpoint='create_order',
                                 view_func=create_order,
+                                methods=['POST'])
+
+app.add_url_rule('/delete_order', endpoint='delete_order',
+                                view_func=delete_order,
                                 methods=['POST'])
 
 app.add_url_rule('/add_order_tag', endpoint='add_order_tag',

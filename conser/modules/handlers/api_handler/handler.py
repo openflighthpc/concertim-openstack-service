@@ -448,6 +448,25 @@ class APIHandler(Handler):
         # RETURN
         return return_dict
 
+    def delete_order(self, cluster_billing_id):
+        self.__LOGGER.debug(f"Deleting order {cluster_billing_id}")
+        # EXIT CASES
+        if 'billing' not in self.clients or not self.clients['billing']:
+            raise EXCP.MissingRequiredClient('billing')
+
+        # OBJECT LOGIC
+        attempt = self.clients['billing'].delete_cluster_order(
+            cluster_billing_id=cluster_billing_id
+        )
+
+        # BUILD RETURN DICT
+        self.__LOGGER.debug(f"Building Return dictionary")
+        return_dict = {
+            'attempt': attempt,
+        }
+        # RETURN
+        return return_dict
+
     def add_order_tag(self, cluster_billing_id, tag_name, tag_value):
         self.__LOGGER.debug(f"Tagging order with {tag_name}:{tag_value}")
         # EXIT CASES
