@@ -14,7 +14,6 @@ import sys
 import json
 import traceback
 
-
 # Flask app
 app = Flask('Concertim Service API')
 conf_dict = None
@@ -895,7 +894,7 @@ def handle_exception(e):
 
 def authenticate(headers):
     if not authenticate_headers(headers, app.logger):
-        raise APIAuthenticationError(headers)
+        raise EXCP.APIAuthenticationError(headers)
     else:
         app.logger.debug("Request Authenticated")
         return True

@@ -88,7 +88,12 @@ class KillbillClient(AbsBillingClient):
         )
         #-- Get response as dict and check for failures
         resp_dict = self._get_dict_from_resp(resp)
-        resp_dict['data'] = resp_dict['data'].to_dict()
+        if resp_dict['data'] is not None:
+            resp_dict['data'] = resp_dict['data'].to_dict()
+        else:
+            resp_dict['data'] = {
+                'name': None
+            }
         #-- Get account ID located at end of header
         acct_id = resp_dict['headers']['Location'].split('/')[-1]
         #-- Add cloud ID to account as custom field
@@ -138,7 +143,15 @@ class KillbillClient(AbsBillingClient):
             created_by="KillbillClient"
         )
         resp_dict = self._get_dict_from_resp(resp)
-        resp_dict['data'] = resp_dict['data'].to_dict()
+        if resp_dict['data'] is not None:
+            resp_dict['data'] = resp_dict['data'].to_dict()
+        else:
+            resp_dict['data'] = {
+                'start_date': None,
+                'product_name': None,
+                'billing_period': None,
+                'account_id': None
+            }
         #-- Get subscription ID
         sub_id = resp_dict['headers']['Location'].split('/')[-1]
 
@@ -349,7 +362,14 @@ class KillbillClient(AbsBillingClient):
             if cf['name'] == KillbillClient.PROJECT_BILLING_ID_FIELD:
                 pcb_id = cf['value']
         resp_dict = self._get_dict_from_resp(resp)
-        resp_dict['data'] = resp_dict['data'].to_dict()
+        if resp_dict['data'] is not None:
+            resp_dict['data'] = resp_dict['data'].to_dict()
+        else:
+            resp_dict['data'] = {
+                'name': None,
+                'account_cba': 0.0,
+                'state': None
+            }
 
         # BUILD RETURN DICT
         self.__LOGGER.debug(f"Building Return dictionary")
@@ -379,7 +399,8 @@ class KillbillClient(AbsBillingClient):
             subscription_id=cluster_billing_id
         )
         resp_dict = self._get_dict_from_resp(resp)
-        resp_dict['data'] = resp_dict['data'].to_dict()
+        if resp_dict['data'] is not None:
+            resp_dict['data'] = resp_dict['data'].to_dict()
 
         # BUILD RETURN DICT
         self.__LOGGER.debug(f"Building Return dictionary")
@@ -551,7 +572,7 @@ class KillbillClient(AbsBillingClient):
         # RETURN
         return return_dict
 
-    def get_invoice_preview(self, project_billing_id):
+    def get_invoice_preview(self, project_billing_id, transform_invoice=True):
         """
         Get the json data of a preview of the current invoice amounts for an Account.
         """
@@ -573,13 +594,18 @@ class KillbillClient(AbsBillingClient):
         )
         resp_dict = self._get_dict_from_resp(resp)
         #-- Convert everything to dict
-        if resp_dict['data'].items is not None:
-            for item in resp_dict['data'].items:
-                if item.item_details is not None:
-                    item.item_details = json.loads(item.item_details)
-        resp_dict['data'] = resp_dict['data'].to_dict()
+        if resp_dict['data'] is not None:
+            if resp_dict['data'].items is not None:
+                for item in resp_dict['data'].items:
+                    if item.item_details is not None:
+                        item.item_details = json.loads(item.item_details)
+            resp_dict['data'] = resp_dict['data'].to_dict()
         self.__LOGGER.debug(resp_dict['data'])
-        invoice_dict = self._build_invoice_dict(resp_dict['data'])
+
+        if transform_invoice and resp_dict['data'] is not None:
+            invoice_dict = self._build_invoice_dict(resp_dict['data'])
+        else:
+            invoice_dict = resp_dict['data']
 
         # BUILD RETURN DICT
         self.__LOGGER.debug(f"Building Return dictionary")
@@ -635,7 +661,10 @@ class KillbillClient(AbsBillingClient):
             invoice_id
         )
         resp_dict = self._get_dict_from_resp(resp)
-        invoice = self._build_invoice_dict(resp_dict['data'].to_dict())
+        if resp_dict['data'] is not None:
+            invoice = self._build_invoice_dict(resp_dict['data'].to_dict())
+        else:
+            invoice = resp_dict['data']
 
         # BUILD RETURN DICT
         self.__LOGGER.debug(f"Building Return dictionary")
@@ -724,10 +753,12 @@ class KillbillClient(AbsBillingClient):
 
     def _get_dict_from_resp(self, response_obj):
         self.__LOGGER.debug(f"Creating dict from response")
-        if response_obj is None or response_obj[0] is None or response_obj[1] is None or response_obj[2] is None:
+        if response_obj is None or response_obj[1] is None or response_obj[2] is None:
             raise EXCP.BillingAPIError(f"API returned an unexpected object: {response_obj}")
         if response_obj[1] not in [200, 201, 204]:
             raise EXCP.BillingAPIFailure(f"Call was not successful -> {response_obj[2]}", response_obj[1])
+        if response_obj[0] is None:
+            self.__LOGGER.warning("Billing API Call returned an empty data field")
         resp_dict = {
             'headers': response_obj[2],
             'status': response_obj[1],
@@ -776,7 +807,7 @@ class KillbillClient(AbsBillingClient):
         attempt = getattr(self.apis[obj_type], KillbillClient.CUSTOM_FIELD_FUNCTIONS['get'][obj_type])(
             obj_id,
         )
-        if not attempt[0] or not attempt[1] or not attempt[2]:
+        if not attempt[1] or not attempt[2]:
             raise EXCP.BillingAPIError(f"API returned an unexpected object: {attempt}")
         if attempt[1] not in [200, 201, 204]:
             raise EXCP.BillingAPIFailure(f"Call was not successful -> {response_obj[2]}", response_obj[1])
@@ -831,7 +862,7 @@ class KillbillClient(AbsBillingClient):
         account_credits = acct_info['credit_balance']
 
         draft_invoice_amount = 0
-        draft_invoice = self.get_invoice_preview(project_billing_id)
+        draft_invoice = self.get_invoice_preview(project_billing_id, transform_invoice=False)
         if 'amount' in draft_invoice['invoice'] and draft_invoice['invoice']['amount'] and draft_invoice['invoice']['amount'] >= 0:
             draft_invoice_amount = draft_invoice['invoice']['amount']
 
