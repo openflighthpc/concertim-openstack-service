@@ -47,7 +47,7 @@ class MetricsHandler(Handler):
                 self.__LOGGER.debug(f"Skipping metrics for device {device_id_tup}")
                 continue
             self.__LOGGER.debug(f"Starting -- Updating metrics for device {device_id_tup}")
-            if device['details']['type'] != 'Device::ComputeDetails':
+            if device.details['type'] != 'Device::ComputeDetails':
                 self.__LOGGER.debug(f"Device is not a server and is unsupported - skipping {device_id_tup}")
                 continue
             metrics = self.clients['cloud'].get_metrics(
