@@ -132,7 +132,7 @@ class UpdatesHandler(Handler):
                 variables_dict={
                     "name": template_obj.name[1],
                     "description": template_obj.description,
-                    "height": template_obj.size,
+                    "height": template_obj.height,
                     "ram" : template_obj.ram,
                     "disk" :template_obj.disk ,
                     "vcpus" : template_obj.vcpus,
