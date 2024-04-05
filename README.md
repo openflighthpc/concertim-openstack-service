@@ -2,11 +2,11 @@
 
 The Concertim-Openstack Service is a package of python modules intended to facilitate the communication between an Openstack cloud, a generic billing application, and an Alces Flight Ltd. Concertim application. The Concertim-Openstack package handles multiple aspects of the data communication pipeline between Openstack, Billing, and Concertim - including data retrieval, data transfomation, and manipulation of Billing, Concertim, and Openstack objects.
 
-There are 3 main components within the Concertim-Openstack Service package: User Handler, Mertics Handler, and Update Handler.
+There are 6 main components within the Concertim-Openstack Service package: 
 - [API Server/Handler](/docs/api_handler.md) - Resposible for receiving REST requests from other services and performing back end actions in Openstack and Concertim
-- [Metrics Handler](/docs/metrics.md) - Manages polling, calculating, and sending of Openstack resource metrics to the Concertim app
-- [Update Handler](/docs/update_handler.md) - Manages collecting, transforming, and sending Openstack updates to the Concertim front-end UI - a two part service that contains both the `bulk_update_handler` and the `mq_update_handler`
-- [Billing Handler](/docs/billing.md) - A collection of functions that manages interations between the chosen billing application and other services.
+- [View Handlers](/docs/view.md) - Manages the view of Concertim and the Cloud as well as mapping the two views together in a shared object - consists of the `view_sync` and `view_queue` processes.
+- [Frontend Handlers](/docs/frontend.md) - Manages transforming and sending updates and metrics to the Concertim front-end UI based on the data in the view - contains both the `fe_updates` and the `fe_metrics`
+- [Billing Handler](/docs/billing.md) - A collection of functions that manages interaction between the chosen billing application and other services.
 
 Each individual component is **highly recommended** to run in seperate Docker containers on the Openstack host, however admins that are familiar with these types of environments may wish to alter the setup. This README assumes the recommended setup method. 
 
@@ -35,7 +35,7 @@ If **Killbill** is being used as the Billing App (default):
 
 5. Clone the [Alces fork of the Killbill API Client](https://github.com/alces-flight/killbill_fork) into the Conceritm-Openstack billing directory
     ```
-    cd concertim-openstack-service/con_opstk/billing/killbill/
+    cd concertim-openstack-service/conser/modules/clients/billing/killbill/
     git clone https://<user>@github.com/alces-flight/killbill_fork.git
     ```
 
@@ -80,12 +80,14 @@ Values with no header:
 
 - `log_level` : Desired logging level (debug, info, error... etc.)
 - `billing_platform` : The configure billing app to use
+- `message_queue` : The message queue that the Openstack deployment is using (supported queues are RabbitMQ:"rmq")
+- `cloud_type` : The configured cloud for the service to interact with (supported clouds are Openstack:"openstack") 
 
 ##### **Openstack Values**
 
 ###### AUTH
 
-In order for the service to connect to the openstack deployment, authentication data is required. A `keystoneauth1.identity.[v3,v2].password.Password` object is used to authenticate against the keystone service and can accept any variation of password-based authentication ([accepted value sets source](/openstack/opstk_auth.py))
+In order for the service to connect to the openstack host, authentication data is required. A `keystoneauth1.identity.[v3,v2].password.Password` object is used to authenticate against the keystone service and can accept any variation of password-based authentication ([accepted value sets source](/conser/modules/clients/cloud/openstack/auth.py))
 
 Values under the `openstack` header:
 
@@ -106,7 +108,7 @@ Values under the `openstack` header:
 
 ###### RABBIT MQ
 
-The [Update Handler](/docs/updater.md) listens to the Openstack Rabbit MQ messaging queue to catch updates that happen in the openstack backend. RabbitMQ requires its own auth details.
+The [view_queue](/docs/view.md) listens to the Openstack RabbitMQ messaging queue to catch updates that happen in the openstack backend. RabbitMQ requires its own auth details.
 
 - `rmq_username` : The username for the Openstack notification queue inside RabbitMQ (default is `openstack`)
 - `rmq_password` : The password for the RabbitMQ user
@@ -143,119 +145,12 @@ Note that any changes made to the configuration file will only take effect when 
 
 ### Docker
 
-The recommended method for using the Concertim-Openstack service is by deploying each individual component in a seperate docker container. All service related Dockerfiles are stored in `../Dockerfiles/Dockerfile.<service_type>`. Users will need to build and run the containers on their Openstack host server.
+The recommended method for using the Concertim-Openstack service is by deploying each individual component in a seperate docker container. All service related Dockerfiles are stored in `../Dockerfiles/Dockerfile.<service_type>`. Users will need to build and run the containers on their Openstack host server. Example `build` and `run` commands can be found in the [example docker commands](/Dockerfiles/docker_commands_ex.txt).
 
-
-##### API Handler/Server setup
-
-- BUILD - from concertim-openstack-service root directory
-	```
-	docker build --network=host --tag concertim_api_server:<version> -f Dockerfiles/Dockerfile.api_server .
-	```
-
-- RUN - mounts the config file, data dir, and log dir as a vol, publish port 42356 on host net
-	```
-	docker run -d --name concertim_api_server \
-		--network=host \
-		-v /etc/concertim-openstack-service/config.yaml:/etc/concertim-openstack-service/config.yaml \
-		-v /var/log/concertim-openstack-service/:/app/var/log/ \
-		-v /var/lib/concertim-openstack-service/data/:/app/var/data/ \
-		--publish <Host>:42356:42356 \
-		concertim_api_server
-	```
-
-- LOGS - tail 50 with follow (also in log dir on localhost, or by `docker logs`)
-	```
-	docker exec concertim_api_server tail -50f /app/var/log/api_server.log
-     ```
-
-##### Update Handler(s) setup
-
-Bulk Updates Handler
-
-- BUILD - from concertim-openstack-service root directory
-    ```
-     docker build --network=host --tag concertim_bulk_updates:<version> -f Dockerfiles/Dockerfile.updates_bulk .
-    ```
-- RUN - mounts the config file, data dir, and log dir as a vol
-    ```
-    docker run -d --name concertim_bulk_updates \
-		--network=host \
-		-v /etc/concertim-openstack-service/config.yaml:/etc/concertim-openstack-service/config.yaml \
-		-v /var/log/concertim-openstack-service/:/app/var/log/ \
-		-v /var/lib/concertim-openstack-service/data/:/app/var/data/ \
-		concertim_bulk_updates
-    ```
-- LOGS - tail 50 with follow (also in log dir on localhost, or by `docker logs`)
-    ```
-    docker exec concertim_bulk_updates tail -50f /app/var/log/updates_bulk.log
-    ```
-	
-Messaging Queue Updates Handler
-
-- BUILD - from concertim-openstack-service root directory
-    ```
-     docker build --network=host --tag concertim_mq_listener:<version> -f Dockerfiles/Dockerfile.updates_mq .
-    ```
-- RUN - mounts the config file, data dir, and log dir as a vol
-    ```
-    docker run -d --name concertim_mq_listener \
-		--network=host \
-		-v /etc/concertim-openstack-service/config.yaml:/etc/concertim-openstack-service/config.yaml \
-		-v /var/log/concertim-openstack-service/:/app/var/log/ \
-		-v /var/lib/concertim-openstack-service/data/:/app/var/data/ \
-		concertim_mq_listener
-    ```
-- LOGS - tail 50 with follow (also in log dir on localhost, or by `docker logs`)
-    ```
-    docker exec concertim_mq_listener tail -50f /app/var/log/updates_mq.log
-    ```
-
-##### Metric Handler setup
-
-- BUILD - from concertim-openstack-service root directory
-    ```
-    docker build --network=host --tag concertim_metrics:<version> -f Dockerfiles/Dockerfile.metrics .
-    ```
-- RUN - mounts the config file, data dir, and log dir as a vol
-    ```
-    docker run -d --name concertim_metrics \
-		--network=host \
-		-v /etc/concertim-openstack-service/config.yaml:/etc/concertim-openstack-service/config.yaml \
-		-v /var/log/concertim-openstack-service/:/app/var/log/ \
-		-v /var/lib/concertim-openstack-service/data/:/app/var/data/ \
-		concertim_metrics
-    ```
-- LOGS - tail 50 with follow (also in log dir on localhost, or by `docker logs`)
-    ```
-    docker exec concertim_metrics tail -50f /app/var/log/metrics.log
-    ```
-
-##### Billing Handler setup
-
-- BUILD - from concertim-openstack-service root directory
-    ```
-    docker build --network=host --tag concertim_billing:latest -f Dockerfiles/Dockerfile.billing .
-    ```
-
-- RUN - mounts the config file, data dir, and log dir as a vol
-    ```
-    docker run -d --name concertim_billing \
-		--network=host \
-		-v /etc/concertim-openstack-service/config.yaml:/etc/concertim-openstack-service/config.yaml \
-		-v /var/log/concertim-openstack-service/:/app/var/log/ \
-		-v /var/lib/concertim-openstack-service/data/:/app/var/data/ \
-		concertim_billing
-    ```
-
-- LOGS - tail 50 with follow (also in log dir on localhost, or by `docker logs`)
-    ```
-    docker exec concertim_billing tail -50f /var/log/concertim-openstack-service/billing.log
-    ```
 
 ## Importing Package For Use in Other Modules
 
-The Concertim-Openstack-Service contains many components and modules that can be used in developent of other packages. To import, follow the installation instruction to build and install the package so that is availbale in your python environment. Then in the code import the module that is needed - like `from con_opstk.concertim.components.rack import ConcertimRack`
+The Concertim-Openstack-Service contains many components and modules that can be used in developent of other packages. To import, follow the installation instruction to build and install the package so that is availbale in your python environment. Then in the code import the module that is needed - like `from conser.modules.clients.concertim.objects import ConcertimRack`
 
 ## Development
 
@@ -263,4 +158,4 @@ TBD
 
 ## Releases
 
-Release and product change notes can be found [here](/release.md).
+Release and product change notes can be found [here](/release/release.md).

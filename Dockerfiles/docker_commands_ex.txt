@@ -14,10 +14,6 @@ sudo docker run -d --name concertim_api_server \
     --publish hostIP:42356:42356 \
     concertim_api_server
 
-# LOGS - tail 50 with follow (also in log dir on localhost)
-sudo docker exec concertim_api_server tail -50f /var/log/concertim-openstack-service/api_server.log
-
-
 
 #########################
 # METRICS HANDLER SETUP #
@@ -33,10 +29,6 @@ sudo docker run -d --name concertim_metrics \
     -v /var/log/concertim-openstack-service/:/app/var/log/ \
     -v /var/lib/concertim-openstack-service/data/:/app/var/data/ \
     concertim_metrics
-
-# LOGS - tail 50 with follow (also in log dir on localhost)
-sudo docker exec concertim_metrics tail -50f /var/log/concertim-openstack-service/metrics.log
-
 
 
 ##############################
@@ -54,10 +46,6 @@ sudo docker run -d --name concertim_bulk_updates \
     -v /var/lib/concertim-openstack-service/data/:/app/var/data/ \
     concertim_bulk_updates
 
-# LOGS - tail 50 with follow (also in log dir on localhost)
-sudo docker exec concertim_bulk_updates tail -50f /var/log/concertim-openstack-service/update_sync.log
-
-
 
 ###############################
 # QUEUE UPDATES HANDLER SETUP #
@@ -74,9 +62,6 @@ sudo docker run -d --name concertim_mq_listener \
     -v /var/lib/concertim-openstack-service/data/:/app/var/data/ \
     concertim_mq_listener
 
-# LOGS - tail 50 with follow (also in log dir on localhost)
-sudo docker exec concertim_mq_listener tail -50f /var/log/concertim-openstack-service/update_queue.log
-
 
 ############################
 # BILLING HANDLER SETUP #
@@ -92,6 +77,3 @@ sudo docker run -d --name concertim_billing \
     -v /var/log/concertim-openstack-service/:/app/var/log/ \
     -v /var/lib/concertim-openstack-service/data/:/app/var/data/ \
     concertim_billing
-
-# LOGS - tail 50 with follow (also in log dir on localhost)
-sudo docker exec concertim_billing tail -50f /var/log/concertim-openstack-service/billing.log

@@ -1,3 +1,8 @@
+# DEPRICATED
+
+
+
+
 # Update Handler Components
 
 The main functionality of the Concertim-Openstack-Service Update Handler components are to register new updates that occur in the Openstack backend and send the corresponding update to the Concertim Application. The Update Handler is comprised of 2 parts: first, there is a 'bulk' update process that does a full comparison of Concertim and Openstack and updates any delta found (this run periodically); second, there is a Rabbit MQ listener that is enabled that runs continuously to update Concertim with Openstack updates as they occur. Updates are sent to the Concertim Application via REST requests.
