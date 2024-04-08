@@ -436,7 +436,7 @@ class OpenstackClient(AbsCloudClient):
             result = False
             try:
                 value, result = locals()[OpenstackClient.SUPPORTED_METRIC_GROUPS['metric_functions'][metric_type]]()
-            except UTILS.MissingResourceMetric as e:
+            except EXCP.MissingResourceMetric as e:
                 self.__LOGGER.exception(e)
             metric_vals[metric_type] = {
                 'value': value, 
