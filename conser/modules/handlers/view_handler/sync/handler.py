@@ -395,12 +395,25 @@ class SyncHandler(AbsViewHandler):
 
             cloud_clusters_dict = self.clients['cloud'].get_all_clusters(project_cloud_id=project_cloud_id)
             for cluster_cloud_id in cloud_clusters_dict['clusters'].keys():
-                resources = self.clients['cloud'].get_all_stack_resources(stack_id=cluster_cloud_id)
+                try:
+                    resources = self.clients['cloud'].get_all_stack_resources(stack_id=cluster_cloud_id)
+                except EXCP.MissingCloudObject as e:
+                    # stack and/or resource groups can be missing if creation fails
+                    self.__LOGGER.debug(f"Unable to find stack {cluster_cloud_id} - skipping")
+                    continue
                 for resource in resources:
                     if resource.resource_type == "OS::Heat::ResourceGroup":
-                        group_resources = self.clients['cloud'].get_all_stack_resources(resource.physical_resource_id)
+                        try:
+                            group_resources = self.clients['cloud'].get_all_stack_resources(resource.physical_resource_id)
+                        except EXCP.MissingCloudObject as e:
+                            self.__LOGGER.debug(f"Unable to find resources for {resource.physical_resource_id} - skipping")
+                            continue
                         for nested_resource in group_resources:
-                            devices = self.clients['cloud'].get_all_stack_resources(nested_resource.physical_resource_id)
+                            try:
+                                devices = self.clients['cloud'].get_all_stack_resources(nested_resource.physical_resource_id)
+                            except EXCP.MissingCloudObject as e:
+                                self.__LOGGER.debug(f"Unable to find resources for {nested_resource.physical_resource_id} - skipping")
+                                continue
                             for d in devices:
                                 action_device(d, create_all)
                     else:

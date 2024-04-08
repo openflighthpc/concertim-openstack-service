@@ -6,7 +6,8 @@ import sys
 import time
 # Openstack Packages
 from heatclient import client as h_client
-#import heatclient.exceptions
+from heatclient.exc import HTTPNotFound as HTTPNotFound
+import conser.exceptions as EXCP
 
 class HeatComponent(OpstkBaseComponent):
     def __init__(self, sess, log_file, log_level):
@@ -53,6 +54,8 @@ class HeatComponent(OpstkBaseComponent):
             self.__LOGGER.debug(f"Getting resource(s) for stack : {stack_id} - Extra Args: {kwargs.items()}")
             stack_resource = self.client.resources.list(stack_id=stack_id, **kwargs)
             return stack_resource
+        except HTTPNotFound:
+            raise EXCP.MissingCloudObject(f"{stack_id}")
         except Exception as e:
             self.__LOGGER.error(f"An unexpected error : {type(e).__name__} - {e}")
             raise e
