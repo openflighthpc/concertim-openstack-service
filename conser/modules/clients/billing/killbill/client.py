@@ -833,9 +833,9 @@ class KillbillClient(AbsBillingClient):
                     if subscription_id not in new_items:
                         custom_fields = self._get_custom_fields('subscription', subscription_id)['data']
                         found = False
-                        project_cloud_id = None
+                        openstack_stack_id = None
                         for field in custom_fields:
-                            if field['name'] == "project_cloud_id" and len(field['value']) > 0:
+                            if field['name'] == "openstack_stack_id" and len(field['value']) > 0:
                                 found = True
                                 project_cloud_id = field['value']
                                 break
@@ -843,8 +843,8 @@ class KillbillClient(AbsBillingClient):
                             if subscription_id not in new_items:
                                 new_items[subscription_id] = {
                                     'amount': item['amount'],
-                                    'project_cloud_id': project_cloud_id,
-                                    'cluster_cloud_name': "Dummy Cluster Name",
+                                    'openstack_stack_id': openstack_stack_id,
+                                    'openstack_stack_name': item['product_name'],
                                     'start_date': item['start_date'],
                                     'end_date': item['end_date'],
                                     'currency': item['currency']
