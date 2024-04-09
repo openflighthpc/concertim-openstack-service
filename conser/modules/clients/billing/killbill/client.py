@@ -207,7 +207,7 @@ class KillbillClient(AbsBillingClient):
                     "unitType": METRIC_PREFIX + usage_metric_type,
                     "usageRecords": [
                         {
-                            "recordDate": datetime.today().strftime("%Y-%m-%d") + "T12:00:00Z",
+                            "recordDate": datetime.today().strftime("%Y-%m-%d") + "T23:59:59Z",
                             "amount": amount_to_post,
                         }
                     ],
@@ -832,19 +832,22 @@ class KillbillClient(AbsBillingClient):
                 if subscription_id is not None and item["item_type"] in ["USAGE", "RECURRING"]:
                     if subscription_id not in new_items:
                         custom_fields = self._get_custom_fields('subscription', subscription_id)['data']
-                        found = False
                         openstack_stack_id = None
+                        openstack_stack_name = None
                         for field in custom_fields:
                             if field['name'] == "openstack_stack_id" and len(field['value']) > 0:
-                                found = True
-                                project_cloud_id = field['value']
+                                openstack_stack_id = field['value']
+                            elif field['name'] == "openstack_stack_name" and len(field['value']) > 0:
+                                openstack_stack_name = field['value']
+
+                            if openstack_stack_id and openstack_stack_name:
                                 break
-                        if found is True:
+                        if openstack_stack_id and openstack_stack_name:
                             if subscription_id not in new_items:
                                 new_items[subscription_id] = {
                                     'amount': item['amount'],
                                     'openstack_stack_id': openstack_stack_id,
-                                    'openstack_stack_name': item['product_name'],
+                                    'openstack_stack_name': openstack_stack_name,
                                     'start_date': item['start_date'],
                                     'end_date': item['end_date'],
                                     'currency': item['currency']

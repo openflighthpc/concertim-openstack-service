@@ -330,7 +330,7 @@ class APIHandler(Handler):
         return return_dict
 
     def get_draft_invoice(self, project_billing_id):
-        self.__LOGGER.debug(f"Retieving preview of upcoming invoice for {project_billing_id}")
+        self.__LOGGER.debug(f"Retrieving preview of upcoming invoice for {project_billing_id}")
         # EXIT CASES
         if 'billing' not in self.clients or not self.clients['billing']:
             raise EXCP.MissingRequiredClient('billing')
