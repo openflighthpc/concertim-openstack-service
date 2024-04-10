@@ -42,3 +42,4 @@ def authenticate_headers(headers, logger):
 
     logger.debug("Authentication Successful")
     return True
+
