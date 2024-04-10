@@ -656,7 +656,8 @@ class KillbillClient(AbsBillingClient):
         self.__LOGGER.debug(f"Building Return dictionary")
         return_dict = {
             'id': project_billing_id,
-            'invoices': inv_list
+            'invoices': inv_list,
+            'total_invoices': resp_dict['headers']['X-Killbill-Pagination-TotalNbRecords']
         }
         # RETURN
         return return_dict
