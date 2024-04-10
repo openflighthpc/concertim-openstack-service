@@ -5,6 +5,7 @@ import conser.exceptions as EXCP
 import conser.utils.common as UTILS
 
 # Py Packages
+import math
 import time
 from datetime import datetime, timedelta
 
@@ -125,7 +126,8 @@ class BillingHandler(AbsBillingHandler):
                 project_billing_id=team_id_tup[2]
             )['amount']
 
-            self.view.teams[team_id_tup].cost = float(team_cost_dict['total_cost'])
+            # Some queries return rounded costs, some not - rounding cost here makes slightly more consistent
+            self.view.teams[team_id_tup].cost = math.ceil(float(team_cost_dict['total_cost']))
             self.view.teams[team_id_tup].credits = float(team_remaining_credits)
             #-- Update team in Concertim
             self.concertim_cost_update(
