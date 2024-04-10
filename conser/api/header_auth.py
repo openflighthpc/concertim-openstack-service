@@ -5,7 +5,6 @@ import time
 
 
 def authenticate_headers(headers, logger):
-
     headers = dict(headers)
     logger.debug(f"Headers : {headers}")
 

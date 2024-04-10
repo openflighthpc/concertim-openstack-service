@@ -637,6 +637,20 @@ class KillbillClient(AbsBillingClient):
         for inv in resp_dict['data']:
             inv_list.append(inv.to_dict())
 
+        # Populating 'amount', 'balance' and 'credit_adj' to invoice_list output 
+        for inv in inv_list:
+
+            resp = self.apis['invoice'].get_invoice_with_http_info(
+                inv['invoice_id']
+            )
+
+            resp_dict = self._get_dict_from_resp(resp)
+
+            inv['amount'] = resp_dict['data'].to_dict()['amount']
+            inv['credit_adj'] = resp_dict['data'].to_dict()['credit_adj']
+            inv['balance'] = resp_dict['data'].to_dict()['balance']
+
+
         # BUILD RETURN DICT
         self.__LOGGER.debug(f"Building Return dictionary")
         return_dict = {
