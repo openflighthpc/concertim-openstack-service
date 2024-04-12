@@ -364,7 +364,7 @@ class APIHandler(Handler):
         # BUILD RETURN DICT
         self.__LOGGER.debug(f"Building Return dictionary")
         return_dict = {
-            'total_invoices': len(invoices['invoices']),
+            'total_invoices': invoices['total_invoices'],
             'invoices': invoices['invoices']
         }
         # RETURN

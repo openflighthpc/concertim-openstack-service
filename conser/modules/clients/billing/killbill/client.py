@@ -633,31 +633,46 @@ class KillbillClient(AbsBillingClient):
             limit=limit
         )
         resp_dict = self._get_dict_from_resp(resp)
-        
+        total_invoices = resp_dict['headers']['X-Killbill-Pagination-TotalNbRecords']
+
         inv_list = []
+        inv_ids = []
         for inv in resp_dict['data']:
+            invoice_dict = inv.to_dict()
+            inv_list.append(invoice_dict)
+            inv_ids.append(invoice_dict["invoice_id"])
 
-            invoice = inv.to_dict()
-                        
-            # Populating 'amount', 'balance' and 'credit_adj' to invoice_list output 
-            resp = self.apis['invoice'].get_invoice_with_http_info(
-                invoice['invoice_id']
-            )
-            details = self._get_dict_from_resp(resp)['data'].to_dict()
+        # The above doesn't include any cost information, so we need to retrieve it from the full invoices
+        invoices_resp = self.apis['account'].get_invoices_for_account(
+                    account_id=project_billing_id,
+                    invoices_filter=",".join(inv_ids),
+                    include_invoice_components=True
+                )
 
-            invoice['amount'] = details['amount']
-            invoice['credit_adj'] = details['credit_adj']
-            invoice['balance'] = details['balance']
+        invoices_dict = self._get_dict_from_resp(invoices_resp)
 
-            inv_list.append(invoice)
+        # This is a roundabout way of combining the data, but quicker than converting
+        # each full invoice into a visualiser friendly format
+        costs_data = {}
+        for inv in invoices_dict["data"]:
+            inv_dict = inv.to_dict()
+            costs_data[inv_dict["invoice_id"]] = {
+                "amount": inv_dict["amount"],
+                "balance": inv_dict["balance"],
+                "credit_adj": inv_dict["credit_adj"]
+            }
 
+        for inv in inv_list:
+            inv.update(costs_data[inv["invoice_id"]])
 
         # BUILD RETURN DICT
         self.__LOGGER.debug(f"Building Return dictionary")
         return_dict = {
             'id': project_billing_id,
-            'invoices': inv_list
+            'invoices': inv_list,
+            'total_invoices': total_invoices
         }
+
         # RETURN
         return return_dict
 
