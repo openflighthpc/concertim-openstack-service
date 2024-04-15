@@ -880,10 +880,20 @@ class KillbillClient(AbsBillingClient):
                                     'openstack_stack_name': openstack_stack_name,
                                     'start_date': item['start_date'],
                                     'end_date': item['end_date'],
-                                    'currency': item['currency']
+                                    'currency': item['currency'],
+                                    'type': "cost"
                                 }
                     else:
                         new_items[subscription_id]['amount'] += item['amount']
+                elif item["item_type"] == "CBA_ADJ":
+                    new_items[item["invoice_item_id"]] = {
+                        'amount': item['amount'],
+                        'start_date': item['start_date'],
+                        'end_date': item['end_date'],
+                        'currency': item['currency'],
+                        'type': "credits"
+                    }
+
         new_invoice = invoice_data
         new_invoice['items'] = new_items
         return new_invoice
