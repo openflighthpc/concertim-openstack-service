@@ -1338,6 +1338,18 @@ class OpenstackClient(AbsCloudClient):
         # RETURN
         return attempt
 
+    def get_cloud_stats(self):
+        # EXIT CASES
+        if 'nova' not in self.components or not self.components['nova']:
+            raise EXCP.NoComponentFound('nova')
+
+        # CLOUD OBJECT LOGIC
+        stats = self.components['nova'].get_cloud_stats()
+
+        # BUILD RETURN DICT
+        # RETURN
+        return stats
+
     def start_message_queue(self):
         """
         Start listening to the message queue and intercepting messages

@@ -914,7 +914,41 @@ def add_order_tag():
     finally:
         app.logger.info(f"Finished - Adding tag to Order")
         disconnect_handler(handler)
-    
+
+def get_cloud_stats():
+    app.logger.info("Starting - Getting cloud statistics")
+    try:
+        # Authenticate with JWT
+        #authenticate(request.headers)
+
+        # Create API Handler
+        handler = Factory.get_handler(
+            "api",
+            conf_dict,
+            log_file,
+            cloud_components_list=["keystone", "nova"],
+            enable_concertim_client=False,
+            enable_cloud_client=True,
+            enable_billing_client=False
+        )
+
+        # Call Function in API Handler
+        handler_return = handler.get_cloud_stats()
+        app.logger.debug(f"Handler Return Data - {handler_return}")
+
+        # Return to Concertim
+        resp = {
+            'success': True,
+            'stats': handler_return['stats']
+        }
+        app.logger.debug(f"{resp}")
+        return make_response(resp, 201)
+    except Exception as e:
+        #return handle_exception(e)
+        raise e
+    finally:
+        app.logger.info(f"Finished - Getting cloud statistics")
+        disconnect_handler(handler)
 
 ### HELPERS
 def handle_exception(e):
@@ -1060,7 +1094,12 @@ app.add_url_rule('/delete_order', endpoint='delete_order',
 app.add_url_rule('/add_order_tag', endpoint='add_order_tag',
                                 view_func=add_order_tag,
                                 methods=['POST'])
-                
+
+#### STATISTICS
+app.add_url_rule('/statistics', endpoint='get_cloud_stats',
+                                view_func=get_cloud_stats,
+                                methods=['GET'])
+
 ### RUNNER
 def run_api(config_obj, log_f):
     global conf_dict
