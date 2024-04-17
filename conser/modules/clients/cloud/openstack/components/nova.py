@@ -163,7 +163,7 @@ class NovaComponent(OpstkBaseComponent):
 
     def get_cloud_stats(self):
         try:
-            return self.client.hypervisors.list()
+            return self.client.hypervisor_stats.statistics()
         except Exception as e:
             self.__LOGGER.error(f"An unexpected error : {type(e).__name__} - {e}")
             raise e

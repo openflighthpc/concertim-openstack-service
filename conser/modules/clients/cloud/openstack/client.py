@@ -1344,11 +1344,21 @@ class OpenstackClient(AbsCloudClient):
             raise EXCP.NoComponentFound('nova')
 
         # CLOUD OBJECT LOGIC
-        stats = self.components['nova'].get_cloud_stats()
+        cloud_stats = self.components['nova'].get_cloud_stats()
 
         # BUILD RETURN DICT
+        results = {
+            "total_vcpus": cloud_stats.vcpus,
+            "used_vcpus": cloud_stats.vcpus_used,
+            "total_disk_space": cloud_stats.local_gb,
+            "used_disk_space": cloud_stats.local_gb_used,
+            "total_ram": cloud_stats.memory_mb / 1024,
+            "used_ram": cloud_stats.memory_mb_used / 1024,
+            "running_vms": cloud_stats.running_vms
+        }
+
         # RETURN
-        return stats
+        return results
 
     def start_message_queue(self):
         """
