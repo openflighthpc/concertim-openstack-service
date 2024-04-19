@@ -31,3 +31,10 @@ class NeutronComponent(OpstkBaseComponent):
 
     def get_network(self, network_id):
         return self.client.show_network(network_id)
+
+    def get_project_quotas(self, project_id):
+        try:
+            return self.client.show_quota(project_id)
+        except Exception as e:
+            self.__LOGGER.error(f"An unexpected error : {type(e).__name__} - {e}")
+            raise e

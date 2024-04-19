@@ -261,6 +261,39 @@ def delete_team():
         app.logger.info(f"Finished - Deleting team in Cloud and closing billing account")
         disconnect_handler(handler)
 
+def get_team_quotas(team_project_id):
+    app.logger.info("Starting - Getting team quotas")
+    try:
+        # Authenticate with JW
+        authenticate(request.headers)
+
+        # Create API Handler
+        handler = Factory.get_handler(
+            "api",
+            conf_dict,
+            log_file,
+            cloud_components_list=['nova', 'cinder', 'neutron'],
+            enable_concertim_client=False,
+            enable_cloud_client=True,
+            enable_billing_client=False
+        )
+
+        # Call Function in API Handler
+        handler_return = handler.get_account_quotas(project_id=team_project_id)
+        app.logger.debug(f"Handler Return Data - {handler_return}")
+
+        # Return to Concertim
+        resp = {
+            'success': True,
+            'quotas': handler_return['quotas']
+        }
+        return make_response(resp, 201)
+    except Exception as e:
+        return handle_exception(e)
+    finally:
+        app.logger.info(f"Finished - Getting quotas")
+        disconnect_handler(handler)
+
 def create_team_role():
     app.logger.info("Starting - Creating new team role")
     try:
@@ -919,7 +952,7 @@ def get_cloud_stats():
     app.logger.info("Starting - Getting cloud statistics")
     try:
         # Authenticate with JWT
-        #authenticate(request.headers)
+        authenticate(request.headers)
 
         # Create API Handler
         handler = Factory.get_handler(
@@ -944,8 +977,7 @@ def get_cloud_stats():
         app.logger.debug(f"{resp}")
         return make_response(resp, 201)
     except Exception as e:
-        #return handle_exception(e)
-        raise e
+        return handle_exception(e)
     finally:
         app.logger.info(f"Finished - Getting cloud statistics")
         disconnect_handler(handler)
@@ -1027,6 +1059,10 @@ app.add_url_rule('/team', endpoint='create_team',
 app.add_url_rule('/team', endpoint='delete_team',
                                 view_func=delete_team,
                                 methods=['DELETE'])
+
+app.add_url_rule('/team/<team_project_id>/quotas', endpoint='get_team_quotas',
+                                view_func=get_team_quotas,
+                                methods=['GET'])
 
 #### TEAM ROLES
 app.add_url_rule('/team_role', endpoint='create_team_role',
