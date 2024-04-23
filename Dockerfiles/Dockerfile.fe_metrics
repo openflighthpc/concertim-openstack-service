@@ -8,17 +8,17 @@ ARG BUILD_REVISION
 LABEL org.opencontainers.image.created=$BUILD_DATE
 LABEL org.opencontainers.image.version=$BUILD_VERSION
 LABEL org.opencontainers.image.revision=$BUILD_REVISION
-LABEL org.opencontainers.image.title="Concertim Service Billing"
+LABEL org.opencontainers.image.title="Concertim Service Front-End Metrics Updates"
 
 # Set the working directory in the container to /app
 WORKDIR /app
 # Copy the directory contents into the container at /app
 COPY . /app
 
-RUN apt-get update -y && apt-get install gcc -y
 # REQUIREMENTS
 # Install any needed packages specified in requirements.txt
+RUN apt-get update -y && apt-get install gcc -y
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Run user_handler when the container launches
-CMD ["python", "driver.py", "--process=billing"]
+# Run driver for metrics process when the container launches
+CMD ["python", "driver.py", "--process=fe_metrics"]

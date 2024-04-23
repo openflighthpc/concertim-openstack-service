@@ -15,7 +15,7 @@ lib/
 lib64/
 parts/
 sdist/
-var/data/*.pickle
+var/data/*
 var/log/*.log
 *.egg-info/
 .installed.cfg

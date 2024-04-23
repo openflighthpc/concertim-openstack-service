@@ -1,0 +1,79 @@
+####################
+# API SERVER SETUP #
+####################
+
+# BUILD - from concertim-openstack-service root directory
+sudo docker build --network=host --tag concertim_api_server:latest -f Dockerfiles/Dockerfile.api_server .
+
+# RUN - mounts the config file, data dir, and log dir as a vol, publish port 42356 on host net
+sudo docker run -d --name concertim_api_server \
+    --network=host \
+    -v /etc/concertim-openstack-service/config.yaml:/etc/concertim-openstack-service/config.yaml \
+    -v /var/log/concertim-openstack-service/:/app/var/log/ \
+    -v /var/lib/concertim-openstack-service/data/:/app/var/data/ \
+    --publish hostIP:42356:42356 \
+    concertim_api_server
+
+
+#########################
+# METRICS HANDLER SETUP #
+#########################
+
+# BUILD - from concertim-openstack-service root directory
+sudo docker build --network=host --tag concertim_metrics:latest -f Dockerfiles/Dockerfile.metrics .
+
+# RUN - mounts the config file, data dir, and log dir as a vol
+sudo docker run -d --name concertim_metrics \
+    --network=host \
+    -v /etc/concertim-openstack-service/config.yaml:/etc/concertim-openstack-service/config.yaml \
+    -v /var/log/concertim-openstack-service/:/app/var/log/ \
+    -v /var/lib/concertim-openstack-service/data/:/app/var/data/ \
+    concertim_metrics
+
+
+##############################
+# SYNC UPDATES HANDLER SETUP #
+##############################
+
+# BUILD - from concertim-openstack-service root directory
+sudo docker build --network=host --tag concertim_bulk_updates:latest -f Dockerfiles/Dockerfile.update_sync .
+
+# RUN - mounts the config file, data dir, and log dir as a vol
+sudo docker run -d --name concertim_bulk_updates \
+    --network=host \
+    -v /etc/concertim-openstack-service/config.yaml:/etc/concertim-openstack-service/config.yaml \
+    -v /var/log/concertim-openstack-service/:/app/var/log/ \
+    -v /var/lib/concertim-openstack-service/data/:/app/var/data/ \
+    concertim_bulk_updates
+
+
+###############################
+# QUEUE UPDATES HANDLER SETUP #
+###############################
+
+# BUILD - from concertim-openstack-service root directory
+sudo docker build --network=host --tag concertim_mq_listener:latest -f Dockerfiles/Dockerfile.update_queue .
+
+# RUN - mounts the config file, data dir, and log dir as a vol
+sudo docker run -d --name concertim_mq_listener \
+    --network=host \
+    -v /etc/concertim-openstack-service/config.yaml:/etc/concertim-openstack-service/config.yaml \
+    -v /var/log/concertim-openstack-service/:/app/var/log/ \
+    -v /var/lib/concertim-openstack-service/data/:/app/var/data/ \
+    concertim_mq_listener
+
+
+############################
+# BILLING HANDLER SETUP #
+############################
+
+# BUILD - from concertim-openstack-service root directory
+sudo docker build --network=host --tag concertim_billing:latest -f Dockerfiles/Dockerfile.billing .
+
+# RUN - mounts the config file, data dir, and log dir as a vol
+sudo docker run -d --name concertim_billing \
+    --network=host \
+    -v /etc/concertim-openstack-service/config.yaml:/etc/concertim-openstack-service/config.yaml \
+    -v /var/log/concertim-openstack-service/:/app/var/log/ \
+    -v /var/lib/concertim-openstack-service/data/:/app/var/data/ \
+    concertim_billing

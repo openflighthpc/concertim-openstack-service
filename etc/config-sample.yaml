@@ -1,23 +1,35 @@
-log_level: "DEBUG"
+# MAIN CONFIG
 billing_platform: "killbill"
+cloud_type: "openstack"
+message_queue: "rmq"
+log_level: "DEBUG"
+
+# CONCERTIM
+concertim:
+    concertim_url: "https://host.concertim"
+    concertim_username: "admin"
+    concertim_password: "password"
+    default_rack_height: 42
+
+# CLOUD
 openstack:
     auth_url: "http://host:35357/v3"
     username: "admin"
     password: "password"
     project_id: "id"
-    project_domain_name: "default"
-    user_domain_name: "default"
+    project_domain_name: "Default"
+    user_domain_name: "Default"
+    project_name: "admin"
+
+# MESSAGE QUEUE
 rmq:
     rmq_username: "openstack"
     rmq_password: "password"
     rmq_address : "host"
     rmq_port : "5672"
     rmq_path : "/"
-concertim:
-    concertim_url: "https://host.concertim"
-    concertim_username: "admin"
-    concertim_password: "password"
-    default_rack_height: 20
+
+# BILLING PLATFORM
 killbill:
     api_host: "http://host.killbill:8080"
     username: "admin"

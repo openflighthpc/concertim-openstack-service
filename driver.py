@@ -1,12 +1,16 @@
 # Local Imports
-from con_opstk.utils.service_logger import create_logger
-import con_opstk.app_definitions as app_paths
+from conser.utils.service_logger import create_logger
+import conser.utils.common as UTILS
+import conser.app_definitions as app_paths
+from conser.factory.factory import Factory
+import conser.exceptions as EXCP
 # Py Packages
-import signal
-import sys
-import yaml
 import time
+import sys
 import importlib
+import argparse
+import sys
+from datetime import datetime
 
 # GLOBAL VARS
 CONFIG_FILE = app_paths.CONFIG_FILE
@@ -18,293 +22,225 @@ print(f"Root DIR: {ROOT_DIR}")
 print(f"Log DIR: {LOG_DIR}")
 print(f"Data DIR: {DATA_DIR}")
 
-def run_metrics(test=False):
-    # Common
-    from con_opstk.data_handler.metric_handler.metric_handler import MetricHandler
-    log_file = LOG_DIR + 'metrics.log'
-    config = load_config(CONFIG_FILE)
-    logger = create_logger(__name__, log_file, config['log_level'])
-    logger.info(f"Log File: {log_file}")
-    
-    # Handler specific
-    # granularity=60 to match IRV refresh rate
-    # interval=15 to match concertim MRD polling interval
-    metric_handler = None
-    interval = 15
-    granularity = 60
-
-    # Add signals
-    # Setup a signal handler to stop the service gracefully
-    def signal_handler(sig, frame):
-        stop(logger,metric_handler)
-    signal.signal(signal.SIGINT, signal_handler)
-    signal.signal(signal.SIGTERM, signal_handler)
-
-    '''
-    METRICS MAIN CODE BEGIN
-    '''
-    logger.info("------- START -------")
-    logger.info("CONNECTING SERVICES")
-    try:
-        metric_handler = MetricHandler(config, log_file, granularity=granularity, interval=interval)
-        logger.info("BEGINNING COMMUNICATION")
-    except Exception as e:
-        msg = f"Could not run Metrics process - {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}"
-        logger.error(msg)
-        stop(logger,metric_handler)
-    if not test:
-        while True:
-            try:
-                metric_handler.run()
-            except Exception as e:
-                logger.error(f"Unexpected exception has caused the metric loop to terminate : {type(e).__name__} - {e}")
-                logger.warning(f"Continuing loop at next interval.")
-                continue
-            finally:
-                time.sleep(interval)
-    else:
-        try:
-            metric_handler.run()
-        except Exception as e:
-            logger.error(f"Unexpected exception has caused the metric process to terminate : {type(e).__name__} - {e}")
-            raise e
-        stop(logger,metric_handler)
-
-def run_bulk_updates(test=False):
-    # Common
-    from con_opstk.data_handler.update_handler.state_compare import BulkUpdateHandler
-    log_file = LOG_DIR + 'updates_bulk.log'
-    config = load_config(CONFIG_FILE)
-    logger = create_logger(__name__, log_file, config['log_level'])
-    logger.info(f"Log File: {log_file}")
-    
-    # Handler specific
-    bulk_update_handler = None
-
-    # Add signals
-    # Setup a signal handler to stop the service gracefully
-    def signal_handler(sig, frame):
-        stop(logger,bulk_update_handler)
-    signal.signal(signal.SIGINT, signal_handler)
-    signal.signal(signal.SIGTERM, signal_handler)
-
-    '''
-    FULL UPDATES MAIN CODE BEGIN
-    '''
-    logger.info("------- START -------")
-    logger.info("CONNECTING SERVICES")
-    try:
-        bulk_update_handler = BulkUpdateHandler(config, log_file, billing_enabled=True)
-        logger.info("BEGINNING COMMUNICATION")
-    except Exception as e:
-        msg = f"Could not run Bulk Updates process - {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}"
-        logger.error(msg)
-        stop(logger,bulk_update_handler)
-        ## MAIN LOOP
-    while True:
-        try:
-            bulk_update_handler.full_update_sync()
-            if test:
-                break
-        except Exception as e:
-            logger.error(f"Unexpected exception has caused the bulk update loop to terminate : {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
-            logger.warning(f"Continuing loop at next interval.")
-            continue
-        finally:
-            # Run full sync every 2.5 min / check for resync every 15 seconds
-            if not test:
-                for _ in range(1,11):
-                    time.sleep(15)
-                    bulk_update_handler._check_resync()
-            else:
-                bulk_update_handler._check_resync()
-    stop(logger,bulk_update_handler)
-    
-
-def run_mq_updates(test=False):
-    # Common
-    from con_opstk.data_handler.update_handler.mq_listener import MqUpdateHandler
-    log_file = LOG_DIR + 'updates_mq.log'
-    config = load_config(CONFIG_FILE)
-    logger = create_logger(__name__, log_file, config['log_level'])
-    logger.info(f"Log File: {log_file}")
-    
-    # Handler specific
-    mq_update_handler = None
-
-    # Add signals
-    # Setup a signal handler to stop the service gracefully
-    def signal_handler(sig, frame):
-        stop(logger,mq_update_handler)
-    signal.signal(signal.SIGINT, signal_handler)
-    signal.signal(signal.SIGTERM, signal_handler)
-
-    '''
-    MQ UPDATES MAIN CODE BEGIN
-    '''
-    logger.info("------- START -------")
-    logger.info("CONNECTING SERVICES")
-    try:
-        mq_update_handler = MqUpdateHandler(config, log_file)
-        logger.info("BEGINNING COMMUNICATION")
-        mq_update_handler.start_listener()
-    except Exception as e:
-        msg = f"Could not run MQ Listener Updates process - {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}"
-        logger.error(msg)
-        stop(logger,mq_update_handler)
-
-'''
-def run_updates_aio(test=False):
-    # Common
-    from con_opstk.data_handler.update_handler.mq_listener import MqUpdateHandler
-    from con_opstk.data_handler.update_handler.state_compare import BulkUpdateHandler
-    log_file = LOG_DIR + 'updates_aio.log'
-    config = load_config(CONFIG_FILE)
-    logger = create_logger(__name__, log_file, config['log_level'])
-    logger.info(f"Log File: {log_file}")
-    
-    # Handler specific
-    bulk_update_handler = None
-    mq_update_handler = None
-
-    # Add signals
-    # Setup a signal handler to stop the service gracefully
-    def signal_handler(sig, frame):
-        stop(logger,bulk_update_handler,mq_update_handler)
-    signal.signal(signal.SIGINT, signal_handler)
-    signal.signal(signal.SIGTERM, signal_handler)
-
-
-    #FULL UPDATES MAIN CODE BEGIN
-
-    logger.info("------- START -------")
-    logger.info("CONNECTING SERVICES")
-    try:
-        bulk_update_handler = BulkUpdateHandler(config, log_file)
-        mq_update_handler = MqUpdateHandler(config, log_file)
-        logger.info("BEGINNING COMMUNICATION")
-        ## FIRST RUN SETUP
-        bulk_update_handler.full_update_sync()
-        mq_update_handler.load_view()
-        mq_update_handler.start_listener()
-        if not test:
-            time.sleep(150)
-            ## MAIN LOOP
-            while True:
-                try:
-                    bulk_update_handler.full_update_sync()
-                except Exception as e:
-                    logger.error(f"Unexpected exception has caused the full sync loop to terminate : {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
-                    logger.warning(f"Continuing loop at next interval.")
-                    continue
-                finally:
-                    time.sleep(150) # Run full sync every 2.5 min
-        else:
-            stop(logger,bulk_update_handler, mq_update_handler)
-    except Exception as e:
-        msg = f"Could not run All-In-One Updates process - {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}"
-        logger.error(msg)
-        stop(logger,bulk_update_handler,mq_update_handler)
-'''
-
-def run_api_server():
-    # Common
-    from con_opstk.data_handler.api_server import run_app
-    log_file = LOG_DIR + 'api_server.log'
-    config = load_config(CONFIG_FILE)
-    logger = create_logger(__name__, log_file, config['log_level'])
-    logger.info(f"Log File: {log_file}")
-    logger.info("------- START -------")
-    logger.info("STARTING API SERVER")
-    run_app(config)
-
-def run_billing_handler(test=False):
-
-    BILLING_HANDLERS = {'killbill': 'KillbillHandler', 
-                        'hostbill': 'HostbillHandler'}
-    BILLING_IMPORT_PATH = {'killbill': 'con_opstk.data_handler.billing_handler.killbill.killbill_handler', 
-                           'hostbill': 'con_opstk.data_handler.billing_handler.hostbill.hostbill_handler'}
-    
-
-    log_file = LOG_DIR + 'billing.log'
-    config = load_config(CONFIG_FILE)
-    logger = create_logger(__name__, log_file, config['log_level'])
-    logger.info(f"Log File: {log_file}")
-
-    config = load_config(CONFIG_FILE)
-    billing_backend = config["billing_platform"].lower()
-    try:
-        ImportedService = getattr(importlib.import_module(BILLING_IMPORT_PATH[billing_backend]), BILLING_HANDLERS[billing_backend])
-        billing_handler = ImportedService(config, log_file)
-    except Exception as e:
-        msg = f"Could not run Billing process - {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}"
-        logger.error(msg)
-        stop(logger,billing_handler)
-
-    def signal_handler(sig, frame):
-        stop(logger,billing_handler)
-    signal.signal(signal.SIGINT, signal_handler)
-    signal.signal(signal.SIGTERM, signal_handler)
-    while True:
-        try:
-            billing_handler.update_cost()
-        except Exception as e:
-            logger.error(f"Unexpected exception has caused the billing loop to terminate : {type(e).__name__} - {e} - {sys.exc_info()[2].tb_frame.f_code.co_filename} - {sys.exc_info()[2].tb_lineno}")
-            logger.warning(f"Continuing loop at next interval.")
-            continue
-        finally:
-            if test:
-                break
-            elif 'sleep_timer' in config and int(config["sleep_timer"]) > 0:
-                time.sleep(int(self.config["sleep_timer"]))
-            else:
-                time.sleep(10)
-    stop(logger,billing_handler)
-
-
-### COMMON METHODS ###
-
-def load_config(config_file):
-    with open(config_file, 'r') as f:
-        config = yaml.safe_load(f)
-    return config
-
-# Setup a stop process for when the service is over
-def stop(logger, *handlers):
-    logger.info("STOPPING PROCESS")
-    for handler in handlers:
-        if handler:
-            handler.disconnect()
-    logger.info("EXITING PROCESS")
-    logger.info("------- END -------\n")
-    raise SystemExit
+# Create Args Parsing branches
+parser = argparse.ArgumentParser(prog="Concertim Cloud Service", 
+                                description="This package is made for the purpose of facilitating communication between Alces Flight Ltd. Concertim"
+                                            " and the backend applications configured.",)
+parser.add_argument("--process", type=str, required=True, help="The type of handler process to be run - possible values are "
+                                                             "fe_updates, fe_metrics, view_sync, view_queue, billing, api")
+parser.add_argument("--run_once", "-t", action="store_true", required=False, help="Specify whether to run the process only once (for testing purpose)")
 
 # Main method to call runners and pars args
 def main(args):
-    args_dict = {}
-    valid = {
-        'metrics': run_metrics,
-        'updates_bulk': run_bulk_updates,
-        'updates_mq': run_mq_updates,
-        #'updates_aio': run_updates_aio,
-        'api': run_api_server,
-        'billing': run_billing_handler
-    }
-    for arg in args:
-        comm, value = arg.split('=')
-        args_dict[comm] = value
-    if not 'run' in args_dict or not args_dict['run']:
-        raise SystemExit("No 'run' command found")
-    if 'test' in args_dict and eval(args_dict['test']) == True and args_dict['run'] != 'api':
-        if args_dict['run'] in valid:
-            valid[args_dict['run']](test=True)
-        else:
-            raise SystemExit(f"'run' command set to invalid arg - valid run commands: {valid.keys()}")
+    # PARSE ARGS
+    arguments = parser.parse_args()
+    valid_process = [
+        'fe_updates',
+        'fe_metrics',
+        'view_sync',
+        'view_queue',
+        'api',
+        'billing'
+    ]
+    if arguments.process not in valid_process:
+        raise argparse.ArgumentTypeError(f"Invalid process type -> {arguments.process}")
 
-    if args_dict['run'] in valid:
-        valid[args_dict['run']]()
+    # CREATE CONFIG DICT
+    conf_dict = UTILS.load_config()
+    # CREATE LOG FILE STRING
+    log_file = LOG_DIR + arguments.process + '~' + datetime.now().strftime("%d-%m-%Y") + ".log"
+    # MAIN PROCESS TREE
+    if arguments.process == 'fe_metrics':
+        start_metrics_process(conf_dict, log_file, run_once=arguments.run_once)
+    elif arguments.process == 'fe_updates':
+        start_updates_process(conf_dict, log_file, run_once=arguments.run_once)
+    elif arguments.process == 'view_sync':
+        start_sync_process(conf_dict, log_file, run_once=arguments.run_once)
+    elif arguments.process == 'view_queue':
+        start_queue_process(conf_dict, log_file, run_once=arguments.run_once)
+    elif arguments.process == 'api':
+        start_api_server(conf_dict, log_file)
+    elif arguments.process == 'billing':
+        start_billing_process(conf_dict, log_file, run_once=arguments.run_once)
     else:
-        raise SystemExit(f"'run' command set to invalid arg - valid run commands: {valid.keys()}")
+        raise argparse.ArgumentTypeError(f"Invalid process type -> {arguments.process}")
+
+
+def start_metrics_process(config, log_file, run_once=False):
+    log_level = config["log_level"]
+    logger = create_logger(__name__, log_file, log_level)
+    logger.info("========== STARTING METRICS PROCESS ==========")
+    logger.info(f"Log File: {log_file}")
+
+    # METRICS SETUP
+    # CREATE HANDLER
+    handler = Factory.get_handler(
+        "fe_metrics", 
+        config,
+        log_file, 
+        enable_concertim_client=True,
+        enable_cloud_client=True, 
+        enable_billing_client=False
+    )
+
+    # MAIN METRICS LOOP
+    retries = 0
+    while True:
+        try:
+            handler.run_process()
+            retries = 0
+        except Exception as e:
+            logger.error(f"Unexpected exception has caused the Metrics loop to terminate : {type(e).__name__} - {e}")
+            logger.exception(e)
+            logger.warning(f"Trying loop again in 5 seconds\n")
+            retries += 1
+        finally:
+            if run_once:
+                break
+            if retries >= 5:
+                raise Exception(f"Metrics Loop continually failing - please check logs - {log_file}")
+
+
+def start_updates_process(config, log_file, run_once=False):
+    log_level = config["log_level"]
+    logger = create_logger(__name__, log_file, log_level)
+    logger.info("========== STARTING UPDATES PROCESS ==========")
+    logger.info(f"Log File: {log_file}")
+
+    # UPDATES SETUP
+    # CREATE HANDLER
+    handler = Factory.get_handler(
+        "fe_updates", 
+        config,
+        log_file, 
+        enable_concertim_client=True,
+        enable_cloud_client=False, 
+        enable_billing_client=False
+    )
+
+    # MAIN UPDATES LOOP
+    retries = 0
+    while True:
+        try:
+            retries = 0
+            handler.run_process()
+        except Exception as e:
+            logger.error(f"Unexpected exception has caused the Updates loop to terminate : {type(e).__name__} - {e}")
+            logger.exception(e)
+            logger.warning(f"Trying loop again in 5 seconds\n")
+            retries += 1
+        finally:
+            if run_once:
+                break
+            if retries >= 5:
+                raise Exception(f"Updates Loop continually failing - please check logs - {log_file}")
+
+
+def start_billing_process(config, log_file, run_once=False):
+    log_level = config["log_level"]
+    logger = create_logger(__name__, log_file, log_level)
+    logger.info("========== STARTING BILLING PROCESS ==========")
+    logger.info(f"Log File: {log_file}")
+
+    # BILLING SETUP
+    # CREATE HANDLER
+    handler = Factory.get_handler(
+        "billing", 
+        config,
+        log_file, 
+        enable_concertim_client=True,
+        enable_cloud_client=True, 
+        enable_billing_client=True
+    )
+
+    # MAIN BILLING LOOP
+    retries = 0
+    while True:
+        try:
+            retries = 0
+            handler.run_process()
+        except Exception as e:
+            logger.error(f"Unexpected exception has caused the Billing loop to terminate : {type(e).__name__} - {e}")
+            logger.exception(e)
+            logger.warning(f"Trying loop again in 5 seconds\n")
+            retries += 1
+            time.sleep(5)
+        finally:
+            if run_once:
+                break
+            if retries >= 5:
+                raise Exception(f"Billing Loop continually failing - please check logs - {log_file}")
+
+
+def start_sync_process(config, log_file, run_once=False):
+    log_level = config["log_level"]
+    logger = create_logger(__name__, log_file, log_level)
+    logger.info("========== STARTING SYNC PROCESS ==========")
+    logger.info(f"Log File: {log_file}")
+
+    # SYNC SETUP
+    retries = 0
+
+    # CREATE HANDLER
+    handler = Factory.get_handler(
+        "view_sync", 
+        config,
+        log_file, 
+        enable_concertim_client=True,
+        enable_cloud_client=True, 
+        enable_billing_client=True
+    )
+
+    # MAIN SYNC LOOP
+    retries = 0
+    while True:
+        try:
+            handler.run_process()
+            retries = 0
+        except Exception as e:
+            logger.error(f"Unexpected exception has caused the Update Sync loop to terminate : {type(e).__name__} - {e}")
+            logger.exception(e)
+            logger.warning(f"Trying loop again in 5 seconds\n")
+            retries += 1
+            time.sleep(5)
+        finally:
+            if run_once:
+                break
+            if retries >= 5:
+                raise Exception(f"View Sync Loop continually failing - please check logs - {log_file}")
+
+
+def start_queue_process(config, log_file, run_once=False):
+    log_level = config["log_level"]
+    logger = create_logger(__name__, log_file, log_level)
+    logger.info("========== STARTING QUEUE PROCESS ==========")
+    logger.info(f"Log File: {log_file}")
+
+    # QUEUE SETUP
+
+    # CREATE HANDLER
+    handler = Factory.get_handler(
+        "view_queue", 
+        config,
+        log_file, 
+        enable_concertim_client=True,
+        enable_cloud_client=True, 
+        enable_billing_client=False
+    )
+
+    # MAIN QUEUE LOOP
+    try:
+        handler.run_process()
+    except Exception as e:
+        logger.error(f"Unexpected exception has caused the View Queue process to terminate : {type(e).__name__} - {e}")
+        logger.exception(e)
+        raise e
+
+
+def start_api_server(config, log_file):
+    from conser.api.api_server import run_api
+    run_api(config, log_file)
+
 
 # The main entry point of the package
 if __name__ == "__main__":

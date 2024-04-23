@@ -8,7 +8,7 @@ ARG BUILD_REVISION
 LABEL org.opencontainers.image.created=$BUILD_DATE
 LABEL org.opencontainers.image.version=$BUILD_VERSION
 LABEL org.opencontainers.image.revision=$BUILD_REVISION
-LABEL org.opencontainers.image.title="Concertim Openstack API Server"
+LABEL org.opencontainers.image.title="Concertim Service API Server"
 
 # Set the working directory in the container to /app
 WORKDIR /app
@@ -19,13 +19,9 @@ COPY . /app
 # Install any needed packages specified in requirements.txt
 RUN apt-get update -y && apt-get install gcc -y
 RUN pip install --no-cache-dir -r requirements.txt
-# Install component specific packages
-RUN pip install --no-cache-dir -r con_opstk/data_handler/requirements-api.txt
-# Install packages used by ALL handlers used in the api_server.py code
-RUN pip install --no-cache-dir -r con_opstk/data_handler/api_handler/requirements-api-handler.txt
 
 # Make port 42356 available to the world outside this container
 EXPOSE 42356
 
 # Run user_handler when the container launches
-CMD ["python", "driver.py", "run=api"]
+CMD ["python", "driver.py", "--process=api"]
