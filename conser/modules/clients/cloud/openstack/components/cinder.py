@@ -36,3 +36,10 @@ class CinderComponent(OpstkBaseComponent):
             return self.client.volumes.get(volume_id)
         except NotFound as e:
             raise EXCP.MissingCloudObject(f"{volume_id}")
+
+    def get_project_quotas(self, project_id):
+        try:
+            return self.client.quotas.get(project_id)
+        except Exception as e:
+            self.__LOGGER.error(f"An unexpected error : {type(e).__name__} - {e}")
+            raise e

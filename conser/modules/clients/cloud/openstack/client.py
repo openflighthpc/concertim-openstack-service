@@ -552,6 +552,31 @@ class OpenstackClient(AbsCloudClient):
         # RETURN
         return return_dict
 
+    def get_project_quotas(self, project_id):
+        # EXIT CASES
+        self.__LOGGER.debug(f"Fetching project quotas")
+        if 'nova' not in self.components or not self.components['nova']:
+            raise EXCP.NoComponentFound('nova')
+        if 'cinder' not in self.components or not self.components['cinder']:
+            raise EXCP.NoComponentFound('cinder')
+        if 'neutron' not in self.components or not self.components['neutron']:
+            raise EXCP.NoComponentFound('neutron')
+
+        # CLOUD OBJECT LOGIC
+        quotas = self.components['nova'].get_project_quotas(project_id=project_id).to_dict()
+        cinder_quotas = self.components['cinder'].get_project_quotas(project_id=project_id).to_dict()
+        neutron_quotas = self.components['neutron'].get_project_quotas(project_id=project_id)["quota"]
+
+        quotas.update(cinder_quotas)
+        quotas.update(neutron_quotas)
+        # BUILD RETURN DICT
+        self.__LOGGER.debug(f"Building Return dictionary")
+        return_dict = {
+            'quotas': quotas
+        }
+        # RETURN
+        return return_dict
+
     def get_all_cm_users(self):
         """
         Get all Concertim Managed Users IDs from the cloud.
@@ -1337,6 +1362,28 @@ class OpenstackClient(AbsCloudClient):
         # BUILD RETURN DICT
         # RETURN
         return attempt
+
+    def get_cloud_stats(self):
+        # EXIT CASES
+        if 'nova' not in self.components or not self.components['nova']:
+            raise EXCP.NoComponentFound('nova')
+
+        # CLOUD OBJECT LOGIC
+        cloud_stats = self.components['nova'].get_cloud_stats()
+
+        # BUILD RETURN DICT
+        results = {
+            "total_vcpus": cloud_stats.vcpus,
+            "used_vcpus": cloud_stats.vcpus_used,
+            "total_disk_space": cloud_stats.local_gb,
+            "used_disk_space": cloud_stats.local_gb_used,
+            "total_ram": cloud_stats.memory_mb / 1024,
+            "used_ram": cloud_stats.memory_mb_used / 1024,
+            "running_vms": cloud_stats.running_vms
+        }
+
+        # RETURN
+        return results
 
     def start_message_queue(self):
         """

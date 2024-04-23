@@ -487,6 +487,40 @@ class APIHandler(Handler):
         # RETURN
         return return_dict
 
+    def get_cloud_stats(self):
+        self.__LOGGER.debug(f"Fetching cloud statistics")
+        # EXIT CASES
+        if 'cloud' not in self.clients or not self.clients['cloud']:
+            raise EXCP.MissingRequiredClient('cloud')
+
+        # OBJECT LOGIC
+        stats = self.clients['cloud'].get_cloud_stats()
+
+        # BUILD RETURN DICT
+        self.__LOGGER.debug(f"Building Return dictionary")
+        return_dict = {
+            'stats': stats
+        }
+        # RETURN
+        return return_dict
+
+    def get_account_quotas(self, project_id):
+        self.__LOGGER.debug(f"Fetching account quotas")
+        # EXIT CASES
+        if 'cloud' not in self.clients or not self.clients['cloud']:
+            raise EXCP.MissingRequiredClient('cloud')
+
+        # OBJECT LOGIC
+        quotas = self.clients['cloud'].get_project_quotas(project_id=project_id)['quotas']
+
+        # BUILD RETURN DICT
+        self.__LOGGER.debug(f"Building Return dictionary")
+        return_dict = {
+            'quotas': quotas
+        }
+        # RETURN
+        return return_dict
+
     ##############################
     # HANDLER REQUIRED FUNCTIONS #
     ##############################

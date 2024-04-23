@@ -261,6 +261,39 @@ def delete_team():
         app.logger.info(f"Finished - Deleting team in Cloud and closing billing account")
         disconnect_handler(handler)
 
+def get_team_quotas(team_project_id):
+    app.logger.info("Starting - Getting team quotas")
+    try:
+        # Authenticate with JW
+        authenticate(request.headers)
+
+        # Create API Handler
+        handler = Factory.get_handler(
+            "api",
+            conf_dict,
+            log_file,
+            cloud_components_list=['nova', 'cinder', 'neutron'],
+            enable_concertim_client=False,
+            enable_cloud_client=True,
+            enable_billing_client=False
+        )
+
+        # Call Function in API Handler
+        handler_return = handler.get_account_quotas(project_id=team_project_id)
+        app.logger.debug(f"Handler Return Data - {handler_return}")
+
+        # Return to Concertim
+        resp = {
+            'success': True,
+            'quotas': handler_return['quotas']
+        }
+        return make_response(resp, 201)
+    except Exception as e:
+        return handle_exception(e)
+    finally:
+        app.logger.info(f"Finished - Getting quotas")
+        disconnect_handler(handler)
+
 def create_team_role():
     app.logger.info("Starting - Creating new team role")
     try:
@@ -914,7 +947,40 @@ def add_order_tag():
     finally:
         app.logger.info(f"Finished - Adding tag to Order")
         disconnect_handler(handler)
-    
+
+def get_cloud_stats():
+    app.logger.info("Starting - Getting cloud statistics")
+    try:
+        # Authenticate with JWT
+        authenticate(request.headers)
+
+        # Create API Handler
+        handler = Factory.get_handler(
+            "api",
+            conf_dict,
+            log_file,
+            cloud_components_list=["keystone", "nova"],
+            enable_concertim_client=False,
+            enable_cloud_client=True,
+            enable_billing_client=False
+        )
+
+        # Call Function in API Handler
+        handler_return = handler.get_cloud_stats()
+        app.logger.debug(f"Handler Return Data - {handler_return}")
+
+        # Return to Concertim
+        resp = {
+            'success': True,
+            'stats': handler_return['stats']
+        }
+        app.logger.debug(f"{resp}")
+        return make_response(resp, 201)
+    except Exception as e:
+        return handle_exception(e)
+    finally:
+        app.logger.info(f"Finished - Getting cloud statistics")
+        disconnect_handler(handler)
 
 ### HELPERS
 def handle_exception(e):
@@ -994,6 +1060,10 @@ app.add_url_rule('/team', endpoint='delete_team',
                                 view_func=delete_team,
                                 methods=['DELETE'])
 
+app.add_url_rule('/team/<team_project_id>/quotas', endpoint='get_team_quotas',
+                                view_func=get_team_quotas,
+                                methods=['GET'])
+
 #### TEAM ROLES
 app.add_url_rule('/team_role', endpoint='create_team_role',
                                 view_func=create_team_role,
@@ -1060,7 +1130,12 @@ app.add_url_rule('/delete_order', endpoint='delete_order',
 app.add_url_rule('/add_order_tag', endpoint='add_order_tag',
                                 view_func=add_order_tag,
                                 methods=['POST'])
-                
+
+#### STATISTICS
+app.add_url_rule('/statistics', endpoint='get_cloud_stats',
+                                view_func=get_cloud_stats,
+                                methods=['GET'])
+
 ### RUNNER
 def run_api(config_obj, log_f):
     global conf_dict
