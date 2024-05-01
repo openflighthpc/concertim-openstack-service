@@ -884,15 +884,13 @@ def delete_order():
         )
 
         # Call Function in API Handler
-        handler_return = handler.delete_order(
-            project_billing_id=request_data['order']['order_id']
-        )
+        handler_return = handler.delete_order(request_data['order']['order_id'])
         app.logger.debug(f"Handler Return Data - {handler_return}")
 
         # Return to Concertim
         resp = {
             'success': True,
-            'order': handler_return['order_id']
+            'order': request_data['order']['order_id']
         }
         return make_response(resp, 201)
     except Exception as e:
