@@ -302,11 +302,18 @@ def get_team_limits(team_project_id):
         # Authenticate with JW
         authenticate(request.headers)
 
+        # Validate Required Data
+        request_data = request.get_json()
+        verify_required_data(request_data,
+            'cloud_env',
+        )
+
         # Create API Handler
         handler = Factory.get_handler(
             "api",
             conf_dict,
             log_file,
+            cloud_auth_dict=request_data['cloud_env'],
             cloud_components_list=['cinder', 'nova', 'neutron'],
             enable_concertim_client=False,
             enable_cloud_client=True,
