@@ -252,14 +252,6 @@ class KeystoneComponent(OpstkBaseComponent):
             self.__LOGGER.error(f"An unexpected error : {type(e).__name__} - {e}")
             raise e
 
-    def get_project_limits(self, project_id):
-        try:
-            self.__LOGGER.debug(f"Getting limits for Project:{project_id}")
-            return self.client.limits.list(project_id).to_dict()["absolute"]
-        except Exception as e:
-            self.__LOGGER.error(f"An unexpected error : {type(e).__name__} - {e}")
-            raise e
-
     def disconnect(self):
         self.__LOGGER.debug("Disconnecting Keystone Component Connection")
         self.client = None

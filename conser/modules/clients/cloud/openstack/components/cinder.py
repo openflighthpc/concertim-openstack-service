@@ -44,8 +44,6 @@ class CinderComponent(OpstkBaseComponent):
             self.__LOGGER.error(f"An unexpected error : {type(e).__name__} - {e}")
             raise e
 
-    # These seem to be wrong - looks like it's getting the admin usage, not the specified project.
-    # Might work if user logs in.
     def get_project_limits(self, project_id):
         try:
             self.__LOGGER.debug(f"Getting limits for Project:{project_id}")

@@ -38,12 +38,3 @@ class NeutronComponent(OpstkBaseComponent):
         except Exception as e:
             self.__LOGGER.error(f"An unexpected error : {type(e).__name__} - {e}")
             raise e
-
-
-    def get_project_limits(self, project_id):
-        try:
-            self.__LOGGER.debug(f"Getting limits for Project:{project_id}")
-            return self.client.get_quota(project_id).to_dict()
-        except Exception as e:
-            self.__LOGGER.error(f"An unexpected error : {type(e).__name__} - {e}")
-            raise e
