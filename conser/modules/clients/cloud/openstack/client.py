@@ -578,7 +578,7 @@ class OpenstackClient(AbsCloudClient):
         # RETURN
         return return_dict
 
-    def get_project_limits(self, project_id):
+    def get_user_project_limits(self):
         # EXIT CASES
         self.__LOGGER.debug(f"Fetching project limits")
         if 'nova' not in self.components or not self.components['nova']:
@@ -587,8 +587,9 @@ class OpenstackClient(AbsCloudClient):
             raise EXCP.NoComponentFound('cinder')
 
         # CLOUD OBJECT LOGIC
-        limits = self.components['nova'].get_project_limits(project_id)
-        limits.update(self.components['cinder'].get_project_limits(project_id))
+        # Project is determined by session
+        limits = self.components['nova'].get_project_limits()
+        limits.update(self.components['cinder'].get_project_limits())
 
         # BUILD RETURN DICT
         self.__LOGGER.debug(f"Building Return dictionary")

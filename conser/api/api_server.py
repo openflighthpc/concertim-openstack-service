@@ -296,8 +296,8 @@ def get_team_quotas(team_project_id):
         disconnect_handler(handler)
 
 # This is similar to quotas, but only covers a small number of limits and also includes some usage figures
-def get_team_limits(team_project_id):
-    app.logger.info("Starting - Getting team limits")
+def get_user_team_limits():
+    app.logger.info("Starting - Getting user team limits")
     try:
         # Authenticate with JW
         authenticate(request.headers)
@@ -321,7 +321,8 @@ def get_team_limits(team_project_id):
         )
 
         # Call Function in API Handler
-        handler_return = handler.get_account_limits(project_id=team_project_id)
+        # Project id is determined by session
+        handler_return = handler.get_user_project_limits()
         app.logger.debug(f"Handler Return Data - {handler_return}")
 
         # Return to Concertim
@@ -1104,8 +1105,9 @@ app.add_url_rule('/team/<team_project_id>/quotas', endpoint='get_team_quotas',
                                 view_func=get_team_quotas,
                                 methods=['GET'])
 
-app.add_url_rule('/team/<team_project_id>/limits', endpoint='get_team_limits',
-                                view_func=get_team_limits,
+# Project ID is determined by session - openstack does not permit specifying project unless an admin
+app.add_url_rule('/team/limits', endpoint='get_user_team_limits',
+                                view_func=get_user_team_limits,
                                 methods=['GET'])
 
 #### TEAM ROLES
