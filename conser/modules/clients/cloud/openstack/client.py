@@ -87,6 +87,11 @@ class OpenstackClient(AbsCloudClient):
         'resume': 'resume_instance',
         'destroy': 'destroy_instance'
     }
+    VALID_VOLUME_ACTIONS = {
+        'destroy': 'destroy_volume',
+        'detach': 'detach_volume'
+    }
+    VALID_NETWORK_ACTIONS = {}
     VALID_CLUSTER_ACTIONS = {
         'suspend': 'suspend_stack',
         'resume': 'resume_stack',
@@ -108,10 +113,14 @@ class OpenstackClient(AbsCloudClient):
             self.req_keystone_objs = self.__populate_required_objs('keystone', required_ks_objs)
         self.CONCERTIM_STATE_MAP = {
             'DEVICE':{
-                'ACTIVE': ['active', 'running'],
-                'STOPPED': ['stopped'],
+                'ACTIVE': ['active', 'Active', 'ACTIVE', 'running', 'in-use'],
+                'STOPPED': ['stopped', 'available'],
                 'SUSPENDED': ['suspended'],
-                'IN_PROGRESS': ['building', 'deleting', 'scheduling', 'networking', 'block_device_mapping', 'spawning', 'deleted', 'powering-on', 'powering-off', 'suspending'],
+                'IN_PROGRESS': [
+                    'building', 'deleting', 'scheduling', 'networking', 'block_device_mapping',
+                    'spawning', 'deleted', 'powering-on', 'powering-off', 'suspending',
+                    'creating', 'attaching', 'detaching', 'maintenance', 'reserved'
+                ],
                 'FAILED': []
             },
             'RACK':{
@@ -1015,6 +1024,7 @@ class OpenstackClient(AbsCloudClient):
             raise EXCP.NoComponentFound('cinder')
         self.__LOGGER.debug(f"Fetching volume {volume_id}")
         volume = self.components['cinder'].get_volume(volume_id)
+        self.__LOGGER.debug(f"{volume.to_dict()}")
         return volume
 
     def get_network_info(self, network_id):
@@ -1187,6 +1197,36 @@ class OpenstackClient(AbsCloudClient):
         # CLOUD OBJECT LOGIC
         attempt = getattr(self.components['nova'], OpenstackClient.VALID_SERVER_ACTIONS[action])(
             instance_id=server_cloud_id
+        )
+
+        # BUILD RETURN DICT
+        self.__LOGGER.debug(f"Building Return dictionary")
+        return_dict = {
+            'submitted': True,
+            'request_ids': attempt.request_ids
+        }
+
+        # RETURN
+        return return_dict
+
+    def update_volume_status(self, volume_cloud_id, action):
+        """
+        Change status of a volume (destroy, etc.)
+        """
+        self.__LOGGER.debug(f"Updating Volume {volume_cloud_id} with action {action}")
+        # EXIT CASES
+        if 'cinder' not in self.components or not self.components['cinder']:
+            raise EXCP.NoComponentFound('cinder')
+        if not volume_cloud_id:
+            raise EXCP.MissingRequiredArgs('volume_cloud_id')
+        if not action:
+            raise EXCP.MissingRequiredArgs('action')
+        if action not in OpenstackClient.VALID_VOLUME_ACTIONS:
+            raise EXCP.InvalidArguments(f"action:{action}")
+
+        # CLOUD OBJECT LOGIC
+        attempt = getattr(self.components['cinder'], OpenstackClient.VALID_VOLUME_ACTIONS[action])(
+            volume_cloud_id
         )
 
         # BUILD RETURN DICT

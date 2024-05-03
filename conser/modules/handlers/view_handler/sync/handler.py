@@ -741,8 +741,8 @@ class SyncHandler(AbsViewHandler):
             existing_device._updated = True
 
         new_status = 'FAILED'
-        for concertim_status, os_statuses in self.clients['cloud'].CONCERTIM_STATE_MAP['RACK'].items():
-            if new_resource.resource_status in os_statuses:
+        for concertim_status, os_statuses in self.clients['cloud'].CONCERTIM_STATE_MAP['DEVICE'].items():
+            if new_info and new_info['status'] in os_statuses:
                 new_status = concertim_status
         if new_status != existing_device.status:
             self.__LOGGER.debug(f"Status has changed from {existing_device.status} to {new_status}")
@@ -778,8 +778,8 @@ class SyncHandler(AbsViewHandler):
                     )
 
                     status = 'FAILED'
-                    for concertim_status, os_statuses in self.clients['cloud'].CONCERTIM_STATE_MAP['RACK'].items():
-                        if resource.resource_status in os_statuses:
+                    for concertim_status, os_statuses in self.clients['cloud'].CONCERTIM_STATE_MAP['DEVICE'].items():
+                        if info['status'] in os_statuses:
                             status = concertim_status
 
                     new_device = ConcertimDevice(
@@ -822,7 +822,8 @@ class SyncHandler(AbsViewHandler):
                     'size': os_data.size,
                     'volume_type': os_data.volume_type
                 },
-                'name': os_data.name
+                'name': os_data.name,
+                'status': os_data.status
             }
         elif resource.resource_type == 'OS::Neutron::Net':
             os_net_data = self.clients['cloud'].get_network_info(resource.physical_resource_id)
@@ -835,7 +836,8 @@ class SyncHandler(AbsViewHandler):
                     'shared': os_net_data.get('shared', False),
                     'port_security_enabled': os_net_data.get('port_security_enabled', False)
                 },
-                'name': os_net_data['name']
+                'name': os_net_data['name'],
+                'status': os_net_data['status']
             }
 
     def _find_tagged_template(self, tag):

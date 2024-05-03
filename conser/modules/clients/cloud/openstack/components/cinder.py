@@ -66,6 +66,19 @@ class CinderComponent(OpstkBaseComponent):
         except NotFound as e:
             raise EXCP.MissingCloudObject(f"{volume_id}")
 
+    def detach_volume(self, volume_id):
+        try:
+            return self.client.volumes.detach(volume_id)
+        except NotFound as e:
+            raise EXCP.MissingCloudObject(f"{volume_id}")
+
+    def destroy_volume(self, volume_id):
+        try:
+            # Note: force destroy doesn't actually force deletion in all circumstances
+            return self.client.volumes.force_delete(volume_id)
+        except NotFound as e:
+            raise EXCP.MissingCloudObject(f"{volume_id}")
+
     def get_project_quotas(self, project_id):
         try:
             return self.client.quotas.get(project_id)
