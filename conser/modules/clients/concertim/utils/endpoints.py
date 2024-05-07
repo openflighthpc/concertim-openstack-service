@@ -47,6 +47,7 @@ ENDPOINTS = {
                             "template_id": '{template_id}',
                             "device": {
                                 "name": '{name}',
+                                "type": 'Instance',
                                 "description": '{description}',
                                 "status" : "{status}",
                                 "location": {
@@ -78,6 +79,7 @@ ENDPOINTS = {
                             "device": {
                                 "name": '{name}',
                                 "description": '{description}',
+                                "type": 'Network',
                                 "status" : "{status}",
                                 "location": {
                                     "facing": '{facing}',
@@ -106,6 +108,7 @@ ENDPOINTS = {
                             "template_id": '{template_id}',
                             "device": {
                                 "name": '{name}',
+                                "type": 'Volume',
                                 "description": '{description}',
                                 "status" : "{status}",
                                 "location": {
