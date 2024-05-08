@@ -261,6 +261,7 @@ def delete_team():
         app.logger.info(f"Finished - Deleting team in Cloud and closing billing account")
         disconnect_handler(handler)
 
+# Only includes quotas, no usage
 def get_team_quotas(team_project_id):
     app.logger.info("Starting - Getting team quotas")
     try:
@@ -272,7 +273,7 @@ def get_team_quotas(team_project_id):
             "api",
             conf_dict,
             log_file,
-            cloud_components_list=['nova', 'cinder', 'neutron'],
+            cloud_components_list=['cinder', 'nova', 'neutron'],
             enable_concertim_client=False,
             enable_cloud_client=True,
             enable_billing_client=False
@@ -292,6 +293,48 @@ def get_team_quotas(team_project_id):
         return handle_exception(e)
     finally:
         app.logger.info(f"Finished - Getting quotas")
+        disconnect_handler(handler)
+
+# This is similar to quotas, but only covers a small number of limits and also includes some usage figures
+def get_user_team_limits():
+    app.logger.info("Starting - Getting user team limits")
+    try:
+        # Authenticate with JW
+        authenticate(request.headers)
+
+        # Validate Required Data
+        request_data = request.get_json()
+        verify_required_data(request_data,
+            'cloud_env',
+        )
+
+        # Create API Handler
+        handler = Factory.get_handler(
+            "api",
+            conf_dict,
+            log_file,
+            cloud_auth_dict=request_data['cloud_env'],
+            cloud_components_list=['cinder', 'nova', 'neutron'],
+            enable_concertim_client=False,
+            enable_cloud_client=True,
+            enable_billing_client=False
+        )
+
+        # Call Function in API Handler
+        # Project id is determined by session
+        handler_return = handler.get_user_project_limits()
+        app.logger.debug(f"Handler Return Data - {handler_return}")
+
+        # Return to Concertim
+        resp = {
+            'success': True,
+            'limits': handler_return['limits']
+        }
+        return make_response(resp, 201)
+    except Exception as e:
+        return handle_exception(e)
+    finally:
+        app.logger.info(f"Finished - Getting limits")
         disconnect_handler(handler)
 
 def create_team_role():
@@ -1060,6 +1103,11 @@ app.add_url_rule('/team', endpoint='delete_team',
 
 app.add_url_rule('/team/<team_project_id>/quotas', endpoint='get_team_quotas',
                                 view_func=get_team_quotas,
+                                methods=['GET'])
+
+# Project ID is determined by session - openstack does not permit specifying project unless an admin
+app.add_url_rule('/team/limits', endpoint='get_user_team_limits',
+                                view_func=get_user_team_limits,
                                 methods=['GET'])
 
 #### TEAM ROLES

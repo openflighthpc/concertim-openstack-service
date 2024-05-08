@@ -521,6 +521,24 @@ class APIHandler(Handler):
         # RETURN
         return return_dict
 
+
+    def get_user_project_limits(self):
+        self.__LOGGER.debug(f"Fetching account limits")
+        # EXIT CASES
+        if 'cloud' not in self.clients or not self.clients['cloud']:
+            raise EXCP.MissingRequiredClient('cloud')
+
+        # OBJECT LOGIC
+        limits = self.clients['cloud'].get_user_project_limits()['limits']
+
+        # BUILD RETURN DICT
+        self.__LOGGER.debug(f"Building Return dictionary")
+        return_dict = {
+            'limits': limits
+        }
+        # RETURN
+        return return_dict
+
     ##############################
     # HANDLER REQUIRED FUNCTIONS #
     ##############################

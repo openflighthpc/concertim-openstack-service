@@ -571,8 +571,31 @@ class OpenstackClient(AbsCloudClient):
         quotas.update(neutron_quotas)
         # BUILD RETURN DICT
         self.__LOGGER.debug(f"Building Return dictionary")
+
         return_dict = {
             'quotas': quotas
+        }
+        # RETURN
+        return return_dict
+
+    def get_user_project_limits(self):
+        # EXIT CASES
+        self.__LOGGER.debug(f"Fetching project limits")
+        if 'nova' not in self.components or not self.components['nova']:
+            raise EXCP.NoComponentFound('nova')
+        if 'cinder' not in self.components or not self.components['cinder']:
+            raise EXCP.NoComponentFound('cinder')
+
+        # CLOUD OBJECT LOGIC
+        # Project is determined by session
+        limits = self.components['nova'].get_project_limits()
+        limits.update(self.components['cinder'].get_project_limits())
+
+        # BUILD RETURN DICT
+        self.__LOGGER.debug(f"Building Return dictionary")
+
+        return_dict = {
+            'limits': limits
         }
         # RETURN
         return return_dict

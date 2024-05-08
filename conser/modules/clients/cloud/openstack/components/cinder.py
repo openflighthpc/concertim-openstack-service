@@ -43,3 +43,12 @@ class CinderComponent(OpstkBaseComponent):
         except Exception as e:
             self.__LOGGER.error(f"An unexpected error : {type(e).__name__} - {e}")
             raise e
+
+    # Project determined by session
+    def get_project_limits(self):
+        try:
+            self.__LOGGER.debug(f"Getting limits for Project")
+            return self.client.limits.get().to_dict()["absolute"]
+        except Exception as e:
+            self.__LOGGER.error(f"An unexpected error : {type(e).__name__} - {e}")
+            raise e
