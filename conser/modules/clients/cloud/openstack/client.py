@@ -114,12 +114,14 @@ class OpenstackClient(AbsCloudClient):
         self.CONCERTIM_STATE_MAP = {
             'DEVICE':{
                 'ACTIVE': ['active', 'Active', 'ACTIVE', 'running', 'in-use'],
-                'STOPPED': ['stopped', 'available'],
+                'STOPPED': ['stopped'],
+                'AVAILABLE': ['available'],
                 'SUSPENDED': ['suspended'],
                 'IN_PROGRESS': [
                     'building', 'deleting', 'scheduling', 'networking', 'block_device_mapping',
                     'spawning', 'deleted', 'powering-on', 'powering-off', 'suspending',
-                    'creating', 'attaching', 'detaching', 'maintenance', 'reserved'
+                    'creating', 'attaching', 'detaching', 'maintenance', 'reserved',
+                    'downloading'
                 ],
                 'FAILED': []
             },
