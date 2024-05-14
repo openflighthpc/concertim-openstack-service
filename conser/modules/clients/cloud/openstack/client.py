@@ -91,7 +91,9 @@ class OpenstackClient(AbsCloudClient):
         'destroy': 'destroy_volume',
         'detach': 'detach_volume'
     }
-    VALID_NETWORK_ACTIONS = {}
+    VALID_NETWORK_ACTIONS = {
+        'destroy': 'destroy_network'
+    }
     VALID_CLUSTER_ACTIONS = {
         'suspend': 'suspend_stack',
         'resume': 'resume_stack',
@@ -1229,6 +1231,36 @@ class OpenstackClient(AbsCloudClient):
         # CLOUD OBJECT LOGIC
         attempt = getattr(self.components['cinder'], OpenstackClient.VALID_VOLUME_ACTIONS[action])(
             volume_cloud_id
+        )
+
+        # BUILD RETURN DICT
+        self.__LOGGER.debug(f"Building Return dictionary")
+        return_dict = {
+            'submitted': True,
+            'request_ids': attempt.request_ids
+        }
+
+        # RETURN
+        return return_dict
+
+    def update_network_status(self, network_cloud_id, action):
+        """
+        Change status of a network (destroy, etc.)
+        """
+        self.__LOGGER.debug(f"Updating Network {network_cloud_id} with action {action}")
+        # EXIT CASES
+        if 'neutron' not in self.components or not self.components['neutron']:
+            raise EXCP.NoComponentFound('neutron')
+        if not network_cloud_id:
+            raise EXCP.MissingRequiredArgs('network_cloud_id')
+        if not action:
+            raise EXCP.MissingRequiredArgs('action')
+        if action not in OpenstackClient.VALID_NETWORK_ACTIONS:
+            raise EXCP.InvalidArguments(f"action:{action}")
+
+        # CLOUD OBJECT LOGIC
+        attempt = getattr(self.components['neutron'], OpenstackClient.VALID_NETWORK_ACTIONS[action])(
+            network_cloud_id
         )
 
         # BUILD RETURN DICT

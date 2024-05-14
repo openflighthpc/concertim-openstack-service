@@ -47,7 +47,7 @@ class APIHandler(Handler):
         },
         'networks': {
             'function': 'update_network_status',
-            'actions': []
+            'actions': ['destroy']
         },
         'racks': {
             'function': 'update_cluster_status',
