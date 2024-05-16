@@ -129,7 +129,7 @@ class UpdatesHandler(Handler):
                     self.__LOGGER.debug(f"Device not found in Concertim - Cannot create device - waiting for rack to be created first - skipping")
                     continue
                 self.__LOGGER.debug(f"Device not found in Concertim - creating device {device_id_tup}")
-                created_device = self.create_new_device(device) # TODO: investigate why this not working
+                created_device = self.create_new_device(device)
                 device.id = (created_device['id'], device_id_tup[1])
             else:
                 self.__LOGGER.warning(f"Unrecognized device found in view {device}")

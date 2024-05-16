@@ -1028,7 +1028,6 @@ class OpenstackClient(AbsCloudClient):
             raise EXCP.NoComponentFound('cinder')
         self.__LOGGER.debug(f"Fetching volume {volume_id}")
         volume = self.components['cinder'].get_volume(volume_id)
-        self.__LOGGER.debug(f"{volume.to_dict()}")
         return volume
 
     def get_network_info(self, network_id):

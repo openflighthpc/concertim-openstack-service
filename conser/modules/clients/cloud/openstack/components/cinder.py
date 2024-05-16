@@ -74,7 +74,7 @@ class CinderComponent(OpstkBaseComponent):
 
     def destroy_volume(self, volume_id):
         try:
-            # Note: force destroy doesn't actually force deletion in all circumstances
+            # Note: force delete doesn't actually force deletion in all circumstances
             return self.client.volumes.force_delete(volume_id)
         except NotFound as e:
             raise EXCP.MissingCloudObject(f"{volume_id}")
