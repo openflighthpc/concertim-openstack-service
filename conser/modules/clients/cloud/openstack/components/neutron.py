@@ -77,9 +77,16 @@ class NeutronComponent(OpstkBaseComponent):
 
         for port in ports:
             if port['device_owner'] == 'network:router_interface':
-                self.client.remove_interface_router(port['device_id'], {'port_id': port['id']})
+                router_id = port['device_id']
+                self.disassociate_floating_ips(router_id)
+                self.client.remove_interface_router(router_id, {'port_id': port['id']})
             else:
                 self.client.delete_port(port['id'])
+
+    def disassociate_floating_ips(self, router_id):
+        floating_ips = self.client.list_floatingips(router_id=router_id)['floatingips']
+        for fip in floating_ips:
+            self.client.update_floatingip(fip['id'], {'floatingip': {'port_id': None}})
 
     def get_project_quotas(self, project_id):
         try:
