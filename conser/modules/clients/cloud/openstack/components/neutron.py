@@ -30,10 +30,12 @@
 # Local Imports
 from conser.utils.service_logger import create_logger
 from conser.modules.clients.cloud.openstack.components.base import OpstkBaseComponent
+import conser.exceptions as EXCP
 # Py Packages
 import time
 # Openstack Packages
 from neutronclient.v2_0 import client as n_client
+from neutronclient.common.exceptions import NotFound as NotFound
 
 
 class NeutronComponent(OpstkBaseComponent):
@@ -59,7 +61,25 @@ class NeutronComponent(OpstkBaseComponent):
         raise error
 
     def get_network(self, network_id):
-        return self.client.show_network(network_id)
+        try:
+            return self.client.show_network(network_id)
+        except NotFound as e:
+            raise EXCP.MissingCloudObject(f"{network_id}")
+
+    def destroy_network(self, network_id):
+        # need to delete/remove network ports before network itself can be deleted
+        self.remove_network_ports(network_id)
+
+        return self.client.delete_network(network_id)
+
+    def remove_network_ports(self, network_id):
+        ports = self.client.list_ports(network_id=network_id)['ports']
+
+        for port in ports:
+            if port['device_owner'] == 'network:router_interface':
+                self.client.remove_interface_router(port['device_id'], {'port_id': port['id']})
+            else:
+                self.client.delete_port(port['id'])
 
     def get_project_quotas(self, project_id):
         try:

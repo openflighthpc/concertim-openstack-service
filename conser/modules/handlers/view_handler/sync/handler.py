@@ -645,7 +645,7 @@ class SyncHandler(AbsViewHandler):
         )
         #-- Find spot in rack for new device
         server_location = self._find_empty_slot(
-            device_type='server', 
+            device_type='Instance',
             rack=matching_rack, 
             device_size=server_template.height
         )
@@ -654,6 +654,7 @@ class SyncHandler(AbsViewHandler):
             concertim_id=None, 
             cloud_id=server_dict['id'], 
             concertim_name=server_dict['name'].replace('.','-').replace('_','-'),
+            type='Instance',
             cloud_name=server_dict['name'], 
             rack_id_tuple=matching_rack.id, 
             template=server_template, 
@@ -665,7 +666,6 @@ class SyncHandler(AbsViewHandler):
         new_device.network_interfaces = server_dict['network_interfaces']
 
         new_device.details = {
-            'type': 'Device::ComputeDetails',
             'ssh_key': server_dict['ssh_key_name'],
             'public_ips': server_dict['public_ips'],
             'private_ips': server_dict['private_ips'],
@@ -720,7 +720,7 @@ class SyncHandler(AbsViewHandler):
         self.__LOGGER.debug(f"Finished --- Updated existing ConcertimDevice from cloud data")
 
     def _update_device_from_cloud(self, existing_device, new_resource):
-        if existing_device.details['type'] == 'Device::ComputeDetails':
+        if existing_device.type == 'Instance':
             # Device will have been updated in update_server_device_from_cloud -
             # nothing to do here
             return
@@ -741,19 +741,14 @@ class SyncHandler(AbsViewHandler):
             existing_device._updated = True
 
         new_status = 'FAILED'
-        for concertim_status, os_statuses in self.clients['cloud'].CONCERTIM_STATE_MAP['RACK'].items():
-            if new_resource.resource_status in os_statuses:
+        for concertim_status, os_statuses in self.clients['cloud'].CONCERTIM_STATE_MAP['DEVICE'].items():
+            if new_info and new_info['status'] in os_statuses:
                 new_status = concertim_status
         if new_status != existing_device.status:
             self.__LOGGER.debug(f"Status has changed from {existing_device.status} to {new_status}")
             existing_device.status = new_status
             existing_device._updated = True
         existing_device._delete_marker=False
-
-    TEMPLATE_TAGS_BY_RESOURCE_TYPE = {
-        'Device::NetworkDetails': 'network',
-        'Device::VolumeDetails': 'volume'
-    }
 
     def _create_device_from_cloud(self, resource, cluster_cloud_id):
         rack = self._find_rack_by_cloud_id(cluster_cloud_id)
@@ -769,17 +764,17 @@ class SyncHandler(AbsViewHandler):
                 details = info['details']
                 # below is needed as if part of a resource group, some APIs give the group name instead of device name
                 name = info['name']
-                template = self._find_tagged_template(self.TEMPLATE_TAGS_BY_RESOURCE_TYPE.get(details['type']))
+                template = self._find_tagged_template(info['type'].lower())
                 if template:
                     location = self._find_empty_slot(
-                        device_type=details['type'],
+                        device_type=info['type'],
                         rack=rack,
                         device_size=template.height
                     )
 
                     status = 'FAILED'
-                    for concertim_status, os_statuses in self.clients['cloud'].CONCERTIM_STATE_MAP['RACK'].items():
-                        if resource.resource_status in os_statuses:
+                    for concertim_status, os_statuses in self.clients['cloud'].CONCERTIM_STATE_MAP['DEVICE'].items():
+                        if info['status'] in os_statuses:
                             status = concertim_status
 
                     new_device = ConcertimDevice(
@@ -787,6 +782,7 @@ class SyncHandler(AbsViewHandler):
                         cloud_id=resource.physical_resource_id,
                         concertim_name=name.replace('.','-').replace('_','-'),
                         cloud_name=name,
+                        type=info['type'],
                         rack_id_tuple=rack.id,
                         template=template,
                         location=location,
@@ -815,27 +811,29 @@ class SyncHandler(AbsViewHandler):
             os_data = self.clients['cloud'].get_volume_info(resource.physical_resource_id)
             return {
                 'details': {
-                    'type': 'Device::VolumeDetails',
                     'availability_zone': os_data.availability_zone,
                     'bootable': json.loads(os_data.bootable.lower()),
                     'encrypted': os_data.encrypted,
                     'size': os_data.size,
                     'volume_type': os_data.volume_type
                 },
-                'name': os_data.name
+                'name': os_data.name,
+                'status': os_data.status,
+                'type': 'Volume'
             }
         elif resource.resource_type == 'OS::Neutron::Net':
             os_net_data = self.clients['cloud'].get_network_info(resource.physical_resource_id)
             return {
                 'details': {
-                    'type': 'Device::NetworkDetails',
                     'admin_state_up': os_net_data.get('admin_state_up', False),
                     'l2_adjacency': os_net_data.get('l2_adjacency', False),
                     'mtu': os_net_data.get('mtu'),
                     'shared': os_net_data.get('shared', False),
                     'port_security_enabled': os_net_data.get('port_security_enabled', False)
                 },
-                'name': os_net_data['name']
+                'name': os_net_data['name'],
+                'status': os_net_data['status'],
+                'type': 'Network'
             }
 
     def _find_tagged_template(self, tag):
@@ -932,7 +930,8 @@ class SyncHandler(AbsViewHandler):
             new_device = ConcertimDevice(
                 concertim_id=con_device['id'], 
                 cloud_id=device_cloud_id, 
-                concertim_name=con_device['name'], 
+                concertim_name=con_device['name'],
+                type=con_device['type'],
                 cloud_name=con_device['name'], 
                 rack_id_tuple=tuple((rack_concertim_id, rack_cloud_id, None)), 
                 template=device_template, 
@@ -947,27 +946,24 @@ class SyncHandler(AbsViewHandler):
             else:
                 # Legacy (pre-1.2) Concertim API doesn't have the `details`
                 # object, and instead has the attributes inlined;
-                if con_device['type'] == 'Device::ComputeDetails':
+                if con_device['type'] == 'Instance':
                     new_device.details = {
-                        'type': 'Device::ComputeDetails',
                         'ssh_key': con_device.get('ssh_key', ''),
                         'volume_details': con_device.get('volume_details', []),
                         'public_ips': con_device.get('public_ips', ''),
                         'private_ips': con_device.get('private_ips', ''),
                         'login_user': con_device.get('login_user', '')
                     }
-                elif con_device['type'] == 'Device::VolumeDetails':
+                elif con_device['type'] == 'Volume':
                     new_device.details = {
-                        'type': 'Device::VolumeDetails',
                         "availability_zone": con_device.get('availability_zone', ''),
                         "bootable": con_device.get('bootable', ''),
                         "encrypted": con_device.get('encrypted', ''),
                         "size":  con_device.get('size', ''),
                         "volume_type": con_device.get('volume_type', '')
                     }
-                elif con_device['type'] == 'Device::NetworkDetails':
+                elif con_device['type'] == 'Network':
                     new_device.details = {
-                        'type': 'Device::NetworkDetails',
                         'admin_state_up': con_device.get('admin_state_up', False),
                         'l2_adjacency': con_device.get('l2_adjacency', False),
                         'mtu': con_device.get('mtu'),
@@ -1025,9 +1021,9 @@ class SyncHandler(AbsViewHandler):
                 self.__LOGGER.error(f"No space found in Rack[ID:{rack.id}] for {device_type} of size '{device_size}'")
                 return None
 
-        if device_type in ['server', 'Device::VolumeDetails']:
+        if device_type in ['Instance', 'Volume']:
             return from_bottom()
-        elif device_type in ['Device::NetworkDetails']:
+        elif device_type in ['Network']:
             return from_top()
         else:
             raise EXCP.InvalidArguments(f"device_type:{device_type}")

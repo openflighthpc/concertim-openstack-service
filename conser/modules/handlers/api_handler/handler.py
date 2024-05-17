@@ -37,9 +37,17 @@ class APIHandler(Handler):
     # DEFAULTS #
     ############
     ACTIONS_MAP = {
-        'devices': {
+        'instances': {
             'function': 'update_server_status',
             'actions': ['on', 'off', 'suspend', 'resume', 'destroy']
+        },
+        'volumes': {
+            'function': 'update_volume_status',
+            'actions': ['destroy', 'detach']
+        },
+        'networks': {
+            'function': 'update_network_status',
+            'actions': ['destroy']
         },
         'racks': {
             'function': 'update_cluster_status',

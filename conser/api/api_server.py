@@ -511,14 +511,15 @@ def update_status(obj_type, obj_id):
         verify_required_data(request_data, 
             'cloud_env', 
             'action')
-        
+
+        component = {'racks': 'heat', 'instances': 'nova', 'volumes': 'cinder', 'networks': 'neutron'}[obj_type]
         # Create API Handler
         handler = Factory.get_handler(
             "api", 
             conf_dict,
             log_file,
             cloud_auth_dict=request_data['cloud_env'],
-            cloud_components_list=['nova', 'heat'],
+            cloud_components_list=[component],
             enable_concertim_client=False,
             enable_cloud_client=True,
             enable_billing_client=True
@@ -538,8 +539,7 @@ def update_status(obj_type, obj_id):
         }
         return make_response(resp, 201)
     except Exception as e:
-        raise e
-        # return handle_exception(e)
+        return handle_exception(e)
     finally:
         app.logger.info(f"Finished - Updating status for {obj_type}:{obj_id}")
         disconnect_handler(handler)

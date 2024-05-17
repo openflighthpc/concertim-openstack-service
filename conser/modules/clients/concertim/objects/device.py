@@ -31,6 +31,7 @@ class ConcertimDevice(object):
     def __init__(self,
         concertim_id=None,
         cloud_id=None,
+        type=None,
         concertim_name=None,
         cloud_name=None,
         rack_id_tuple=None,
@@ -38,10 +39,11 @@ class ConcertimDevice(object):
         location=None,
         description='',
         status=None,
-        cost=0.0
+        cost=0.0,
     ):
         self.id = tuple((concertim_id, cloud_id))
         self.name = tuple((concertim_name, cloud_name))
+        self.type = type
         self.description = description
         self.rack_id_tuple = rack_id_tuple
         self.template = template
@@ -60,6 +62,7 @@ class ConcertimDevice(object):
             f"<ConcertimDevice:{{ "
                 f"id:{repr(self.id)}, "
                 f"name:{repr(self.name)}, "
+                f"type: {repr(self.type)}, "
                 f"description:{repr(self.description)}, "
                 f"status:{repr(self.status)}, "
                 f"rack_id_tuple:{repr(self.rack_id_tuple)}, "

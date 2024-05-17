@@ -252,7 +252,7 @@ class UpdatesHandler(Handler):
                 "openstack_stack_id": device_obj.rack_id_tuple[1]
             }
             try:
-                if device_obj.details['type'] == 'Device::ComputeDetails':
+                if device_obj.type == 'Instance':
                     self.clients['concertim'].update_compute_device(
                         ID=device_obj.id[0],
                         variables_dict={
@@ -265,7 +265,7 @@ class UpdatesHandler(Handler):
                             "net_interfaces": device_obj.network_interfaces,
                         }
                     )
-                elif device_obj.details['type'] == 'Device::VolumeDetails':
+                elif device_obj.type == 'Volume':
                     self.clients['concertim'].update_volume_device(
                         ID=device_obj.id[0],
                         variables_dict={
@@ -273,7 +273,7 @@ class UpdatesHandler(Handler):
                             **device_obj.details
                         }
                     )
-                elif device_obj.details['type'] == 'Device::NetworkDetails':
+                elif device_obj.type == 'Network':
                     self.clients['concertim'].update_network_device(
                         ID=device_obj.id[0],
                         variables_dict={
@@ -282,7 +282,7 @@ class UpdatesHandler(Handler):
                         }
                     )
                 else:
-                    self.__LOGGER.error(f"Asked to update device of type {device_obj.details['type']} but don't know how")
+                    self.__LOGGER.error(f"Asked to update device of type {device_obj.type} but don't know how")
                 device_obj._updated = False
                 # "But wait! If we fall into the default case above, the device hasn't really been updated!"
                 # That's true, but running the loop more times isn't going to change that. We've logged the problem,
@@ -308,7 +308,7 @@ class UpdatesHandler(Handler):
             "openstack_stack_id": self.view.racks[device_obj.rack_id_tuple].id[1],
         }
         try:
-            if device_obj.details['type'] == 'Device::ComputeDetails':
+            if device_obj.type == 'Instance':
                 return self.clients['concertim'].create_compute_device(
                     variables_dict={
                         **common_vars,
@@ -320,14 +320,14 @@ class UpdatesHandler(Handler):
                         "login_user": device_obj.details.get('login_user'),
                     }
                 )
-            elif device_obj.details['type'] == 'Device::VolumeDetails':
+            elif device_obj.type == 'Volume':
                 return self.clients['concertim'].create_volume_device(
                     variables_dict={
                         **common_vars,
                         **device_obj.details
                     }
                 )
-            elif device_obj.details['type'] == 'Device::NetworkDetails':
+            elif device_obj.type == 'Network':
                 return self.clients['concertim'].create_network_device(
                     variables_dict={
                         **common_vars,

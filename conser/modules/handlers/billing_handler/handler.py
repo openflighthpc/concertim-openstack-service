@@ -107,11 +107,11 @@ class BillingHandler(AbsBillingHandler):
             self.__LOGGER.debug(f"Cost changed: from {original_cost} to {self.view.devices[device_id_tup].cost}")
             #-- Push cost to concertim
             device =  self.view.devices[device_id_tup]
-            if device.details['type'] == "Device::ComputeDetails":
+            if device.type == "Instance":
                 type = "compute_device"
-            elif device.details['type'] == "Device::VolumeDetails":
+            elif device.type == "Volume":
                 type = "volume_device"
-            elif device.details['type'] == "Device::NetworkDetails":
+            elif device.type == "Network":
                 type = "network_device"
             self.concertim_cost_update(type, self.view.devices[device_id_tup])
         self.__LOGGER.debug(f"Finished --- Updating cost data from Cloud for all devices")
