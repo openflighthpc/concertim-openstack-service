@@ -303,6 +303,24 @@ class APIHandler(Handler):
         # RETURN
         return return_dict
 
+    def detach_volume(self, volume_id):
+        self.__LOGGER.debug(f"Detaching volume {volume_id}")
+        # EXIT CASES
+        if 'cloud' not in self.clients or not self.clients['cloud']:
+            raise EXCP.MissingRequiredClient('cloud')
+
+        # OBJECT LOGIC
+        #-- Update status
+        attempt = self.clients['cloud'].detach_volume(volume_id)
+
+        # BUILD RETURN DICT
+        self.__LOGGER.debug(f"Building Return dictionary")
+        return_dict = {
+            'message': attempt
+        }
+        # RETURN
+        return return_dict
+
     def create_keypair(self, key_name, key_type='ssh', imported_public_key=None):
         self.__LOGGER.debug(f"Creating keypair {key_name}")
         # EXIT CASES

@@ -1242,6 +1242,36 @@ class OpenstackClient(AbsCloudClient):
         # RETURN
         return return_dict
 
+    def detach_volume(self, volume_cloud_id):
+        # EXIT CASES
+        if 'cinder' not in self.components or not self.components['cinder']:
+            raise EXCP.NoComponentFound('cinder')
+        if 'nova' not in self.components or not self.components['nova']:
+            raise EXCP.NoComponentFound('nova')
+        if not volume_cloud_id:
+            raise EXCP.MissingRequiredArgs('volume_cloud_id')
+
+        # CLOUD OBJECT LOGIC
+        # Get the volume details
+        volume = self.components['cinder'].get_volume(volume_cloud_id)
+
+        # Check if the volume is attached to any instance
+        if volume.attachments:
+            for attachment in volume.attachments:
+                instance_id = attachment['server_id']
+
+                # Detach the volume from the instance
+                self.components['nova'].delete_server_volume(instance_id, volume_cloud_id)
+
+        # BUILD RETURN DICT
+        self.__LOGGER.debug(f"Building Return dictionary")
+        return_dict = {
+            'submitted': True
+        }
+
+        # RETURN
+        return return_dict
+
     def update_network_status(self, network_cloud_id, action):
         """
         Change status of a network (destroy, etc.)

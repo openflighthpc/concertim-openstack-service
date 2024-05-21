@@ -512,10 +512,14 @@ def update_status(obj_type, obj_id):
             'cloud_env', 
             'action')
 
+        # detach volume is strange
+        if(obj_type == 'volumes' ) and request_data['action'] == 'detach':
+            return self.detach_volume(obj_id)
+
         component = {'racks': 'heat', 'instances': 'nova', 'volumes': 'cinder', 'networks': 'neutron'}[obj_type]
         # Create API Handler
         handler = Factory.get_handler(
-            "api", 
+            "api",
             conf_dict,
             log_file,
             cloud_auth_dict=request_data['cloud_env'],
@@ -543,6 +547,36 @@ def update_status(obj_type, obj_id):
     finally:
         app.logger.info(f"Finished - Updating status for {obj_type}:{obj_id}")
         disconnect_handler(handler)
+
+def detach_volume(volume_id, request_data):
+    try:
+        # Create API Handler
+        handler = Factory.get_handler(
+            "api",
+            conf_dict,
+            log_file,
+            cloud_auth_dict=request_data['cloud_env'],
+            cloud_components_list=['nova', 'cinder'],
+            enable_concertim_client=False,
+            enable_cloud_client=True,
+            enable_billing_client=True
+        )
+
+        # Call Function in API Handler
+        handler_return = handler.detach_volume(volume_id=volume_id)
+        app.logger.debug(f"Handler Return Data - {handler_return}")
+
+        # Return to Concertim
+        resp = {
+            'cloud_response': handler_return['message']
+        }
+        return make_response(resp, 201)
+    except Exception as e:
+        return handle_exception(e)
+    finally:
+        app.logger.info(f"Finished - Updating status for {obj_type}:{obj_id}")
+        disconnect_handler(handler)
+
 
 def key_pair_create():
     app.logger.info("Starting - Creating keypair in Cloud")
