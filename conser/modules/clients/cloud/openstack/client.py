@@ -940,6 +940,13 @@ class OpenstackClient(AbsCloudClient):
             #------ OS::Cinder::VolumeAttachment, OS::Cinder::Volume, 
             #------ OS::Nova::Server, OS::Nova::ServerGroup,
             #------ OS::Neutron::Port, OS::Neutron::FloatingIP, OS::Neutron::SecurityGroup, OS::Neutron::RouterInterface, OS::Neutron::Router, OS::Neutron::Net, OS::Neutron::Subnet
+
+            # Concertim.com stacks are conflicting, so ignore them
+            try:
+                res_type[1]
+            except IndexError as e:
+                continue
+
             if res_type[1] == 'Nova':
                 if res_type[2] != 'ServerGroup':
                     resources['servers'][resource.physical_resource_id] = {
@@ -1152,7 +1159,8 @@ class OpenstackClient(AbsCloudClient):
                     'name':
                     'ram': 
                     'disk': 
-                    'vcpus': 
+                    'vcpus':
+                    'hourly_cost':
                 }
             }
         }
@@ -1171,12 +1179,15 @@ class OpenstackClient(AbsCloudClient):
             'flavors': {}
         }
         for flavor in flavors:
+            metadata = flavor.get_keys()
+            hourly_cost = metadata['hourly_cost'] if 'hourly_cost' in metadata else 0
             return_dict['flavors'][flavor.id] = {
                 'id': flavor._info['id'],
                 'name': flavor._info['name'],
                 'ram': flavor._info['ram'],
                 'disk': flavor._info['disk'],
                 'vcpus': flavor._info['vcpus'],
+                'hourly_cost': hourly_cost
             }
 
         # RETURN

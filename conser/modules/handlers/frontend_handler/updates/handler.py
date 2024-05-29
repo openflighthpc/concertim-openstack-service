@@ -144,7 +144,8 @@ class UpdatesHandler(Handler):
                     ID=template_obj.id[0],
                     variables_dict={
                         "name": template_obj.name[1],
-                        "description": template_obj.description
+                        "description": template_obj.description,
+                        "hourly_cost": template_obj.hourly_cost,
                     }
                 )
             except Exception as e:

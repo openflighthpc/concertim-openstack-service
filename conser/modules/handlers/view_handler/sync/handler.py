@@ -94,7 +94,7 @@ class SyncHandler(AbsViewHandler):
 
     def pull_cloud_data(self):
         self.__LOGGER.info(f"Starting - Populating Cloud Data")
-        self.layer_cloud_tempaltes()
+        self.layer_cloud_templates()
         self.layer_cloud_racks()
         self.layer_cloud_devices()
         self.__LOGGER.info(f"Finished - Populating Cloud Data")
@@ -317,7 +317,7 @@ class SyncHandler(AbsViewHandler):
         # OBJECT LOGIC
         self.__LOGGER.debug("Finished --- Mapping Devices to existing Racks")
 
-    def layer_cloud_tempaltes(self):
+    def layer_cloud_templates(self):
         self.__LOGGER.debug("Starting -- Layering Cloud Templates onto existing View")
         # EXIT CONDITIONS
         create_all = False
@@ -466,7 +466,8 @@ class SyncHandler(AbsViewHandler):
             disk=template_dict['disk'], 
             vcpus=template_dict['vcpus'], 
             height=template_height,
-            description="Template created from Cloud by Concertim Service"
+            description="Template created from Cloud by Concertim Service",
+            hourly_cost=template_dict['hourly_cost'],
         )
         self.view.add_template(new_template)
         self.__LOGGER.debug(f"Finished --- Created new ConcertimTemplate from cloud data")
@@ -496,6 +497,10 @@ class SyncHandler(AbsViewHandler):
         cloud_template_height = min((int( template_dict['vcpus'] / 2 ) + 1), 4)
         if con_template.height != cloud_template_height:
             self.view.templates[template_id_tup].height = cloud_template_height
+            self.view.templates[template_id_tup]._updated = True
+
+        if con_template.hourly_cost != template_dict['hourly_cost']:
+            self.view.templates[template_id_tup].hourly_cost = template_dict['hourly_cost']
             self.view.templates[template_id_tup]._updated = True
 
         self.__LOGGER.debug(f"Finished --- Updated existing ConcertimTemplate from cloud data")

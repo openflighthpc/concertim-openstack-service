@@ -155,7 +155,7 @@ ENDPOINTS = {
                     },
                     'CREATE_TEMPLATE':{
                         'endpoint': '/api/v1/templates',
-                        'required_vars': ['name','description','height', 'ram', 'disk', 'vcpus', 'foreign_id'],
+                        'required_vars': ['name','description','height', 'ram', 'disk', 'vcpus', 'foreign_id', 'hourly_cost'],
                         'data': {
                             "template": {
                                 "name": '{name}',
@@ -164,7 +164,8 @@ ENDPOINTS = {
                                 "ram" : '{ram}',
                                 "disk" :'{disk}',
                                 "vcpus" : '{vcpus}',
-                                "foreign_id" : '{foreign_id}'
+                                "foreign_id" : '{foreign_id}',
+                                "hourly_cost" : '{hourly_cost}',
                             }
                         }
                     }
@@ -348,7 +349,8 @@ ENDPOINTS = {
                         'data': {
                             "template": {
                                 "name": '{name}',
-                                "description": '{description}'
+                                "description": '{description}',
+                                "hourly_cost": '{hourly_cost}',
                             }
                         }
                     }

@@ -38,7 +38,8 @@ class ConcertimTemplate(object):
         vcpus=None,
         height=None,
         description='',
-        tag=None
+        tag=None,
+        hourly_cost=None,
     ):
         self.id = tuple((concertim_id, cloud_id))
         self.name = tuple((concertim_name, cloud_name))
@@ -48,6 +49,7 @@ class ConcertimTemplate(object):
         self.vcpus = vcpus
         self.height = height
         self.tag = tag
+        self.hourly_cost = hourly_cost
         self._updated=False
 
     def __repr__(self):
@@ -60,6 +62,7 @@ class ConcertimTemplate(object):
                 f"vcpus:{repr(self.vcpus)}, "
                 f"disk:{repr(self.disk)}, "
                 f"ram:{repr(self.ram)}, "
+                f"hourly_cost:{repr(self.hourly_cost)}, "
                 f"tag:{repr(self.tag)}}}>"
         )
     
