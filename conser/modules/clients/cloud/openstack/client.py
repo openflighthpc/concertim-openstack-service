@@ -936,6 +936,13 @@ class OpenstackClient(AbsCloudClient):
                 continue
 
             res_type = resource.resource_type.split("::")
+
+            #-- Other versions of concertim can have incompatible resource types
+            try:
+              res_type[1]
+            except IndexError as e:
+              continue
+
             #---- res_types could be (not all listed, just examples)
             #------ OS::Cinder::VolumeAttachment, OS::Cinder::Volume, 
             #------ OS::Nova::Server, OS::Nova::ServerGroup,
