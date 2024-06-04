@@ -546,7 +546,8 @@ class SyncHandler(AbsViewHandler):
             team_id_tuple=matching_team.id,
             height=self.clients['concertim'].rack_height, 
             description='Rack created from Cloud by Concertim Service', 
-            status=cluster_status
+            status=cluster_status,
+            created_at=cluster_dict['created_at']
         )
         new_rack.output = cluster_dict['cluster_outputs']
         new_rack._creation_output = self._get_output_as_string(cluster_dict['cluster_outputs'])

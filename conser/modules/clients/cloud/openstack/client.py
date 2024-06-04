@@ -889,7 +889,8 @@ class OpenstackClient(AbsCloudClient):
             'description': 
             'creator_cloud_name':
             'status': 
-            'status_reason': 
+            'status_reason':
+            'created_at':
             'cluster_resources': {
                 'servers': {
                     <resource_id>: {
@@ -1015,6 +1016,7 @@ class OpenstackClient(AbsCloudClient):
             'description': cluster._info['description'],
             'creator_cloud_name': cluster._info['stack_owner'],
             'status': cluster._info['stack_status'],
+            'created_at': cluster._info['creation_time'],
             'status_reason': cluster._info['stack_status_reason'],
             'cluster_resources': resources,
             'cluster_outputs': output

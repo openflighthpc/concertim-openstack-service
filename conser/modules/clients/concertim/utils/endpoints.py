@@ -143,6 +143,7 @@ ENDPOINTS = {
                                 "name": '{name}',
                                 "u_height": '{u_height}',
                                 "status" : "{status}",
+                                "cloud_created_at": "{created_at}",
                                 "network_details": '{network_details}',
                                 "creation_output": '{creation_output}',
                                 "order_id": '{order_id}',
