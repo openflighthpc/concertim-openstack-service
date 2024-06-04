@@ -660,7 +660,8 @@ class SyncHandler(AbsViewHandler):
             template=server_template, 
             location=server_location, 
             description="Server Device created from Cloud by Concertim Service", 
-            status=device_status
+            status=device_status,
+            created_at=server_dict['created_at']
         )
 
         new_device.network_interfaces = server_dict['network_interfaces']
@@ -787,7 +788,8 @@ class SyncHandler(AbsViewHandler):
                         template=template,
                         location=location,
                         description="Device created from Cloud by Concertim Service",
-                        status=status
+                        status=status,
+                        created_at=info['created_at']
                     )
                     new_device.details = details
                     new_device._delete_marker = False
@@ -819,7 +821,8 @@ class SyncHandler(AbsViewHandler):
                 },
                 'name': os_data.name,
                 'status': os_data.status,
-                'type': 'Volume'
+                'type': 'Volume',
+                'created_at': os_data.created_at,
             }
         elif resource.resource_type == 'OS::Neutron::Net':
             os_net_data = self.clients['cloud'].get_network_info(resource.physical_resource_id)
@@ -833,7 +836,8 @@ class SyncHandler(AbsViewHandler):
                 },
                 'name': os_net_data['name'],
                 'status': os_net_data['status'],
-                'type': 'Network'
+                'type': 'Network',
+                'created_at': os_net_data['created_at'],
             }
 
     def _find_tagged_template(self, tag):

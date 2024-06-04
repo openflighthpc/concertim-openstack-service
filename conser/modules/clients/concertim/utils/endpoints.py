@@ -50,6 +50,7 @@ ENDPOINTS = {
                                 "type": 'Instance',
                                 "description": '{description}',
                                 "status" : "{status}",
+                                "cloud_created_at" : "{created_at}",
                                 "location": {
                                     "facing": '{facing}',
                                     "rack_id": '{rack_id}',
@@ -81,6 +82,7 @@ ENDPOINTS = {
                                 "description": '{description}',
                                 "type": 'Network',
                                 "status" : "{status}",
+                                "cloud_created_at" : "{created_at}",
                                 "location": {
                                     "facing": '{facing}',
                                     "rack_id": '{rack_id}',
@@ -111,6 +113,7 @@ ENDPOINTS = {
                                 "type": 'Volume',
                                 "description": '{description}',
                                 "status" : "{status}",
+                                "cloud_created_at" : "{created_at}",
                                 "location": {
                                     "facing": '{facing}',
                                     "rack_id": '{rack_id}',

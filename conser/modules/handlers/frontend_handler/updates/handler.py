@@ -306,6 +306,7 @@ class UpdatesHandler(Handler):
             "start_u": device_obj.location.start_u,
             'openstack_instance_id': device_obj.id[1],
             "openstack_stack_id": self.view.racks[device_obj.rack_id_tuple].id[1],
+            "created_at": device_obj.created_at,
         }
         try:
             if device_obj.type == 'Instance':

@@ -40,6 +40,7 @@ class ConcertimDevice(object):
         description='',
         status=None,
         cost=0.0,
+        created_at=None,
     ):
         self.id = tuple((concertim_id, cloud_id))
         self.name = tuple((concertim_name, cloud_name))
@@ -51,6 +52,7 @@ class ConcertimDevice(object):
         self.status = status
         self.network_interfaces = []
         self.cost = cost
+        self.created_at = created_at
 
         self.details = {}
 
@@ -63,6 +65,7 @@ class ConcertimDevice(object):
                 f"id:{repr(self.id)}, "
                 f"name:{repr(self.name)}, "
                 f"type: {repr(self.type)}, "
+                f"created: {repr(self.created_at)}, "
                 f"description:{repr(self.description)}, "
                 f"status:{repr(self.status)}, "
                 f"rack_id_tuple:{repr(self.rack_id_tuple)}, "

@@ -1098,7 +1098,8 @@ class OpenstackClient(AbsCloudClient):
                 'private_ips': pri_ips,
                 'ssh_key_name': inst.key_name,
                 'volumes': vols,
-                'network_interfaces': list(inst._info['addresses'].keys())
+                'network_interfaces': list(inst._info['addresses'].keys()),
+                'created_at': inst._info['created']
             }
             return_dict['servers'][inst.id] = server_dict
 
