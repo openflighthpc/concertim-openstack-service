@@ -33,7 +33,8 @@ class ConcertimRack(object):
         cloud_id=None, 
         billing_id=None,
         concertim_name=None, 
-        cloud_name=None, 
+        cloud_name=None,
+        cluster_type_name=None,
         team_id_tuple=None,
         height=42, 
         description='', 
@@ -43,6 +44,7 @@ class ConcertimRack(object):
         self.id = tuple((concertim_id, cloud_id, billing_id))
         self.name = tuple((concertim_name, cloud_name))
         self.description = description
+        self.cluster_type_name = cluster_type_name
         self.team_id_tuple = team_id_tuple
         self.height = height
         self.created_at = created_at
@@ -74,7 +76,8 @@ class ConcertimRack(object):
                 f"name:{repr(self.name)}, " 
                 f"_base_name:{repr(self._base_name)}, " 
                 f"_project_cloud_id:{repr(self._project_cloud_id)}, " 
-                f"description:{repr(self.description)}, " 
+                f"description:{repr(self.description)}, "
+                f"cluster_type_name:{repr(self.cluster_type_name)}, "
                 f"status:{repr(self.status)}, "
                 f"_status_reason:{repr(self._status_reason)}, "
                 f"created:{repr(self.created_at)}, "

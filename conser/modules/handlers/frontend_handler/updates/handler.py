@@ -220,6 +220,7 @@ class UpdatesHandler(Handler):
                     "openstack_stack_owner_id" : rack_obj.team_id_tuple[1],
                     "stack_status_reason": rack_obj._status_reason,
                     'openstack_stack_output': rack_obj.output,
+                    'cluster_type_name': rack_obj.cluster_type_name,
                     "created_at": rack_obj.created_at,
                 }
             )

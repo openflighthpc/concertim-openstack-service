@@ -995,6 +995,7 @@ class OpenstackClient(AbsCloudClient):
                 }
         #-- output from heat stack
         self.__LOGGER.debug(f"Getting Cluster output data")
+        cluster_type_name = None
         output = []
         outputs_list = self.components['heat'].list_stack_output(
             stack_id=cluster_cloud_id
@@ -1005,6 +1006,8 @@ class OpenstackClient(AbsCloudClient):
                 output_key=output_dict['output_key']
             )
             output.append(tuple((output_dict['output_key'], details)))
+            if output_dict['output_key'] == "concertim_cluster_type":
+                cluster_type_name = details["output_value"]
         
         # BUILD RETURN DICT
         self.__LOGGER.debug(f"Building Return dictionary")
@@ -1019,7 +1022,8 @@ class OpenstackClient(AbsCloudClient):
             'created_at': cluster._info['creation_time'],
             'status_reason': cluster._info['stack_status_reason'],
             'cluster_resources': resources,
-            'cluster_outputs': output
+            'cluster_outputs': output,
+            'cluster_type_name': cluster_type_name
         }
 
         # RETURN

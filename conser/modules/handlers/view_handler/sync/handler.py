@@ -543,6 +543,7 @@ class SyncHandler(AbsViewHandler):
             billing_id=cluster_billing_id,
             concertim_name=cluster_dict['name'].replace('.','-').replace('_','-'),
             cloud_name=cluster_dict['name'],
+            cluster_type_name=cluster_dict['cluster_type_name'],
             team_id_tuple=matching_team.id,
             height=self.clients['concertim'].rack_height, 
             description='Rack created from Cloud by Concertim Service', 
