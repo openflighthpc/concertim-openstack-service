@@ -214,7 +214,6 @@ class UpdatesHandler(Handler):
                     "status" : rack_obj.status,
                     "network_details": rack_obj.network_details,
                     "creation_output": rack_obj._creation_output,
-                    "order_id": rack_obj.id[2],
                     "openstack_stack_id" : rack_obj.id[1],
                     "openstack_stack_owner" : rack_obj.metadata['creator_cloud_name'],
                     "openstack_stack_owner_id" : rack_obj.team_id_tuple[1],

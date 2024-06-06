@@ -287,13 +287,6 @@ class APIHandler(Handler):
             cloud_obj_id,
             action
         )
-        #-- Update billing if needed
-        # Do we want to delete the order? We didn't in the previous version. Either way currently this does not work,
-        # as this needs the order id, not the rack id
-#       if concertim_obj_type == 'racks' and action == 'destroy':
-#           cluster_delete = self.clients['billing'].delete_cluster_order(
-#               cluster_billing_id=cloud_obj_id
-#           )
 
         # BUILD RETURN DICT
         self.__LOGGER.debug(f"Building Return dictionary")

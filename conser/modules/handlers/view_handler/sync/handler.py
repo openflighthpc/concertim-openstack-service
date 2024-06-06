@@ -148,8 +148,7 @@ class SyncHandler(AbsViewHandler):
                 cloud_id=team['project_id'],
                 concertim_name=team['name'],
                 cloud_name=f"CM_{team['name'].replace(' ', '_')}",
-                description='',
-                billing_id=team['billing_acct_id'])
+                description='')
             new_team.cost = float(team['cost'] if 'cost' in team and team['cost'] else 0.0)
             new_team.billing_period_start = team['billing_period_start'] if 'billing_period_start' in team and team['billing_period_start'] else ''
             new_team.billing_period_end = team['billing_period_end'] if 'billing_period_end' in team and team['billing_period_end'] else ''
@@ -205,15 +204,13 @@ class SyncHandler(AbsViewHandler):
             #-- Grab IDs
             cluster_team_concertim_id = None if not con_rack['owner']['id'] else con_rack['owner']['id']
             cluster_user_project_id = None if not con_rack['owner']['project_id'] else con_rack['owner']['project_id']
-            cluster_billing_id = None if not con_rack['owner']['billing_acct_id'] else con_rack['owner']['billing_acct_id']
             #-- Create rack
             new_rack = ConcertimRack(
                 concertim_id=con_rack['id'], 
-                cloud_id=cluster_cloud_id, 
-                billing_id=None if not con_rack['order_id'] else con_rack['order_id'],
+                cloud_id=cluster_cloud_id,
                 concertim_name=con_rack['name'],
                 cloud_name=con_rack['name'],
-                team_id_tuple=tuple((cluster_team_concertim_id, cluster_user_project_id, cluster_billing_id)),
+                team_id_tuple=tuple((cluster_team_concertim_id, cluster_user_project_id)),
                 height=con_rack['u_height'], 
                 description='' if 'description' not in con_rack else con_rack['description'], 
                 status=con_rack['status']
@@ -507,19 +504,6 @@ class SyncHandler(AbsViewHandler):
         if 'CM_' not in cluster_dict['creator_cloud_name']:
             return
         self.__LOGGER.debug(f"Starting --- Creating new ConcertimRack -> '{cluster_dict['name']}' - from cloud data")
-        
-        # OBJECT LOGIC
-        #-- Search for the billing order for the cluster
-        matching_billing_subs = self.clients['billing'].lookup_cluster_billing_info(
-            cluster_cloud_id=cluster_dict['id']
-        )
-        cluster_billing_id = None
-        if matching_billing_subs['count'] < 1:
-            self.__LOGGER.warning(f"Warning --- No matching billing order found for cluster '{cluster_dict['id']}' - setting as None")
-        elif matching_billing_subs['count'] > 1:
-            raise EXCP.TooManyBillingOrders(matching_billing_subs)
-        else:
-            cluster_billing_id = list(matching_billing_subs['subscriptions'])[0]
 
         #-- Search for the cluster owner
         matching_team = None
@@ -540,7 +524,6 @@ class SyncHandler(AbsViewHandler):
         new_rack = ConcertimRack(
             concertim_id=None, 
             cloud_id=cluster_dict['id'],
-            billing_id=cluster_billing_id,
             concertim_name=cluster_dict['name'].replace('.','-').replace('_','-'),
             cloud_name=cluster_dict['name'],
             cluster_type_name=cluster_dict['cluster_type_name'],
@@ -943,8 +926,7 @@ class SyncHandler(AbsViewHandler):
                 template=device_template, 
                 location=device_location, 
                 description=con_device['description'], 
-                status=con_device['status'],
-                cost=float(con_device['cost'])
+                status=con_device['status']
             )
 
             if 'details' in con_device:

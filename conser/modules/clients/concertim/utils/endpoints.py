@@ -146,7 +146,6 @@ ENDPOINTS = {
                                 "cloud_created_at": "{created_at}",
                                 "network_details": '{network_details}',
                                 "creation_output": '{creation_output}',
-                                "order_id": '{order_id}',
                                 "cluster_type_name": '{cluster_type_name}',
                                 "metadata" : {
                                     "openstack_stack_id" : "{openstack_stack_id}",

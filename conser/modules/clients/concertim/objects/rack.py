@@ -30,8 +30,7 @@
 class ConcertimRack(object):
     def __init__(self, 
         concertim_id=None, 
-        cloud_id=None, 
-        billing_id=None,
+        cloud_id=None,
         concertim_name=None, 
         cloud_name=None,
         cluster_type_name=None,
@@ -41,7 +40,7 @@ class ConcertimRack(object):
         status=None,
         created_at=None
     ):
-        self.id = tuple((concertim_id, cloud_id, billing_id))
+        self.id = tuple((concertim_id, cloud_id))
         self.name = tuple((concertim_name, cloud_name))
         self.description = description
         self.cluster_type_name = cluster_type_name
